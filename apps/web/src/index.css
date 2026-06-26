@@ -130,25 +130,38 @@ html, body, #root {
   filter: invert(1);
 }
 
-/* Barra de desplazamiento estética acorde al look-and-feel oscuro */
+/* Barra de desplazamiento estética muy fina para permitir arrastrar con mouse en cualquier pantalla */
 .no-scrollbar::-webkit-scrollbar {
+  display: block;
   height: 5px;
 }
 .no-scrollbar::-webkit-scrollbar-track {
-  background: hsl(var(--background));
-  border-radius: 999px;
+  background: transparent;
 }
 .no-scrollbar::-webkit-scrollbar-thumb {
   background: hsl(var(--border));
   border-radius: 999px;
-  border: 1px solid hsl(var(--background));
 }
 .no-scrollbar::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--primary));
 }
 .no-scrollbar {
+  -ms-overflow-style: auto;
   scrollbar-width: thin;
-  scrollbar-color: hsl(var(--border)) hsl(var(--background));
+}
+
+/* Evitar solapamiento de controles de mapa con cabecera en móviles */
+.maplibregl-ctrl-top-right {
+  top: 175px !important;
+  right: 16px !important;
+  transition: top 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  .maplibregl-ctrl-top-right {
+    top: 16px !important;
+    right: 16px !important;
+  }
 }
 
 
