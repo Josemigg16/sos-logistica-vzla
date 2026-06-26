@@ -1,8 +1,14 @@
 {
-  "name": "api",
+  "name": "@sos/api",
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "scripts": {
+    "dev": "bun --hot index.ts"
+  },
+  "dependencies": {
+    "@sos/shared": "workspace:*"
+  },
   "devDependencies": {
     "@types/bun": "latest"
   },

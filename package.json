@@ -1,0 +1,22 @@
+{
+  "name": "sos-logistica",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "bun --filter @sos/api dev",
+    "dev:web": "bun --filter @sos/web dev",
+    "build": "bun --filter '*' build",
+    "lint": "bun --filter '*' lint",
+    "test": "bun test",
+    "db:push": "bun --filter @sos/api db:push",
+    "db:migrate": "bun --filter @sos/api db:migrate",
+    "db:studio": "bun --filter @sos/api db:studio"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
