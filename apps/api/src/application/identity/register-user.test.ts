@@ -17,10 +17,10 @@ describe("RegisterUser", () => {
     const user = await register.execute({
       username: "zodi1",
       password: "password123",
-      role: "ZODI",
+      role: "ZODI_SENDER",
     });
     expect(user.username).toBe("zodi1");
-    expect(user.role).toBe("ZODI");
+    expect(user.role).toBe("ZODI_SENDER");
     expect(await users.findByUsername("zodi1")).not.toBeNull();
   });
 
@@ -28,7 +28,7 @@ describe("RegisterUser", () => {
     await register.execute({
       username: "zodi2",
       password: "password123",
-      role: "ZODI",
+      role: "ZODI_DESTINATION",
     });
     const stored = await users.findByUsername("zodi2");
     expect(stored!.credential.hash).toBe("hashed:password123");

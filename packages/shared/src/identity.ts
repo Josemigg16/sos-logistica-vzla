@@ -5,7 +5,15 @@ import { z } from "zod";
  * Roles, y schemas de las requests de autenticación.
  */
 
-export const ROLES = ["ADMIN", "MANAGER", "ZODI", "HUB_COORDINATOR"] as const;
+export const ROLES = [
+  "ADMIN",
+  "MANAGER",
+  "ZODI_SENDER",
+  "ZODI_DESTINATION",
+  "HUB_COORDINATOR",
+  "DRIVER",
+  "VOLUNTEER",
+] as const;
 export const roleSchema = z.enum(ROLES);
 export type RoleName = z.infer<typeof roleSchema>;
 

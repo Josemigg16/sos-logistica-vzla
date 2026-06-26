@@ -2,18 +2,35 @@ import { describe, expect, test } from "bun:test";
 import { Role } from "./role";
 
 describe("Role", () => {
-  test("crea un rol válido", () => {
-    expect(Role.create("ADMIN").value).toBe("ADMIN");
-    expect(Role.create("HUB_COORDINATOR").value).toBe("HUB_COORDINATOR");
+  test("acepta los 7 roles del catálogo unificado", () => {
+    const catalog = [
+      "ADMIN",
+      "MANAGER",
+      "ZODI_SENDER",
+      "ZODI_DESTINATION",
+      "HUB_COORDINATOR",
+      "DRIVER",
+      "VOLUNTEER",
+    ];
+    for (const value of catalog) {
+      expect(Role.create(value).value).toBe(value);
+    }
+  });
+
+  test("distingue las dos variantes de ZODI", () => {
+    expect(
+      Role.create("ZODI_SENDER").equals(Role.create("ZODI_DESTINATION")),
+    ).toBe(false);
   });
 
   test("rechaza un rol inválido", () => {
+    expect(() => Role.create("ZODI")).toThrow();
     expect(() => Role.create("SUPERUSER")).toThrow();
   });
 
   test("compara por valor (es value object)", () => {
-    expect(Role.create("ZODI").equals(Role.create("ZODI"))).toBe(true);
-    expect(Role.create("ZODI").equals(Role.create("MANAGER"))).toBe(false);
+    expect(Role.create("DRIVER").equals(Role.create("DRIVER"))).toBe(true);
+    expect(Role.create("DRIVER").equals(Role.create("VOLUNTEER"))).toBe(false);
   });
 
   test("isAdmin solo es true para ADMIN", () => {
