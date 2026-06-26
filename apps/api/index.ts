@@ -36,6 +36,12 @@ async function writeCentros(centros: Centro[]): Promise<boolean> {
 }
 
 // --- Mock data: necesidades públicas ---
+function todayPlus(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
+
 const necesidadesMock = [
   {
     id: "nec-001",
@@ -47,6 +53,7 @@ const necesidadesMock = [
     prioridad: "CRITICA",
     descripcion: "Agua purificada para consumo humano en zonas sin servicio.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    fechaNecesidad: todayPlus(0),
   },
   {
     id: "nec-002",
@@ -58,6 +65,7 @@ const necesidadesMock = [
     prioridad: "CRITICA",
     descripcion: "Analgésico esencial para centros de atención médica improvisados.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    fechaNecesidad: todayPlus(1),
   },
   {
     id: "nec-003",
@@ -69,6 +77,7 @@ const necesidadesMock = [
     prioridad: "ALTA",
     descripcion: "Alimento base para raciones diarias en albergues.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    fechaNecesidad: todayPlus(1),
   },
   {
     id: "nec-004",
@@ -80,6 +89,7 @@ const necesidadesMock = [
     prioridad: "CRITICA",
     descripcion: "Tallas medianas y grandes para bebés en albergues.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 200).toISOString(),
+    fechaNecesidad: todayPlus(0),
   },
   {
     id: "nec-005",
@@ -91,6 +101,7 @@ const necesidadesMock = [
     prioridad: "MEDIA",
     descripcion: "Para familias evacuadas en zonas altas con bajas temperaturas.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    fechaNecesidad: todayPlus(3),
   },
   {
     id: "nec-006",
@@ -102,6 +113,7 @@ const necesidadesMock = [
     prioridad: "MEDIA",
     descripcion: "Barras de jabón para higiene personal en albergues.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    fechaNecesidad: todayPlus(4),
   },
   {
     id: "nec-007",
@@ -113,6 +125,7 @@ const necesidadesMock = [
     prioridad: "ALTA",
     descripcion: "Kits de iluminación para zonas sin electricidad.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    fechaNecesidad: todayPlus(2),
   },
   {
     id: "nec-008",
@@ -124,6 +137,7 @@ const necesidadesMock = [
     prioridad: "BAJA",
     descripcion: "Desinfectante para limpieza de espacios colectivos.",
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+    fechaNecesidad: todayPlus(7),
   },
 ];
 

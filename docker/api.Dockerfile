@@ -23,4 +23,4 @@ COPY apps/api ./apps/api
 
 USER bun
 EXPOSE 3000/tcp
-ENTRYPOINT ["bun", "run", "apps/api/index.ts"]
+ENTRYPOINT ["sh", "-c", "bun db:migrate && bun run apps/api/index.ts"]
