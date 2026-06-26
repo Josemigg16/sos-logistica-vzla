@@ -22,7 +22,7 @@ import {
   HandHeart,
 } from 'lucide-react'
 
-import isologo from '@/assets/branding/white-isologo.webp'
+import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/')({
   component: NecesidadesPage,
@@ -526,7 +526,7 @@ function NecesidadesPage() {
           <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-3">
               <img
-                src={isologo}
+                src={logotipo}
                 alt="Portuguesa Unida"
                 className="h-14 w-auto object-contain"
                 style={{ filter: 'drop-shadow(0 2px 12px rgba(43,95,142,0.5))' }}
@@ -772,7 +772,7 @@ function NecesidadesPage() {
           </Link>
 
           <div className="flex items-center justify-center gap-3 text-[11px] text-white/20">
-            <img src={isologo} alt="Portuguesa Unida" className="h-5 w-auto opacity-30 object-contain" />
+            <img src={logotipo} alt="Portuguesa Unida" className="h-5 w-auto opacity-30 object-contain" />
             <span>·</span>
             <span>Ayuda humanitaria · Portuguesa</span>
           </div>
