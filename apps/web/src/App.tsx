@@ -23,6 +23,7 @@ interface Centro {
   contacto: string;
   responsable: string;
   coordenadas: [number, number];
+  tipo: "acopio" | "salida" | "destino";
   inventario: Record<string, number>;
 }
 
@@ -138,19 +139,55 @@ export default function App() {
       </header>
 
       {/* MAPA PRINCIPAL */}
-      <main className="w-full h-full z-10">
+      <main className="w-full h-full z-10 relative">
         <Map center={mapCenter} zoom={mapZoom} theme={theme} className="w-full h-full">
           <MapControls />
-          {filteredCentros.map(c => (
-            <MapMarker
-              key={c.id}
-              coordinates={c.coordenadas}
-              onClick={() => handleSelectCentro(c)}
-              color={selectedId === c.id ? "#22c55e" : "#5b21b6"}
-              active={selectedId === c.id}
-            />
-          ))}
+          {filteredCentros.map(c => {
+            const getMarkerColor = (tipo: Centro["tipo"]) => {
+              switch (tipo) {
+                case "acopio":
+                  return "#3b82f6"; // Azul
+                case "salida":
+                  return "#ef4444"; // Rojo
+                case "destino":
+                  return "#22c55e"; // Verde
+                default:
+                  return "#3b82f6";
+              }
+            };
+
+            return (
+              <MapMarker
+                key={c.id}
+                coordinates={c.coordenadas}
+                onClick={() => handleSelectCentro(c)}
+                color={getMarkerColor(c.tipo)}
+                active={selectedId === c.id}
+              />
+            );
+          })}
         </Map>
+
+        {/* LEYENDA DEL MAPA */}
+        <div className={`absolute right-4 z-30 p-3.5 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md flex flex-col gap-2 min-w-[220px] transition-all duration-300 md:bottom-6 md:right-6 ${
+          selectedId ? "bottom-28" : "bottom-4"
+        }`}>
+          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Leyenda</h4>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+              <span className="text-[11px] font-medium text-foreground">Centros de Acopios</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
+              <span className="text-[11px] font-medium text-foreground">Salida de Transportes</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+              <span className="text-[11px] font-medium text-foreground">Llegada Centro Acopio Destino</span>
+            </div>
+          </div>
+        </div>
       </main>
 
       {/* CONTROLES FLOTANTES / FILTROS (MOBILE FIRST) */}

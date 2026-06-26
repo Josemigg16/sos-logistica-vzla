@@ -6,6 +6,7 @@
     "contacto": "+58 212 555 0199",
     "responsable": "Dra. Sofía Mendoza",
     "coordenadas": [-66.8482, 10.4961],
+    "tipo": "acopio",
     "inventario": {
       "Víveres": 85,
       "Herramientas": 40,
@@ -23,6 +24,7 @@
     "contacto": "+58 241 857 3341",
     "responsable": "Ing. Carlos Pérez",
     "coordenadas": [-68.0044, 10.1804],
+    "tipo": "acopio",
     "inventario": {
       "Víveres": 90,
       "Herramientas": 25,
@@ -40,6 +42,7 @@
     "contacto": "+58 243 241 1289",
     "responsable": "Cnel. Luis Gómez",
     "coordenadas": [-67.6053, 10.2442],
+    "tipo": "salida",
     "inventario": {
       "Víveres": 45,
       "Herramientas": 85,
@@ -57,6 +60,7 @@
     "contacto": "+58 251 233 4589",
     "responsable": "Lic. Elena Rivas",
     "coordenadas": [-69.3136, 10.0678],
+    "tipo": "destino",
     "inventario": {
       "Víveres": 60,
       "Herramientas": 30,
@@ -65,6 +69,24 @@
       "Productos de limpieza": 55,
       "Abrigo y refugio": 40,
       "Artículos para bebés y grupos vulnerables": 70
+    }
+  },
+  {
+    "id": "5",
+    "nombre": "Centro de Acopio Redoma de Araure",
+    "direccion": "Redoma de Araure, Araure, Portuguesa",
+    "contacto": "+58 255 555 0123",
+    "responsable": "Lic. Marcos Dávila",
+    "coordenadas": [-69.22162, 9.58324],
+    "tipo": "acopio",
+    "inventario": {
+      "Víveres": 70,
+      "Herramientas": 50,
+      "Higiene personal": 65,
+      "Medicamentos": 45,
+      "Productos de limpieza": 80,
+      "Abrigo y refugio": 35,
+      "Artículos para bebés y grupos vulnerables": 90
     }
   }
 ]
