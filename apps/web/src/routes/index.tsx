@@ -1,15 +1,13 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Heart,
-  AlertTriangle,
   TrendingUp,
   Package,
   MapPin,
   Clock,
   ChevronRight,
-  Droplets,
   Pill,
   Wheat,
   Baby,
@@ -18,13 +16,14 @@ import {
   SprayCan,
   Wind,
   Sparkles,
+  Droplets,
 } from 'lucide-react'
 
 export const Route = createFileRoute('/')({
   component: NecesidadesPage,
 })
 
-// --- Tipos ---
+// --- Types ---
 interface Necesidad {
   id: string
   nombre: string
@@ -129,8 +128,8 @@ const MOCK_NECESIDADES: Necesidad[] = [
   },
 ]
 
-// --- Mensajes emotivos rotativos ---
-const MENSAJES_EMOTIVOS = [
+// --- Rotating motivational messages ---
+const MENSAJES = [
   'Cada litro de agua que donas salva una familia esta noche.',
   'Hoy hay bebés durmiendo en albergues. Tus pañales importan.',
   'Una frazada puede ser la diferencia entre el frío y la esperanza.',
@@ -142,93 +141,98 @@ const MENSAJES_EMOTIVOS = [
 ]
 
 // --- Helpers ---
-function getPorcentaje(recibido: number, meta: number) {
+function getPct(recibido: number, meta: number) {
   return Math.min(Math.round((recibido / meta) * 100), 100)
 }
 
-function formatNumero(n: number) {
+function fmt(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return n.toString()
 }
 
-function tiempoRelativo(isoString: string) {
-  const diff = Date.now() - new Date(isoString).getTime()
-  const mins = Math.floor(diff / 60000)
+function timeAgo(iso: string) {
+  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 60) return `hace ${mins} min`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `hace ${hrs}h`
   return `hace ${Math.floor(hrs / 24)}d`
 }
 
+// Urgency expressed purely through contrast and typography weight — no red/orange
 const PRIORIDAD_CONFIG = {
   CRITICA: {
     label: 'Crítica',
-    barColor: 'bg-red-500',
-    glowColor: 'shadow-red-500/40',
-    textColor: 'text-red-400',
-    bgColor: 'bg-red-500/10',
-    borderColor: 'border-red-500/30',
-    dotColor: 'bg-red-400',
-    badgeBg: 'bg-red-500/15 text-red-300 border-red-500/30',
+    barColor: 'bg-white',
+    barBg: 'bg-white/15',
+    textColor: 'text-white',
+    dimText: 'text-white/70',
+    cardBg: 'bg-[#2B5F8E]',
+    cardBorder: 'border-[#4A89C0]/40',
+    badgeBg: 'bg-white/20 text-white border-white/30',
+    iconBg: 'bg-white/15 text-white',
+    glow: 'shadow-[0_8px_32px_rgba(43,95,142,0.5)]',
+    topAccent: true,
   },
   ALTA: {
     label: 'Alta',
-    barColor: 'bg-orange-500',
-    glowColor: 'shadow-orange-500/30',
-    textColor: 'text-orange-400',
-    bgColor: 'bg-orange-500/10',
-    borderColor: 'border-orange-500/25',
-    dotColor: 'bg-orange-400',
-    badgeBg: 'bg-orange-500/15 text-orange-300 border-orange-500/30',
+    barColor: 'bg-[#4A89C0]',
+    barBg: 'bg-white/10',
+    textColor: 'text-white',
+    dimText: 'text-white/60',
+    cardBg: 'bg-[#1E4A6E]/90',
+    cardBorder: 'border-[#2B5F8E]/50',
+    badgeBg: 'bg-[#4A89C0]/20 text-[#C8DCF0] border-[#4A89C0]/40',
+    iconBg: 'bg-[#2B5F8E]/60 text-[#C8DCF0]',
+    glow: 'shadow-[0_4px_20px_rgba(15,35,55,0.5)]',
+    topAccent: false,
   },
   MEDIA: {
     label: 'Media',
-    barColor: 'bg-amber-400',
-    glowColor: 'shadow-amber-400/20',
-    textColor: 'text-amber-400',
-    bgColor: 'bg-amber-400/8',
-    borderColor: 'border-amber-400/20',
-    dotColor: 'bg-amber-400',
-    badgeBg: 'bg-amber-400/15 text-amber-300 border-amber-400/25',
+    barColor: 'bg-[#4A89C0]/70',
+    barBg: 'bg-white/8',
+    textColor: 'text-white',
+    dimText: 'text-white/50',
+    cardBg: 'bg-[#152D46]/90',
+    cardBorder: 'border-[#2B5F8E]/25',
+    badgeBg: 'bg-[#2B5F8E]/25 text-[#C8DCF0]/80 border-[#2B5F8E]/30',
+    iconBg: 'bg-[#2B5F8E]/30 text-[#C8DCF0]/80',
+    glow: 'shadow-[0_2px_12px_rgba(15,35,55,0.4)]',
+    topAccent: false,
   },
   BAJA: {
     label: 'Baja',
-    barColor: 'bg-emerald-500',
-    glowColor: 'shadow-emerald-500/20',
-    textColor: 'text-emerald-400',
-    bgColor: 'bg-emerald-500/8',
-    borderColor: 'border-emerald-500/20',
-    dotColor: 'bg-emerald-400',
-    badgeBg: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/25',
+    barColor: 'bg-[#4A89C0]/50',
+    barBg: 'bg-white/5',
+    textColor: 'text-white/80',
+    dimText: 'text-white/40',
+    cardBg: 'bg-[#0F2337]/80',
+    cardBorder: 'border-[#2B5F8E]/15',
+    badgeBg: 'bg-[#2B5F8E]/15 text-[#C8DCF0]/60 border-[#2B5F8E]/20',
+    iconBg: 'bg-[#2B5F8E]/20 text-[#C8DCF0]/60',
+    glow: '',
+    topAccent: false,
   },
 }
 
-const CATEGORIA_ICONO: Record<string, React.ReactNode> = {
-  Víveres: <Wheat className="w-5 h-5" />,
-  Medicamentos: <Pill className="w-5 h-5" />,
+const CATEGORIA_ICON: Record<string, React.ReactNode> = {
+  'Víveres': <Wheat className="w-5 h-5" />,
+  'Medicamentos': <Pill className="w-5 h-5" />,
   'Higiene personal': <SprayCan className="w-5 h-5" />,
   'Productos de limpieza': <Wind className="w-5 h-5" />,
   'Abrigo y refugio': <Shirt className="w-5 h-5" />,
-  Herramientas: <Wrench className="w-5 h-5" />,
+  'Herramientas': <Wrench className="w-5 h-5" />,
   'Artículos para bebés y grupos vulnerables': <Baby className="w-5 h-5" />,
 }
 
-// --- Barra de progreso animada ---
-function BarraProgreso({
-  porcentaje,
-  barColor,
-}: {
-  porcentaje: number
-  barColor: string
-}) {
+// --- Animated progress bar ---
+function ProgressBar({ pct, barColor, barBg }: { pct: number; barColor: string; barBg: string }) {
   const [width, setWidth] = useState(0)
   useEffect(() => {
-    const t = setTimeout(() => setWidth(porcentaje), 80)
+    const t = setTimeout(() => setWidth(pct), 120)
     return () => clearTimeout(t)
-  }, [porcentaje])
-
+  }, [pct])
   return (
-    <div className="relative w-full h-2 rounded-full bg-white/5 overflow-hidden">
+    <div className={`relative w-full h-1.5 rounded-full overflow-hidden ${barBg}`}>
       <div
         className={`absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out ${barColor}`}
         style={{ width: `${width}%` }}
@@ -237,127 +241,146 @@ function BarraProgreso({
   )
 }
 
-// --- Tarjeta de necesidad ---
-function TarjetaNecesidad({ nec, index }: { nec: Necesidad; index: number }) {
+// --- Need card ---
+function NeedCard({ nec, index }: { nec: Necesidad; index: number }) {
   const cfg = PRIORIDAD_CONFIG[nec.prioridad]
-  const pct = getPorcentaje(nec.recibido, nec.meta)
-  const falta = nec.meta - nec.recibido
+  const pct = getPct(nec.recibido, nec.meta)
+  const missing = nec.meta - nec.recibido
 
   return (
     <article
       className={`
-        relative rounded-2xl border p-5 flex flex-col gap-4
-        bg-white/[0.03] ${cfg.borderColor} backdrop-blur-sm
-        transition-all duration-300
-        hover:bg-white/[0.06] hover:border-white/20 hover:shadow-xl ${cfg.glowColor}
-        group
+        relative rounded-xl border p-5 flex flex-col gap-4
+        ${cfg.cardBg} ${cfg.cardBorder} ${cfg.glow}
+        transition-all duration-300 hover:brightness-110
+        group overflow-hidden
       `}
-      style={{ animationDelay: `${index * 60}ms` }}
+      style={{ animationDelay: `${index * 55}ms` }}
     >
-      {/* Prioridad CRITICA: borde superior pulsante */}
-      {nec.prioridad === 'CRITICA' && (
-        <div className="absolute top-0 left-6 right-6 h-px bg-gradient-to-r from-transparent via-red-500/70 to-transparent" />
+      {/* Top accent stripe for CRITICA */}
+      {cfg.topAccent && (
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-white/60" />
       )}
 
-      {/* Header tarjeta */}
-      <div className="flex items-start justify-between gap-3">
+      {/* Subtle diagonal texture for depth */}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.03] rounded-xl"
+        style={{
+          backgroundImage: 'repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 8px)',
+        }}
+      />
+
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3 relative">
         <div className="flex items-center gap-3">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${cfg.bgColor} ${cfg.textColor} shrink-0`}>
-            {CATEGORIA_ICONO[nec.categoria] ?? <Package className="w-5 h-5" />}
+          <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${cfg.iconBg}`}>
+            {CATEGORIA_ICON[nec.categoria] ?? <Package className="w-5 h-5" />}
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white leading-tight">{nec.nombre}</h3>
-            <span className="text-[11px] text-white/40 font-medium">{nec.categoria}</span>
+            <h3
+              className={`text-base font-bold leading-tight ${cfg.textColor}`}
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.05rem', letterSpacing: '0.01em' }}
+            >
+              {nec.nombre}
+            </h3>
+            <span className={`text-[11px] font-medium ${cfg.dimText}`}>{nec.categoria}</span>
           </div>
         </div>
-
-        <span className={`shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wide ${cfg.badgeBg}`}>
+        <span className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wide ${cfg.badgeBg}`}>
           {cfg.label}
         </span>
       </div>
 
-      {/* Descripción */}
-      <p className="text-[12px] text-white/50 leading-relaxed">{nec.descripcion}</p>
+      {/* Description */}
+      <p className={`text-[12px] leading-relaxed relative ${cfg.dimText}`}>{nec.descripcion}</p>
 
-      {/* Progreso */}
-      <div className="flex flex-col gap-2">
+      {/* Progress */}
+      <div className="flex flex-col gap-2 relative">
         <div className="flex items-end justify-between">
           <div>
-            <span className="text-2xl font-black text-white tabular-nums leading-none">
+            <span
+              className={`font-black tabular-nums leading-none ${cfg.textColor}`}
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '2rem' }}
+            >
               {pct}%
             </span>
-            <span className="text-[11px] text-white/40 ml-1.5">cubierto</span>
+            <span className={`text-[11px] ml-1.5 ${cfg.dimText}`}>cubierto</span>
           </div>
           <div className="text-right">
-            <span className={`text-xs font-bold tabular-nums ${cfg.textColor}`}>
-              {formatNumero(falta)}
+            <span
+              className={`font-bold tabular-nums ${cfg.textColor}`}
+              style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem' }}
+            >
+              {fmt(missing)}
             </span>
-            <span className="text-[11px] text-white/40"> {nec.unidad} faltan</span>
+            <span className={`text-[11px] ${cfg.dimText}`}> {nec.unidad} faltan</span>
           </div>
         </div>
-
-        <BarraProgreso porcentaje={pct} barColor={cfg.barColor} />
-
-        <div className="flex items-center justify-between text-[10px] text-white/30">
-          <span>{formatNumero(nec.recibido)} recibidos</span>
-          <span>meta: {formatNumero(nec.meta)}</span>
+        <ProgressBar pct={pct} barColor={cfg.barColor} barBg={cfg.barBg} />
+        <div className={`flex justify-between text-[10px] ${cfg.dimText}`}>
+          <span>{fmt(nec.recibido)} recibidos</span>
+          <span>meta {fmt(nec.meta)}</span>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="flex items-center gap-1.5 pt-1 border-t border-white/5">
-        <Clock className="w-3 h-3 text-white/25 shrink-0" />
-        <span className="text-[10px] text-white/30">Actualizado {tiempoRelativo(nec.ultimaActualizacion)}</span>
+      <div className={`flex items-center gap-1.5 pt-1 border-t ${nec.prioridad === 'CRITICA' ? 'border-white/15' : 'border-white/8'}`}>
+        <Clock className={`w-3 h-3 shrink-0 ${cfg.dimText}`} />
+        <span className={`text-[10px] ${cfg.dimText}`}>Actualizado {timeAgo(nec.ultimaActualizacion)}</span>
       </div>
     </article>
   )
 }
 
-// --- Stat summary header ---
-function StatBadge({ value, label, urgent }: { value: string | number; label: string; urgent?: boolean }) {
+// --- Summary stat ---
+function StatBadge({ value, label, highlight }: { value: string | number; label: string; highlight?: boolean }) {
   return (
-    <div className={`flex flex-col items-center px-5 py-3 rounded-xl border ${urgent ? 'bg-red-500/10 border-red-500/25' : 'bg-white/5 border-white/10'}`}>
-      <span className={`text-xl font-black tabular-nums ${urgent ? 'text-red-400' : 'text-white'}`}>{value}</span>
-      <span className="text-[10px] text-white/40 font-medium mt-0.5 whitespace-nowrap">{label}</span>
+    <div className={`flex flex-col items-center px-4 py-3 rounded-xl border ${
+      highlight
+        ? 'bg-[#2B5F8E] border-[#4A89C0]/50 shadow-[0_4px_16px_rgba(43,95,142,0.4)]'
+        : 'bg-[#152D46] border-[#2B5F8E]/30'
+    }`}>
+      <span
+        className="text-xl font-black tabular-nums text-white leading-none"
+        style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.5rem' }}
+      >
+        {value}
+      </span>
+      <span className="text-[10px] text-white/50 font-medium mt-1 whitespace-nowrap">{label}</span>
     </div>
   )
 }
 
-// --- Mensaje emotivo rotativo ---
-function MensajeEmotivo() {
+// --- Rotating message ---
+function RotatingMessage() {
   const [idx, setIdx] = useState(0)
   const [visible, setVisible] = useState(true)
-
   useEffect(() => {
-    const interval = setInterval(() => {
+    const iv = setInterval(() => {
       setVisible(false)
-      setTimeout(() => {
-        setIdx(i => (i + 1) % MENSAJES_EMOTIVOS.length)
-        setVisible(true)
-      }, 400)
+      setTimeout(() => { setIdx(i => (i + 1) % MENSAJES.length); setVisible(true) }, 350)
     }, 5000)
-    return () => clearInterval(interval)
+    return () => clearInterval(iv)
   }, [])
-
   return (
     <p
-      className="text-sm text-white/60 text-center italic leading-relaxed max-w-md mx-auto transition-opacity duration-400"
+      className="text-sm text-white/60 text-center italic leading-relaxed max-w-md mx-auto transition-opacity duration-350"
       style={{ opacity: visible ? 1 : 0 }}
     >
-      "{MENSAJES_EMOTIVOS[idx]}"
+      "{MENSAJES[idx]}"
     </p>
   )
 }
 
-// --- Página principal ---
+// --- Main page ---
 function NecesidadesPage() {
   const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
-  const [filtro, setFiltro] = useState<'TODAS' | 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'>('TODAS')
+  const [filter, setFilter] = useState<'TODAS' | 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'>('TODAS')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     document.documentElement.classList.add('dark')
-    const t = setTimeout(() => setMounted(true), 100)
+    const t = setTimeout(() => setMounted(true), 80)
     return () => clearTimeout(t)
   }, [])
 
@@ -372,168 +395,157 @@ function NecesidadesPage() {
   })
 
   const necesidades = data ?? MOCK_NECESIDADES
-
   const criticas = necesidades.filter(n => n.prioridad === 'CRITICA').length
   const totalMeta = necesidades.reduce((s, n) => s + n.meta, 0)
   const totalRecibido = necesidades.reduce((s, n) => s + n.recibido, 0)
-  const pctGeneral = getPorcentaje(totalRecibido, totalMeta)
+  const pctGeneral = getPct(totalRecibido, totalMeta)
 
-  const filtradas =
-    filtro === 'TODAS' ? necesidades : necesidades.filter(n => n.prioridad === filtro)
-
-  const ordenadas = [...filtradas].sort((a, b) => {
-    const ord = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 }
-    return ord[a.prioridad] - ord[b.prioridad]
-  })
+  const filtered = filter === 'TODAS' ? necesidades : necesidades.filter(n => n.prioridad === filter)
+  const ORDER = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 }
+  const sorted = [...filtered].sort((a, b) => ORDER[a.prioridad] - ORDER[b.prioridad])
 
   return (
     <div
       className="min-h-dvh w-full overflow-x-hidden"
-      style={{
-        background: 'radial-gradient(ellipse 120% 80% at 50% -10%, hsl(0 60% 8% / 0.9) 0%, hsl(240 15% 4%) 60%)',
-        backgroundAttachment: 'fixed',
-      }}
+      style={{ background: 'linear-gradient(160deg, #152D46 0%, #0F2337 50%, #0A1B2A 100%)' }}
     >
-      {/* Grain texture overlay */}
+      {/* Subtle grid pattern */}
       <div
-        className="pointer-events-none fixed inset-0 z-0 opacity-[0.025]"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`,
-          backgroundRepeat: 'repeat',
-          backgroundSize: '200px',
+          backgroundImage: `
+            linear-gradient(rgba(43,95,142,0.07) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(43,95,142,0.07) 1px, transparent 1px)
+          `,
+          backgroundSize: '48px 48px',
         }}
       />
+      {/* Radial brand glow */}
+      <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-64 rounded-full bg-[#2B5F8E]/20 blur-[80px] z-0" />
 
-      {/* Glow top left decorativo */}
-      <div className="pointer-events-none fixed top-0 left-0 w-96 h-96 rounded-full bg-red-600/10 blur-[120px] -translate-x-1/2 -translate-y-1/2 z-0" />
-      <div className="pointer-events-none fixed bottom-0 right-0 w-80 h-80 rounded-full bg-orange-500/8 blur-[100px] translate-x-1/4 translate-y-1/4 z-0" />
+      <div
+        className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:px-8 md:py-12"
+        style={{ opacity: mounted ? 1 : 0, transition: 'opacity 0.5s ease' }}
+      >
 
-      <div className="relative z-10 max-w-5xl mx-auto px-4 py-8 md:px-8 md:py-12">
-
-        {/* HERO HEADER */}
-        <header
-          className="mb-10 transition-all duration-700"
-          style={{ opacity: mounted ? 1 : 0, transform: mounted ? 'translateY(0)' : 'translateY(16px)' }}
-        >
-          {/* Nav top */}
+        {/* ── HEADER ── */}
+        <header className="mb-10">
           <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-500/20 text-red-400">
-                <Heart className="w-4.5 h-4.5" style={{ width: '18px', height: '18px' }} />
-              </div>
+            {/* Brand */}
+            <div className="flex items-center gap-3">
+              <img
+                src="/src/assets/branding/white-isotipo-blue-background.webp"
+                alt="Portuguesa Unida"
+                className="w-10 h-10 rounded-xl object-cover"
+              />
               <div>
-                <span className="block text-xs font-bold text-white/80 tracking-tight leading-none">SOS Logística</span>
-                <span className="block text-[10px] text-white/35 mt-0.5 leading-none">Venezuela</span>
+                <span
+                  className="block text-white font-black leading-none tracking-wide"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
+                >
+                  PORTUGUESA UNIDA
+                </span>
+                <span className="block text-[10px] text-white/40 mt-0.5 leading-none font-medium">
+                  SOS Logística
+                </span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
               <Link
                 to="/map"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs font-medium hover:bg-white/10 hover:text-white/80 transition-all duration-200 group"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/30 border border-[#2B5F8E]/50 text-white/70 text-xs font-medium hover:bg-[#2B5F8E]/50 hover:text-white transition-all duration-200 group"
               >
                 <MapPin className="w-3.5 h-3.5" />
                 Ver mapa
                 <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
               </Link>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
-                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-                <span className="text-[10px] font-bold text-red-300 uppercase tracking-wider">En vivo</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#4A89C0]/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
+                <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-wider">En vivo</span>
               </div>
             </div>
           </div>
 
-          {/* Título */}
+          {/* Title */}
           <div className="mb-6">
-            <div className="flex items-center gap-2 mb-3">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-              <span className="text-[11px] font-bold text-red-400 uppercase tracking-[0.15em]">Respuesta de emergencia activa</span>
-            </div>
-            <h1 className="text-3xl md:text-5xl font-black text-white leading-[1.05] tracking-tight mb-4" style={{ fontFamily: '"Syne", system-ui, sans-serif' }}>
-              Lo que más<br />
-              <span className="text-transparent bg-clip-text" style={{ backgroundImage: 'linear-gradient(135deg, #f87171 0%, #fb923c 100%)' }}>
-                necesitamos hoy
-              </span>
+            <h1
+              className="text-white leading-[0.95] tracking-tight mb-4"
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontStyle: 'italic',
+                fontWeight: 800,
+                fontSize: 'clamp(2.6rem, 7vw, 4.5rem)',
+              }}
+            >
+              LO QUE MÁS<br />
+              <span style={{ color: '#C8DCF0' }}>NECESITAMOS HOY</span>
             </h1>
-            <p className="text-sm text-white/50 max-w-lg leading-relaxed">
+            <p className="text-sm text-white/50 max-w-lg leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
               Estas son las necesidades urgentes de los centros de acopio activos.
-              Cada donación se registra en tiempo real y actualiza estas cifras.
+              Cada donación se registra y actualiza estas cifras en tiempo real.
             </p>
           </div>
 
-          {/* Stats resumen */}
+          {/* Stats */}
           <div className="flex flex-wrap gap-2 mb-6">
-            <StatBadge value={criticas} label="necesidades críticas" urgent />
+            <StatBadge value={criticas} label="necesidades críticas" highlight />
             <StatBadge value={necesidades.length} label="ítems activos" />
             <StatBadge value={`${pctGeneral}%`} label="cubierto en total" />
-            <StatBadge value={formatNumero(totalRecibido)} label="unidades recibidas" />
+            <StatBadge value={fmt(totalRecibido)} label="unidades recibidas" />
           </div>
 
-          {/* Progreso general */}
-          <div className="p-4 rounded-2xl border border-white/8 bg-white/[0.03] backdrop-blur-sm">
+          {/* Overall progress */}
+          <div className="p-4 rounded-xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-white/40" />
-                <span className="text-xs font-semibold text-white/60">Progreso general de la campaña</span>
+                <span className="text-xs font-semibold text-white/50">Progreso general de la campaña</span>
               </div>
-              <span className="text-sm font-black text-white tabular-nums">{pctGeneral}%</span>
+              <span
+                className="font-black text-white tabular-nums"
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
+              >
+                {pctGeneral}%
+              </span>
             </div>
-            <BarraProgreso
-              porcentaje={pctGeneral}
-              barColor="bg-gradient-to-r from-orange-500 to-red-500"
-            />
+            <ProgressBar pct={pctGeneral} barColor="bg-[#4A89C0]" barBg="bg-white/10" />
             <div className="flex justify-between mt-1.5 text-[10px] text-white/25">
-              <span>{formatNumero(totalRecibido)} unidades recibidas</span>
-              <span>meta: {formatNumero(totalMeta)}</span>
+              <span>{fmt(totalRecibido)} unidades recibidas</span>
+              <span>meta: {fmt(totalMeta)}</span>
             </div>
           </div>
         </header>
 
-        {/* MENSAJE EMOTIVO */}
-        <div
-          className="mb-10 py-5 px-6 rounded-2xl border border-white/8 bg-gradient-to-r from-white/[0.02] to-white/[0.04] backdrop-blur-sm text-center transition-all duration-700"
-          style={{
-            opacity: mounted ? 1 : 0,
-            transform: mounted ? 'translateY(0)' : 'translateY(12px)',
-            transitionDelay: '150ms',
-          }}
-        >
+        {/* ── MOTIVATIONAL BANNER ── */}
+        <div className="mb-8 py-5 px-6 rounded-xl border border-[#2B5F8E]/30 bg-[#2B5F8E]/10 text-center">
           <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-orange-400/70" />
-            <span className="text-[10px] font-bold text-orange-400/70 uppercase tracking-[0.15em]">Cada gesto importa</span>
-            <Sparkles className="w-3.5 h-3.5 text-orange-400/70" />
+            <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
+            <span className="text-[10px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">Cada gesto importa</span>
+            <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
           </div>
-          <MensajeEmotivo />
+          <RotatingMessage />
         </div>
 
-        {/* FILTROS */}
-        <div
-          className="flex flex-wrap gap-2 mb-6 transition-all duration-700"
-          style={{
-            opacity: mounted ? 1 : 0,
-            transitionDelay: '200ms',
-          }}
-        >
+        {/* ── FILTERS ── */}
+        <div className="flex flex-wrap gap-2 mb-6">
           {(['TODAS', 'CRITICA', 'ALTA', 'MEDIA', 'BAJA'] as const).map(p => {
-            const active = filtro === p
-            const cfg = p === 'TODAS' ? null : PRIORIDAD_CONFIG[p]
+            const active = filter === p
             return (
               <button
                 key={p}
-                onClick={() => setFiltro(p)}
+                onClick={() => setFilter(p)}
                 className={`
-                  px-4 py-1.5 rounded-full text-[11px] font-semibold border transition-all duration-200 active:scale-[0.97] cursor-pointer
+                  px-4 py-1.5 rounded-lg text-[11px] font-semibold border transition-all duration-200 active:scale-[0.97] cursor-pointer
                   ${active
-                    ? cfg
-                      ? `${cfg.bgColor} ${cfg.textColor} ${cfg.borderColor} shadow-lg`
-                      : 'bg-white/10 text-white border-white/20 shadow-lg'
-                    : 'bg-white/[0.03] text-white/40 border-white/8 hover:bg-white/8 hover:text-white/70 hover:border-white/15'
+                    ? 'bg-[#2B5F8E] text-white border-[#4A89C0]/50 shadow-[0_2px_12px_rgba(43,95,142,0.4)]'
+                    : 'bg-[#152D46]/60 text-white/40 border-[#2B5F8E]/20 hover:bg-[#2B5F8E]/20 hover:text-white/70 hover:border-[#2B5F8E]/40'
                   }
                 `}
               >
                 {p === 'TODAS' ? 'Todas' : PRIORIDAD_CONFIG[p].label}
                 {p !== 'TODAS' && (
-                  <span className={`ml-1.5 tabular-nums ${active ? 'opacity-80' : 'opacity-50'}`}>
+                  <span className={`ml-1.5 tabular-nums ${active ? 'opacity-70' : 'opacity-40'}`}>
                     {necesidades.filter(n => n.prioridad === p).length}
                   </span>
                 )}
@@ -542,51 +554,40 @@ function NecesidadesPage() {
           })}
         </div>
 
-        {/* GRID DE NECESIDADES */}
+        {/* ── NEEDS GRID ── */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="rounded-2xl border border-white/8 bg-white/[0.03] h-52 animate-pulse" />
+              <div key={i} className="rounded-xl border border-[#2B5F8E]/20 bg-[#152D46]/50 h-52 animate-pulse" />
             ))}
           </div>
-        ) : ordenadas.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 text-center">
             <Package className="w-12 h-12 text-white/15 mb-4" />
-            <p className="text-white/40 text-sm">No hay necesidades con ese filtro actualmente.</p>
+            <p className="text-white/40 text-sm">No hay necesidades con ese filtro.</p>
           </div>
         ) : (
-          <div
-            className="grid grid-cols-1 md:grid-cols-2 gap-4 transition-all duration-700"
-            style={{
-              opacity: mounted ? 1 : 0,
-              transform: mounted ? 'translateY(0)' : 'translateY(20px)',
-              transitionDelay: '250ms',
-            }}
-          >
-            {ordenadas.map((nec, i) => (
-              <TarjetaNecesidad key={nec.id} nec={nec} index={i} />
-            ))}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {sorted.map((nec, i) => <NeedCard key={nec.id} nec={nec} index={i} />)}
           </div>
         )}
 
-        {/* FOOTER CTA */}
-        <footer
-          className="mt-14 pt-10 border-t border-white/8 text-center transition-all duration-700"
-          style={{
-            opacity: mounted ? 1 : 0,
-            transitionDelay: '400ms',
-          }}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-orange-500/20 bg-orange-500/8 mb-5">
-            <Heart className="w-3.5 h-3.5 text-orange-400" />
-            <span className="text-xs font-semibold text-orange-300">Las necesidades de hoy pueden ser las de mañana</span>
+        {/* ── FOOTER ── */}
+        <footer className="mt-14 pt-10 border-t border-[#2B5F8E]/20 text-center">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#2B5F8E]/30 bg-[#2B5F8E]/15 mb-5">
+            <Heart className="w-3.5 h-3.5 text-[#C8DCF0]/70" />
+            <span className="text-xs font-semibold text-[#C8DCF0]/70">Las necesidades de hoy pueden ser las de mañana</span>
           </div>
-          <p className="text-white/35 text-xs max-w-sm mx-auto leading-relaxed mb-8">
+          <p className="text-white/30 text-xs max-w-sm mx-auto leading-relaxed mb-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
             Aunque una necesidad esté cubierta hoy, los centros siguen abiertos
             y las familias siguen llegando. Cualquier donación adicional se convierte en reserva estratégica.
           </p>
           <div className="flex items-center justify-center gap-3 text-[11px] text-white/20">
-            <span>SOS Logística Venezuela</span>
+            <span
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 700 }}
+            >
+              PORTUGUESA UNIDA
+            </span>
             <span>·</span>
             <Link to="/map" className="hover:text-white/50 transition-colors flex items-center gap-1">
               <MapPin className="w-3 h-3" />

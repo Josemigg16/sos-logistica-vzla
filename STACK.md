@@ -174,6 +174,23 @@ bun build        # Builds de todos los packages
 
 ---
 
+## Branding
+
+El contexto completo de diseño está en `apps/web/src/assets/branding/BRANDING.md`.
+
+| Token | Hex | Rol |
+|-------|-----|-----|
+| `brand-primary` | `#2B5F8E` | Azul principal — CTAs, headers, progreso |
+| `brand-dark` | `#1E4A6E` | Navy profundo — fondo oscuro |
+| `brand-light` | `#4A89C0` | Azul claro — accents, hover |
+| `brand-pale` | `#C8DCF0` | Azul muy claro — texto sobre azul oscuro |
+| `surface-900` | `#0F2337` | Fondo más oscuro dark mode |
+
+**Fuentes:** `Barlow Condensed` Italic Bold (display) + `DM Sans` (body) + `DM Mono` (números)  
+**Sin rojo/naranja:** urgencia = contraste blanco sobre azul + peso tipográfico
+
+---
+
 ## Variables de entorno
 
 ```env
