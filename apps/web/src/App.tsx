@@ -11,8 +11,9 @@ import {
   Sun,
   Moon
 } from "lucide-react";
-import { Map, MapControls, MapMarker } from "@/components/ui/map";
+import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import centrosData from "@/data/centros.json";
+
 
 interface Centro {
   id: string;
@@ -47,6 +48,33 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+  const [showSupplyRoute, setShowSupplyRoute] = useState(false);
+
+  // Estados para la ruta personalizada entre dos puntos
+  const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
+  const [customRoutePoints, setCustomRoutePoints] = useState<[number, number][]>([]);
+
+  // Manejar el clic en el mapa para el trazado personalizado
+  const handleMapClick = (lngLat: [number, number]) => {
+    if (!isCustomRoutingMode) return;
+    setCustomRoutePoints(prev => {
+      if (prev.length >= 2) {
+        return [lngLat];
+      } else {
+        return [...prev, lngLat];
+      }
+    });
+  };
+
+  // Definir la ruta nacional de distribución: Aragua -> Carabobo -> Lara
+  const routeCoordinates = useMemo<[number, number][]>(() => {
+    const p1 = centros.find(c => c.id === "3")?.coordenadas || [-67.6053, 10.2442]; // ZODI Aragua (Salida)
+    const p2 = centros.find(c => c.id === "2")?.coordenadas || [-68.0044, 10.1804]; // Cruz Roja Carabobo (Acopio)
+    const p3 = centros.find(c => c.id === "4")?.coordenadas || [-69.3136, 10.0678]; // Lara (Destino)
+    return [p1, p2, p3];
+  }, [centros]);
+
+
 
   useEffect(() => {
     fetch("http://localhost:3000/api/centros")
@@ -144,6 +172,46 @@ export default function App() {
         </div>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => {
+              setShowSupplyRoute(prev => !prev);
+              if (!showSupplyRoute) {
+                setMapCenter([-68.0044, 10.1804]);
+                setMapZoom(8);
+                setIsCustomRoutingMode(false);
+                setCustomRoutePoints([]);
+              }
+            }}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer ${
+              showSupplyRoute 
+                ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-md shadow-emerald-500/20" 
+                : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
+            }`}
+            title="Mostrar ruta inteligente de distribución"
+          >
+            <Layers className={`w-4 h-4 ${showSupplyRoute ? "animate-pulse" : ""}`} />
+          </button>
+          <button
+            onClick={() => {
+              setIsCustomRoutingMode(prev => {
+                const newValue = !prev;
+                if (newValue) {
+                  setShowSupplyRoute(false);
+                  setCustomRoutePoints([]);
+                  setSelectedId(null);
+                }
+                return newValue;
+              });
+            }}
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer ${
+              isCustomRoutingMode 
+                ? "bg-amber-500 text-zinc-950 border-amber-400 shadow-md shadow-amber-500/20" 
+                : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
+            }`}
+            title="Trazar ruta personalizada haciendo clics"
+          >
+            <MapPin className={`w-4 h-4 ${isCustomRoutingMode ? "animate-bounce" : ""}`} />
+          </button>
+          <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer"
             title="Cambiar tema"
@@ -159,8 +227,34 @@ export default function App() {
 
       {/* MAPA PRINCIPAL */}
       <main className="w-full h-full z-10 relative">
-        <Map center={mapCenter} zoom={mapZoom} theme={theme} className="w-full h-full">
+        <Map 
+          center={mapCenter} 
+          zoom={mapZoom} 
+          theme={theme} 
+          className="w-full h-full"
+          onClick={handleMapClick}
+        >
           <MapControls />
+          {showSupplyRoute && (
+            <MapRoute coordinates={routeCoordinates} color="#10b981" />
+          )}
+          {isCustomRoutingMode && customRoutePoints.length === 2 && (
+            <MapRoute coordinates={customRoutePoints} color="#f59e0b" />
+          )}
+          {isCustomRoutingMode && customRoutePoints[0] && (
+            <MapMarker 
+              coordinates={customRoutePoints[0]} 
+              color="#f59e0b" 
+              active={true}
+            />
+          )}
+          {isCustomRoutingMode && customRoutePoints[1] && (
+            <MapMarker 
+              coordinates={customRoutePoints[1]} 
+              color="#d97706" 
+              active={true}
+            />
+          )}
           {filteredCentros.map(c => {
             const getMarkerColor = (tipo: Centro["tipo"]) => {
               switch (tipo) {
@@ -205,6 +299,12 @@ export default function App() {
               <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
               <span className="text-[11px] font-medium text-foreground">Llegada Centro Acopio Destino</span>
             </div>
+            {showSupplyRoute && (
+              <div className="flex items-center gap-2.5 border-t border-border/50 pt-1.5 mt-0.5 animate-in fade-in duration-300">
+                <span className="w-6 h-1 rounded bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>
+                <span className="text-[11px] font-medium text-foreground">Ruta Terrestre Activa</span>
+              </div>
+            )}
           </div>
         </div>
       </main>
@@ -249,6 +349,37 @@ export default function App() {
             </button>
           ))}
         </div>
+
+        {/* INDICACIONES DE RUTA PERSONALIZADA */}
+        {isCustomRoutingMode && (
+          <div className="p-3.5 rounded-xl bg-card/90 border border-border shadow-lg backdrop-blur-md flex flex-col gap-1 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center justify-between">
+              <h4 className="text-[9px] font-extrabold text-amber-500 uppercase tracking-wider">Modo Ruta Personalizada</h4>
+              <button 
+                onClick={() => {
+                  setIsCustomRoutingMode(false);
+                  setCustomRoutePoints([]);
+                }}
+                className="text-[9px] font-bold text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
+              >
+                &times; Cerrar
+              </button>
+            </div>
+            <p className="text-[11px] text-foreground font-medium mt-0.5 leading-snug">
+              {customRoutePoints.length === 0 && "Haz clic en el mapa para marcar el Origen (A)."}
+              {customRoutePoints.length === 1 && "Haz clic en el mapa para marcar el Destino (B)."}
+              {customRoutePoints.length === 2 && "Ruta calculada. Volvé a hacer clic para trazar otra."}
+            </p>
+            {customRoutePoints.length > 0 && (
+              <button
+                onClick={() => setCustomRoutePoints([])}
+                className="w-full mt-2 py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[10px] uppercase tracking-wide shadow transition-colors active:scale-[0.97]"
+              >
+                Limpiar Puntos
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* PANEL DE DETALLES DEL CENTRO SELECCIONADO (MOBILE BOTTOM SHEET & DESKTOP SIDEBAR) */}
