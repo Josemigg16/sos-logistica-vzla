@@ -1,122 +1,313 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useMemo, useEffect } from "react";
+import { 
+  MapPin, 
+  Phone, 
+  User, 
+  Search, 
+  Package, 
+  ChevronUp, 
+  ChevronDown, 
+  Layers, 
+  Info,
+  HeartHandshake,
+  Sun,
+  Moon
+} from "lucide-react";
+import { Map, MapControls, MapMarker } from "@/components/ui/map";
+import centrosData from "@/data/centros.json";
 
-function App() {
-  const [count, setCount] = useState(0)
-
-  return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+interface Centro {
+  id: string;
+  nombre: string;
+  direccion: string;
+  contacto: string;
+  responsable: string;
+  coordenadas: [number, number];
+  inventario: Record<string, number>;
 }
 
-export default App
+export default function App() {
+  const [theme, setTheme] = useState<"light" | "dark">(() => {
+    const saved = localStorage.getItem("theme");
+    if (saved === "light" || saved === "dark") return saved;
+    return "dark"; // Modo oscuro por defecto
+  });
+
+  useEffect(() => {
+    const root = window.document.documentElement;
+    if (theme === "dark") {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const [centros] = useState<Centro[]>(centrosData as Centro[]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
+  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+
+  // Obtener el centro seleccionado actualmente
+  const selectedCentro = useMemo(() => {
+    return centros.find(c => c.id === selectedId) || null;
+  }, [selectedId, centros]);
+
+  // Coordenadas iniciales (Venezuela)
+  const [mapCenter, setMapCenter] = useState<[number, number]>([-66.9036, 10.4806]);
+  const [mapZoom, setMapZoom] = useState(7);
+
+  // Categorías de inventario disponibles
+  const categorias = [
+    "Víveres",
+    "Herramientas",
+    "Higiene personal",
+    "Medicamentos",
+    "Productos de limpieza",
+    "Abrigo y refugio",
+    "Artículos para bebés y grupos vulnerables"
+  ];
+
+  // Filtrar centros según búsqueda y categoría seleccionada
+  const filteredCentros = useMemo(() => {
+    return centros.filter(c => {
+      const matchesSearch = c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                            c.direccion.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesCategory = !selectedCategoryFilter || 
+                               (c.inventario[selectedCategoryFilter] && c.inventario[selectedCategoryFilter] > 30); // Consideramos que lo tiene si stock > 30%
+      
+      return matchesSearch && matchesCategory;
+    });
+  }, [centros, searchTerm, selectedCategoryFilter]);
+
+  const handleSelectCentro = (centro: Centro) => {
+    setSelectedId(centro.id);
+    setMapCenter(centro.coordenadas);
+    setMapZoom(11);
+    setIsDetailsExpanded(true); // Mostrar panel expandido al seleccionar
+  };
+
+  // Color de estado del stock
+  const getStockColor = (level: number) => {
+    if (level >= 75) return "bg-emerald-500";
+    if (level >= 40) return "bg-amber-500";
+    return "bg-rose-500";
+  };
+
+  const getStockTextColor = (level: number) => {
+    if (level >= 75) return "text-emerald-400";
+    if (level >= 40) return "text-amber-400";
+    return "text-rose-400";
+  };
+
+  const getStockLabel = (level: number) => {
+    if (level >= 75) return "Abastecido";
+    if (level >= 40) return "Crítico";
+    return "Bajo Mínimo";
+  };
+
+  return (
+    <div className="relative flex flex-col w-full h-full select-none bg-background text-foreground transition-colors duration-300">
+      
+      {/* HEADER DE LA APP */}
+      <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-all duration-300">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 shadow-inner">
+            <HeartHandshake className="w-6 h-6 animate-pulse" />
+          </div>
+          <div>
+            <h1 className="text-sm font-semibold tracking-tight text-foreground m-0 leading-none">SOS Logística</h1>
+            <p className="text-[10px] text-muted-foreground mt-1 leading-none font-medium">Centros de Acopio Humanitario</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="flex items-center justify-center w-8 h-8 rounded-xl bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-all active:scale-95 cursor-pointer"
+            title="Cambiar tema"
+          >
+            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-violet-600" />}
+          </button>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping"></span>
+            Público
+          </div>
+        </div>
+      </header>
+
+      {/* MAPA PRINCIPAL */}
+      <main className="w-full h-full z-10">
+        <Map center={mapCenter} zoom={mapZoom} theme={theme} className="w-full h-full">
+          <MapControls />
+          {filteredCentros.map(c => (
+            <MapMarker
+              key={c.id}
+              coordinates={c.coordenadas}
+              onClick={() => handleSelectCentro(c)}
+              color={selectedId === c.id ? "#22c55e" : "#5b21b6"}
+              active={selectedId === c.id}
+            />
+          ))}
+        </Map>
+      </main>
+
+      {/* CONTROLES FLOTANTES / FILTROS (MOBILE FIRST) */}
+      <div className="absolute top-20 left-4 right-4 z-30 md:left-6 md:right-auto md:w-96 flex flex-col gap-2">
+        {/* Barra de búsqueda */}
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Buscar por ciudad, centro o dirección..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card/90 border border-border text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-emerald-500/50 shadow-lg backdrop-blur-md transition-all duration-300"
+          />
+        </div>
+
+        {/* Filtros rápidos de categorías horizontal scrollable */}
+        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
+          <button
+            onClick={() => setSelectedCategoryFilter(null)}
+            className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-all duration-200 border ${
+              !selectedCategoryFilter
+                ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-lg shadow-emerald-500/10 font-semibold"
+                : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
+            }`}
+          >
+            Todos
+          </button>
+          {categorias.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat ? null : cat)}
+              className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-all duration-200 border ${
+                selectedCategoryFilter === cat
+                  ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-lg shadow-emerald-500/10 font-semibold"
+                  : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
+              }`}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* PANEL DE DETALLES DEL CENTRO SELECCIONADO (MOBILE BOTTOM SHEET & DESKTOP SIDEBAR) */}
+      <div
+        className={`absolute left-0 right-0 bottom-0 z-40 bg-card/95 border-t border-border shadow-2xl backdrop-blur-lg rounded-t-3xl transition-all duration-500 ease-out md:left-6 md:bottom-6 md:top-auto md:w-96 md:rounded-2xl md:border ${
+          selectedCentro
+            ? isDetailsExpanded
+              ? "h-[75vh] md:h-auto md:max-h-[75vh]"
+              : "h-24"
+            : "translate-y-full h-0 pointer-events-none"
+        }`}
+      >
+        {selectedCentro && (
+          <div className="flex flex-col h-full p-4 md:p-5">
+            {/* Header del Bottom Sheet / Control de arrastre para mobile */}
+            <div 
+              className="flex flex-col items-center gap-1.5 cursor-pointer pb-2 md:hidden"
+              onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
+            >
+              <div className="w-10 h-1 bg-muted rounded-full"></div>
+              <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
+                {isDetailsExpanded ? (
+                  <>
+                    <ChevronDown className="w-3.5 h-3.5" />
+                    Contraer detalles
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="w-3.5 h-3.5" />
+                    Expandir detalles
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Cabecera del Centro */}
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-base font-bold text-foreground tracking-tight leading-snug">{selectedCentro.nombre}</h2>
+                <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
+                  <MapPin className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                  <p className="text-[11px] font-medium leading-none">{selectedCentro.direccion}</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedId(null)}
+                className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Contenido Expandible (Inventario y contactos) */}
+            <div className={`flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar ${isDetailsExpanded ? "block" : "hidden md:block"}`}>
+              
+              {/* Información de Contacto */}
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-background/50 border border-border/80 mb-4">
+                <div className="flex items-center gap-2">
+                  <User className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-[9px] text-muted-foreground font-semibold leading-none">Coordinador/a</p>
+                    <p className="text-[10px] text-foreground font-medium mt-1 leading-none truncate">{selectedCentro.responsable}</p>
+                  </div>
+                </div>
+                <a 
+                  href={`https://wa.me/${selectedCentro.contacto.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(`Hola ${selectedCentro.responsable}, te contacto desde el mapa público de SOS Logística por el centro de acopio: ${selectedCentro.nombre}.`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 border-l border-border pl-3 group hover:bg-secondary p-1 rounded transition-colors"
+                >
+                  <Phone className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0 group-hover:scale-110 transition-transform" />
+                  <div>
+                    <p className="text-[9px] text-muted-foreground font-semibold leading-none">Contacto (WhatsApp)</p>
+                    <p className="text-[10px] text-foreground font-medium mt-1 leading-none truncate group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">{selectedCentro.contacto}</p>
+                  </div>
+                </a>
+              </div>
+
+              {/* Inventario por Categorías */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Package className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inventario Disponible</h3>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {Object.entries(selectedCentro.inventario).map(([categoria, nivel]) => (
+                    <div key={categoria} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-xs font-medium">
+                        <span className="text-foreground text-[11px]">{categoria}</span>
+                        <span className={`text-[10px] font-bold ${getStockTextColor(nivel)}`}>
+                          {nivel}% • {getStockLabel(nivel)}
+                        </span>
+                      </div>
+                      <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${getStockColor(nivel)}`}
+                          style={{ width: `${nivel}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Nota de actualización */}
+              <div className="flex items-center gap-2 mt-5 p-3 rounded-xl bg-background/20 border border-border/50 text-muted-foreground text-[10px]">
+                <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                <span>Esta información es actualizada en tiempo real por el equipo de SOS Logística desde el centro de control.</span>
+              </div>
+            </div>
+            
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
