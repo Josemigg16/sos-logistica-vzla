@@ -80,9 +80,10 @@ Este proyecto aplica **Clean Architecture** + **Domain-Driven Design**. Las regl
 ```
 apps/api/src/
 ├── domain/          # Entidades, value objects, reglas de negocio — cero dependencias externas
-│   ├── incidente/
-│   ├── recurso/
-│   └── operacion/
+│   ├── identity/
+│   ├── incidents/
+│   ├── resources/
+│   └── operations/
 ├── application/     # Use cases — orquesta dominio, no implementa reglas
 ├── infrastructure/  # Drizzle, Hono handlers, adapters externos
 └── shared/          # Tipos compartidos con packages/shared
@@ -92,15 +93,21 @@ La regla crítica: **las dependencias apuntan hacia adentro siempre**. `domain/`
 
 ### Lenguaje ubicuo — términos del dominio
 
-El código usa los términos que usaría un coordinador de emergencias, no términos técnicos.
+**El código va en inglés; la UI en español.** El concepto se piensa como lo
+diría un coordinador de emergencias (español), pero el identificador en código
+es su traducción al inglés. Términos técnicos vagos están prohibidos.
 
-| Término en código | Qué representa |
-|------------------|----------------|
-| `Incidente` | Evento de desastre natural activo |
-| `Recurso` | Bien o personal disponible para asignación |
-| `Operacion` | Misión de respuesta activa |
-| `Asignacion` | Vínculo entre recurso y operación |
-| `Prioridad` | Urgencia de un incidente (CRITICA / ALTA / MEDIA) |
+| Concepto (negocio) | Código (inglés) | Qué representa |
+|--------------------|-----------------|----------------|
+| Incidente | `Incident` | Evento de desastre natural activo |
+| Recurso | `Resource` | Bien o personal disponible para asignación |
+| Operación | `Operation` | Misión de respuesta activa |
+| Asignación | `Assignment` | Vínculo entre recurso y operación |
+| Prioridad | `Priority` → `CRITICAL` / `HIGH` / `MEDIUM` / `LOW` | Urgencia de un incidente |
+| Centro de acopio | `Hub` | Punto de recolección de donativos |
+| Usuario / Rol / Sesión | `User` / `Role` / `Session` | Bounded context `identity` |
+
+Siglas y nombres propios NO se traducen: `ZODI` se queda `ZODI`.
 
 Si aparece `DataManager`, `RequestHandler`, `ProcessorService` en el código → es una violación. Ver DDD: ubiquitous language.
 
@@ -110,18 +117,19 @@ Por ahora el sistema es un monolito modular. Los módulos son los boundaries:
 
 | Módulo | Responsabilidad |
 |--------|----------------|
-| `incidentes` | Registro y ciclo de vida de desastres |
-| `recursos` | Inventario y disponibilidad de recursos |
-| `operaciones` | Coordinación de respuesta activa |
-| `reportes` | Lectura optimizada (CQRS light — queries directas a BD) |
+| `identity` | Identidad y acceso: usuarios, roles, autenticación |
+| `incidents` | Registro y ciclo de vida de desastres |
+| `resources` | Inventario y disponibilidad de recursos |
+| `operations` | Coordinación de respuesta activa |
+| `reports` | Lectura optimizada (CQRS light — queries directas a BD) |
 
 Un módulo no importa entidades de otro — se comunica por IDs o eventos de dominio. Ver DDD: bounded contexts + [`dep-acyclic-dependencies`](~/.claude/skills/clean-architecture/references/dep-acyclic-dependencies.md).
 
 ### Aggregates
 
-- `Incidente` es aggregate root — `Afectado` y `Ubicacion` existen solo a través de él
-- `Operacion` es aggregate root — `Asignacion` vive dentro de ella
-- `Recurso` es aggregate root independiente — referenciado por ID desde `Operacion`
+- `Incident` es aggregate root — `Victim` y `Location` existen solo a través de él
+- `Operation` es aggregate root — `Assignment` vive dentro de ella
+- `Resource` es aggregate root independiente — referenciado por ID desde `Operation`
 
 Mantener aggregates pequeños. Si una query necesita datos de dos aggregates, usar una query de lectura directa (no navegar el grafo de objetos). Ver DDD: building blocks.
 
