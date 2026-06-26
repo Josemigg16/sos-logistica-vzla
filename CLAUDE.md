@@ -52,6 +52,7 @@ Usá SIEMPRE estos términos en código, variables, funciones y schemas:
 | `Prioridad` | Urgencia: `CRITICA` / `ALTA` / `MEDIA` / `BAJA` |
 | `Estado` | Ciclo de vida de entidades |
 | `Zona` | Área geográfica afectada |
+| `CategoriasInventario` | Catálogo de tipos de donaciones/suministros: `Víveres`, `Herramientas`, `Higiene personal`, `Medicamentos`, `Productos de limpieza`, `Abrigo y refugio`, `Artículos para bebés y grupos vulnerables` |
 
 **Nunca usar:** `DataManager`, `RequestHandler`, `ProcessorService`, `Helper`, `Utils`, `Manager`.
 

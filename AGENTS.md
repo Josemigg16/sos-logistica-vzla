@@ -90,6 +90,7 @@ Contexto: app de respuesta a desastres naturales.
 - Operacion: misión de respuesta coordinada
 - Asignacion: recurso asignado a una operación
 - Prioridad: CRITICA / ALTA / MEDIA / BAJA
+- Categorías de Inventario (Catálogos): Víveres, Herramientas, Higiene personal, Medicamentos, Productos de limpieza, Abrigo y refugio, Artículos para bebés y grupos vulnerables
 Stack: Bun, Hono, Drizzle, PostgreSQL, React + TanStack.
 Arquitectura: Clean Architecture + DDD (skills en .claude/skills/).
 ```
