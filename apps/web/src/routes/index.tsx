@@ -584,7 +584,7 @@ function NecesidadesPage() {
                   theme="dark"
                   className="w-full h-full"
                 >
-                  {(centrosData as Array<{ id: string; coordenadas: [number, number]; tipo: string }>).map((c) => (
+                  {(centrosData as unknown as Array<{ id: string; coordenadas: [number, number]; tipo: string }>).map((c) => (
                     <MapMarker
                       key={c.id}
                       coordinates={c.coordenadas}
