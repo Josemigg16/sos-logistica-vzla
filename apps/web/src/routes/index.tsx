@@ -16,8 +16,10 @@ import {
   SprayCan,
   Wind,
   Sparkles,
-  Droplets,
+  CalendarClock,
 } from 'lucide-react'
+
+import isologo from '@/assets/branding/white-isologo.webp'
 
 export const Route = createFileRoute('/')({
   component: NecesidadesPage,
@@ -34,9 +36,34 @@ interface Necesidad {
   prioridad: 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'
   descripcion: string
   ultimaActualizacion: string
+  fechaNecesidad: string // ISO date — cuando se necesita para
 }
 
-// --- Mock fallback ---
+// --- Date helpers ---
+function daysFromNow(iso: string): number {
+  const target = new Date(iso)
+  target.setHours(0, 0, 0, 0)
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+}
+
+function urgencyLabel(iso: string): { text: string; urgent: boolean; overdue: boolean } {
+  const days = daysFromNow(iso)
+  if (days < 0) return { text: 'Vencido', urgent: true, overdue: true }
+  if (days === 0) return { text: 'Se necesita HOY', urgent: true, overdue: false }
+  if (days === 1) return { text: 'Se necesita MAÑANA', urgent: true, overdue: false }
+  if (days <= 3) return { text: `En ${days} días`, urgent: true, overdue: false }
+  return { text: `Para el ${new Date(iso).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}`, urgent: false, overdue: false }
+}
+
+function todayPlus(days: number): string {
+  const d = new Date()
+  d.setDate(d.getDate() + days)
+  return d.toISOString().split('T')[0]
+}
+
+// --- Mock data ---
 const MOCK_NECESIDADES: Necesidad[] = [
   {
     id: 'nec-001',
@@ -48,6 +75,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'CRITICA',
     descripcion: 'Agua purificada para consumo humano en zonas sin servicio.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    fechaNecesidad: todayPlus(0),
   },
   {
     id: 'nec-002',
@@ -59,6 +87,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'CRITICA',
     descripcion: 'Analgésico esencial para centros de atención médica improvisados.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    fechaNecesidad: todayPlus(1),
   },
   {
     id: 'nec-003',
@@ -70,6 +99,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'ALTA',
     descripcion: 'Alimento base para raciones diarias en albergues.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    fechaNecesidad: todayPlus(1),
   },
   {
     id: 'nec-004',
@@ -81,6 +111,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'CRITICA',
     descripcion: 'Tallas medianas y grandes para bebés en albergues.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 200).toISOString(),
+    fechaNecesidad: todayPlus(0),
   },
   {
     id: 'nec-005',
@@ -92,6 +123,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'MEDIA',
     descripcion: 'Para familias evacuadas en zonas altas con bajas temperaturas.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    fechaNecesidad: todayPlus(3),
   },
   {
     id: 'nec-006',
@@ -103,6 +135,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'MEDIA',
     descripcion: 'Barras de jabón para higiene personal en albergues.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+    fechaNecesidad: todayPlus(4),
   },
   {
     id: 'nec-007',
@@ -114,6 +147,7 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'ALTA',
     descripcion: 'Kits de iluminación para zonas sin electricidad.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    fechaNecesidad: todayPlus(2),
   },
   {
     id: 'nec-008',
@@ -125,11 +159,12 @@ const MOCK_NECESIDADES: Necesidad[] = [
     prioridad: 'BAJA',
     descripcion: 'Desinfectante para limpieza de espacios colectivos.',
     ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
+    fechaNecesidad: todayPlus(7),
   },
 ]
 
-// --- Rotating motivational messages ---
-const MENSAJES = [
+// --- Rotating messages ---
+const MENSAJES_ACTIVOS = [
   'Cada litro de agua que donas salva una familia esta noche.',
   'Hoy hay bebés durmiendo en albergues. Tus pañales importan.',
   'Una frazada puede ser la diferencia entre el frío y la esperanza.',
@@ -137,19 +172,23 @@ const MENSAJES = [
   'Detrás de cada número hay una persona esperando.',
   'Tu gesto hoy puede ser el recuerdo más importante de alguien.',
   'La solidaridad no tiene monto mínimo. Solo corazón.',
-  'Aunque la meta parezca lejos, cada aporte nos acerca.',
+]
+
+const MENSAJES_CUBIERTOS = [
+  'Esta necesidad está cubierta por ahora — pero el mañana también importa.',
+  'La meta se alcanzó. Cualquier donación extra queda en reserva para los próximos días.',
+  'Gracias a quienes donaron. Si quieres ayudar, considera los ítems que aún faltan.',
+  'Lo que sobra hoy salva vidas mañana. Las reservas también cuentan.',
 ]
 
 // --- Helpers ---
 function getPct(recibido: number, meta: number) {
   return Math.min(Math.round((recibido / meta) * 100), 100)
 }
-
 function fmt(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return n.toString()
 }
-
 function timeAgo(iso: string) {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
   if (mins < 60) return `hace ${mins} min`
@@ -158,7 +197,7 @@ function timeAgo(iso: string) {
   return `hace ${Math.floor(hrs / 24)}d`
 }
 
-// Urgency expressed purely through contrast and typography weight — no red/orange
+// Urgency through contrast + typography — no red/orange
 const PRIORIDAD_CONFIG = {
   CRITICA: {
     label: 'Crítica',
@@ -172,6 +211,7 @@ const PRIORIDAD_CONFIG = {
     iconBg: 'bg-white/15 text-white',
     glow: 'shadow-[0_8px_32px_rgba(43,95,142,0.5)]',
     topAccent: true,
+    divider: 'border-white/15',
   },
   ALTA: {
     label: 'Alta',
@@ -185,6 +225,7 @@ const PRIORIDAD_CONFIG = {
     iconBg: 'bg-[#2B5F8E]/60 text-[#C8DCF0]',
     glow: 'shadow-[0_4px_20px_rgba(15,35,55,0.5)]',
     topAccent: false,
+    divider: 'border-white/10',
   },
   MEDIA: {
     label: 'Media',
@@ -198,6 +239,7 @@ const PRIORIDAD_CONFIG = {
     iconBg: 'bg-[#2B5F8E]/30 text-[#C8DCF0]/80',
     glow: 'shadow-[0_2px_12px_rgba(15,35,55,0.4)]',
     topAccent: false,
+    divider: 'border-white/8',
   },
   BAJA: {
     label: 'Baja',
@@ -211,6 +253,7 @@ const PRIORIDAD_CONFIG = {
     iconBg: 'bg-[#2B5F8E]/20 text-[#C8DCF0]/60',
     glow: '',
     topAccent: false,
+    divider: 'border-white/6',
   },
 }
 
@@ -246,14 +289,16 @@ function NeedCard({ nec, index }: { nec: Necesidad; index: number }) {
   const cfg = PRIORIDAD_CONFIG[nec.prioridad]
   const pct = getPct(nec.recibido, nec.meta)
   const missing = nec.meta - nec.recibido
+  const isCovered = pct >= 100
+  const urgency = urgencyLabel(nec.fechaNecesidad)
 
   return (
     <article
       className={`
-        relative rounded-xl border p-5 flex flex-col gap-4
+        relative rounded-xl border flex flex-col gap-0
         ${cfg.cardBg} ${cfg.cardBorder} ${cfg.glow}
         transition-all duration-300 hover:brightness-110
-        group overflow-hidden
+        overflow-hidden
       `}
       style={{ animationDelay: `${index * 55}ms` }}
     >
@@ -262,71 +307,106 @@ function NeedCard({ nec, index }: { nec: Necesidad; index: number }) {
         <div className="absolute top-0 inset-x-0 h-[2px] bg-white/60" />
       )}
 
-      {/* Subtle diagonal texture for depth */}
+      {/* Diagonal texture */}
       <div
-        className="pointer-events-none absolute inset-0 opacity-[0.03] rounded-xl"
-        style={{
-          backgroundImage: 'repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 8px)',
-        }}
+        className="pointer-events-none absolute inset-0 opacity-[0.025]"
+        style={{ backgroundImage: 'repeating-linear-gradient(45deg, white 0px, white 1px, transparent 1px, transparent 10px)' }}
       />
 
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3 relative">
-        <div className="flex items-center gap-3">
-          <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${cfg.iconBg}`}>
-            {CATEGORIA_ICON[nec.categoria] ?? <Package className="w-5 h-5" />}
-          </div>
-          <div>
-            <h3
-              className={`text-base font-bold leading-tight ${cfg.textColor}`}
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.05rem', letterSpacing: '0.01em' }}
-            >
-              {nec.nombre}
-            </h3>
-            <span className={`text-[11px] font-medium ${cfg.dimText}`}>{nec.categoria}</span>
-          </div>
-        </div>
-        <span className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wide ${cfg.badgeBg}`}>
-          {cfg.label}
+      {/* ── FECHA URGENCY BANNER — top of card, visually loud ── */}
+      <div className={`relative flex items-center gap-2 px-4 py-2 ${
+        urgency.overdue
+          ? 'bg-white/25'
+          : urgency.urgent
+            ? nec.prioridad === 'CRITICA' ? 'bg-white/15' : 'bg-[#2B5F8E]/40'
+            : 'bg-white/5'
+      } border-b ${cfg.divider}`}>
+        <CalendarClock className={`w-3.5 h-3.5 shrink-0 ${urgency.urgent ? cfg.textColor : cfg.dimText}`} />
+        <span
+          className={`font-black uppercase tracking-wide ${urgency.urgent ? cfg.textColor : cfg.dimText}`}
+          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: urgency.urgent ? '0.85rem' : '0.78rem' }}
+        >
+          {urgency.text}
         </span>
+        {isCovered && (
+          <span className="ml-auto text-[10px] font-bold text-white/50 bg-white/10 px-2 py-0.5 rounded-full border border-white/15">
+            Meta cubierta
+          </span>
+        )}
       </div>
 
-      {/* Description */}
-      <p className={`text-[12px] leading-relaxed relative ${cfg.dimText}`}>{nec.descripcion}</p>
+      {/* ── MAIN CONTENT ── */}
+      <div className="flex flex-col gap-4 p-5 relative">
 
-      {/* Progress */}
-      <div className="flex flex-col gap-2 relative">
-        <div className="flex items-end justify-between">
-          <div>
-            <span
-              className={`font-black tabular-nums leading-none ${cfg.textColor}`}
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '2rem' }}
-            >
-              {pct}%
-            </span>
-            <span className={`text-[11px] ml-1.5 ${cfg.dimText}`}>cubierto</span>
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`flex items-center justify-center w-10 h-10 rounded-lg shrink-0 ${cfg.iconBg}`}>
+              {CATEGORIA_ICON[nec.categoria] ?? <Package className="w-5 h-5" />}
+            </div>
+            <div>
+              <h3
+                className={`leading-tight ${cfg.textColor}`}
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.1rem', letterSpacing: '0.01em' }}
+              >
+                {nec.nombre}
+              </h3>
+              <span className={`text-[11px] font-medium ${cfg.dimText}`}>{nec.categoria}</span>
+            </div>
           </div>
-          <div className="text-right">
-            <span
-              className={`font-bold tabular-nums ${cfg.textColor}`}
-              style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem' }}
-            >
-              {fmt(missing)}
-            </span>
-            <span className={`text-[11px] ${cfg.dimText}`}> {nec.unidad} faltan</span>
+          <span className={`shrink-0 px-2.5 py-1 rounded-md text-[10px] font-bold border uppercase tracking-wide ${cfg.badgeBg}`}>
+            {cfg.label}
+          </span>
+        </div>
+
+        {/* Description */}
+        <p className={`text-[12px] leading-relaxed ${cfg.dimText}`}>{nec.descripcion}</p>
+
+        {/* Progress */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-end justify-between">
+            <div>
+              <span
+                className={`font-black tabular-nums leading-none ${isCovered ? cfg.textColor : cfg.textColor}`}
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '2rem' }}
+              >
+                {pct}%
+              </span>
+              <span className={`text-[11px] ml-1.5 ${cfg.dimText}`}>cubierto</span>
+            </div>
+            <div className="text-right">
+              {isCovered ? (
+                <span className={`text-[11px] font-semibold ${cfg.dimText}`}>¡Meta alcanzada!</span>
+              ) : (
+                <>
+                  <span
+                    className={`font-bold tabular-nums ${cfg.textColor}`}
+                    style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem' }}
+                  >
+                    {fmt(missing)}
+                  </span>
+                  <span className={`text-[11px] ${cfg.dimText}`}> {nec.unidad} faltan</span>
+                </>
+              )}
+            </div>
+          </div>
+          <ProgressBar pct={pct} barColor={cfg.barColor} barBg={cfg.barBg} />
+          <div className={`flex justify-between text-[10px] ${cfg.dimText}`}>
+            <span>{fmt(nec.recibido)} recibidos</span>
+            <span>meta {fmt(nec.meta)}</span>
           </div>
         </div>
-        <ProgressBar pct={pct} barColor={cfg.barColor} barBg={cfg.barBg} />
-        <div className={`flex justify-between text-[10px] ${cfg.dimText}`}>
-          <span>{fmt(nec.recibido)} recibidos</span>
-          <span>meta {fmt(nec.meta)}</span>
-        </div>
-      </div>
 
-      {/* Footer */}
-      <div className={`flex items-center gap-1.5 pt-1 border-t ${nec.prioridad === 'CRITICA' ? 'border-white/15' : 'border-white/8'}`}>
-        <Clock className={`w-3 h-3 shrink-0 ${cfg.dimText}`} />
-        <span className={`text-[10px] ${cfg.dimText}`}>Actualizado {timeAgo(nec.ultimaActualizacion)}</span>
+        {/* Footer row */}
+        <div className={`flex items-center justify-between pt-1 border-t ${cfg.divider}`}>
+          <div className="flex items-center gap-1.5">
+            <Clock className={`w-3 h-3 shrink-0 ${cfg.dimText}`} />
+            <span className={`text-[10px] ${cfg.dimText}`}>Actualizado {timeAgo(nec.ultimaActualizacion)}</span>
+          </div>
+          {isCovered && (
+            <span className={`text-[10px] italic ${cfg.dimText}`}>Toda donación adicional suma como reserva</span>
+          )}
+        </div>
       </div>
     </article>
   )
@@ -341,7 +421,7 @@ function StatBadge({ value, label, highlight }: { value: string | number; label:
         : 'bg-[#152D46] border-[#2B5F8E]/30'
     }`}>
       <span
-        className="text-xl font-black tabular-nums text-white leading-none"
+        className="font-black tabular-nums text-white leading-none"
         style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.5rem' }}
       >
         {value}
@@ -351,23 +431,26 @@ function StatBadge({ value, label, highlight }: { value: string | number; label:
   )
 }
 
-// --- Rotating message ---
-function RotatingMessage() {
+// --- Rotating message (context-aware) ---
+function RotatingMessage({ hasCovered }: { hasCovered: boolean }) {
+  const pool = hasCovered
+    ? [...MENSAJES_ACTIVOS, ...MENSAJES_CUBIERTOS]
+    : MENSAJES_ACTIVOS
   const [idx, setIdx] = useState(0)
   const [visible, setVisible] = useState(true)
   useEffect(() => {
     const iv = setInterval(() => {
       setVisible(false)
-      setTimeout(() => { setIdx(i => (i + 1) % MENSAJES.length); setVisible(true) }, 350)
+      setTimeout(() => { setIdx(i => (i + 1) % pool.length); setVisible(true) }, 350)
     }, 5000)
     return () => clearInterval(iv)
-  }, [])
+  }, [pool.length])
   return (
     <p
       className="text-sm text-white/60 text-center italic leading-relaxed max-w-md mx-auto transition-opacity duration-350"
       style={{ opacity: visible ? 1 : 0 }}
     >
-      "{MENSAJES[idx]}"
+      "{pool[idx % pool.length]}"
     </p>
   )
 }
@@ -399,17 +482,24 @@ function NecesidadesPage() {
   const totalMeta = necesidades.reduce((s, n) => s + n.meta, 0)
   const totalRecibido = necesidades.reduce((s, n) => s + n.recibido, 0)
   const pctGeneral = getPct(totalRecibido, totalMeta)
+  const hasCovered = necesidades.some(n => getPct(n.recibido, n.meta) >= 100)
 
   const filtered = filter === 'TODAS' ? necesidades : necesidades.filter(n => n.prioridad === filter)
   const ORDER = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 }
-  const sorted = [...filtered].sort((a, b) => ORDER[a.prioridad] - ORDER[b.prioridad])
+  // Sort: first by urgency (days), then by priority
+  const sorted = [...filtered].sort((a, b) => {
+    const dA = daysFromNow(a.fechaNecesidad)
+    const dB = daysFromNow(b.fechaNecesidad)
+    if (dA !== dB) return dA - dB
+    return ORDER[a.prioridad] - ORDER[b.prioridad]
+  })
 
   return (
     <div
       className="min-h-dvh w-full overflow-x-hidden"
       style={{ background: 'linear-gradient(160deg, #152D46 0%, #0F2337 50%, #0A1B2A 100%)' }}
     >
-      {/* Subtle grid pattern */}
+      {/* Grid pattern */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
@@ -420,7 +510,6 @@ function NecesidadesPage() {
           backgroundSize: '48px 48px',
         }}
       />
-      {/* Radial brand glow */}
       <div className="pointer-events-none fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-64 rounded-full bg-[#2B5F8E]/20 blur-[80px] z-0" />
 
       <div
@@ -431,24 +520,19 @@ function NecesidadesPage() {
         {/* ── HEADER ── */}
         <header className="mb-10">
           <div className="flex items-center justify-between mb-8">
-            {/* Brand */}
+
+            {/* Brand logo — isologo completo sobre fondo transparente */}
             <div className="flex items-center gap-3">
               <img
-                src="/src/assets/branding/white-isotipo-blue-background.webp"
+                src={isologo}
                 alt="Portuguesa Unida"
-                className="w-10 h-10 rounded-xl object-cover"
+                className="h-14 w-auto object-contain"
+                style={{ filter: 'drop-shadow(0 2px 12px rgba(43,95,142,0.5))' }}
               />
-              <div>
-                <span
-                  className="block text-white font-black leading-none tracking-wide"
-                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
-                >
-                  PORTUGUESA UNIDA
-                </span>
-                <span className="block text-[10px] text-white/40 mt-0.5 leading-none font-medium">
-                  SOS Logística
-                </span>
-              </div>
+              <div className="hidden sm:block w-px h-8 bg-white/10" />
+              <span className="hidden sm:block text-[11px] text-white/35 font-medium leading-tight max-w-[90px]">
+                Ayuda humanitaria · Portuguesa
+              </span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -481,7 +565,7 @@ function NecesidadesPage() {
               LO QUE MÁS<br />
               <span style={{ color: '#C8DCF0' }}>NECESITAMOS HOY</span>
             </h1>
-            <p className="text-sm text-white/50 max-w-lg leading-relaxed" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+            <p className="text-sm text-white/50 max-w-lg leading-relaxed">
               Estas son las necesidades urgentes de los centros de acopio activos.
               Cada donación se registra y actualiza estas cifras en tiempo real.
             </p>
@@ -524,7 +608,7 @@ function NecesidadesPage() {
             <span className="text-[10px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">Cada gesto importa</span>
             <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
           </div>
-          <RotatingMessage />
+          <RotatingMessage hasCovered={hasCovered} />
         </div>
 
         {/* ── FILTERS ── */}
@@ -576,18 +660,19 @@ function NecesidadesPage() {
         <footer className="mt-14 pt-10 border-t border-[#2B5F8E]/20 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-[#2B5F8E]/30 bg-[#2B5F8E]/15 mb-5">
             <Heart className="w-3.5 h-3.5 text-[#C8DCF0]/70" />
-            <span className="text-xs font-semibold text-[#C8DCF0]/70">Las necesidades de hoy pueden ser las de mañana</span>
+            <span className="text-xs font-semibold text-[#C8DCF0]/70">
+              {hasCovered
+                ? 'Lo que ya no se necesita hoy puede ser lo de mañana'
+                : 'Cualquier donación, por pequeña que sea, cuenta'}
+            </span>
           </div>
-          <p className="text-white/30 text-xs max-w-sm mx-auto leading-relaxed mb-8" style={{ fontFamily: "'DM Sans', sans-serif" }}>
-            Aunque una necesidad esté cubierta hoy, los centros siguen abiertos
-            y las familias siguen llegando. Cualquier donación adicional se convierte en reserva estratégica.
+          <p className="text-white/30 text-xs max-w-sm mx-auto leading-relaxed mb-8">
+            {hasCovered
+              ? 'Aunque algunas metas ya están cubiertas, los centros siguen activos y las familias siguen llegando. Lo que sobre hoy se convierte en reserva para mañana.'
+              : 'Los centros de acopio están activos y recibiendo donaciones todos los días. Cada ítem entregado actualiza estas cifras en tiempo real.'}
           </p>
           <div className="flex items-center justify-center gap-3 text-[11px] text-white/20">
-            <span
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 700 }}
-            >
-              PORTUGUESA UNIDA
-            </span>
+            <img src={isologo} alt="Portuguesa Unida" className="h-5 w-auto opacity-30 object-contain" />
             <span>·</span>
             <Link to="/map" className="hover:text-white/50 transition-colors flex items-center gap-1">
               <MapPin className="w-3 h-3" />
