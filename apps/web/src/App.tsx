@@ -124,12 +124,12 @@ export default function App() {
   };
 
   return (
-    <div className="relative flex flex-col w-full h-full select-none bg-background text-foreground transition-colors duration-300">
+    <div className="relative flex flex-col w-full h-full select-none bg-background text-foreground transition-colors duration-300 antialiased">
       
       {/* HEADER DE LA APP */}
-      <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-all duration-300">
+      <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 shadow-inner">
+          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 shadow-inner">
             <HeartHandshake className="w-6 h-6 animate-pulse" />
           </div>
           <div>
@@ -140,7 +140,7 @@ export default function App() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-center w-8 h-8 rounded-xl bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-all active:scale-95 cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer"
             title="Cambiar tema"
           >
             {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-violet-600" />}
@@ -205,7 +205,7 @@ export default function App() {
       </main>
 
       {/* CONTROLES FLOTANTES / FILTROS (MOBILE FIRST) */}
-      <div className="absolute top-20 left-4 right-4 z-30 md:left-6 md:right-auto md:w-96 flex flex-col gap-2">
+      <div className="absolute top-24 left-4 right-4 z-30 md:left-6 md:right-auto md:w-96 flex flex-col gap-2">
         {/* Barra de búsqueda */}
         <div className="relative flex items-center">
           <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
@@ -222,7 +222,7 @@ export default function App() {
         <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
           <button
             onClick={() => setSelectedCategoryFilter(null)}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-all duration-200 border ${
+            className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors duration-200 border active:scale-[0.96] transition-transform ${
               !selectedCategoryFilter
                 ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-lg shadow-emerald-500/10 font-semibold"
                 : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
@@ -234,7 +234,7 @@ export default function App() {
             <button
               key={cat}
               onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat ? null : cat)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-all duration-200 border ${
+              className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors duration-200 border active:scale-[0.96] transition-transform ${
                 selectedCategoryFilter === cat
                   ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-lg shadow-emerald-500/10 font-semibold"
                   : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
@@ -282,7 +282,7 @@ export default function App() {
             {/* Cabecera del Centro */}
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-base font-bold text-foreground tracking-tight leading-snug">{selectedCentro.nombre}</h2>
+                <h2 className="text-base font-bold text-foreground tracking-tight leading-snug text-balance">{selectedCentro.nombre}</h2>
                 <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
                   <MapPin className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                   <p className="text-[11px] font-medium leading-none">{selectedCentro.direccion}</p>
@@ -290,7 +290,7 @@ export default function App() {
               </div>
               <button
                 onClick={() => setSelectedId(null)}
-                className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors duration-200 active:scale-[0.96] transition-transform cursor-pointer"
               >
                 &times;
               </button>
@@ -300,7 +300,7 @@ export default function App() {
             <div className={`flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar ${isDetailsExpanded ? "block" : "hidden md:block"}`}>
               
               {/* Información de Contacto */}
-              <div className="grid grid-cols-2 gap-2 p-3 rounded-xl bg-background/50 border border-border/80 mb-4">
+              <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-background/50 border border-border/80 mb-4">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                   <div>
@@ -335,7 +335,7 @@ export default function App() {
                       <div className="flex items-center justify-between text-xs font-medium">
                         <span className="text-foreground text-[11px]">{categoria}</span>
                         <span className={`text-[10px] font-bold ${getStockTextColor(nivel)}`}>
-                          {nivel}% • {getStockLabel(nivel)}
+                          <span className="tabular-nums font-mono">{nivel}%</span> • {getStockLabel(nivel)}
                         </span>
                       </div>
                       <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
@@ -350,9 +350,9 @@ export default function App() {
               </div>
 
               {/* Nota de actualización */}
-              <div className="flex items-center gap-2 mt-5 p-3 rounded-xl bg-background/20 border border-border/50 text-muted-foreground text-[10px]">
+              <div className="flex items-center gap-2 mt-5 p-3 rounded-lg bg-background/20 border border-border/50 text-muted-foreground text-[10px]">
                 <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span>Esta información es actualizada en tiempo real por el equipo de SOS Logística desde el centro de control.</span>
+                <span className="text-pretty">Esta información es actualizada en tiempo real por el equipo de SOS Logística desde el centro de control.</span>
               </div>
             </div>
             
