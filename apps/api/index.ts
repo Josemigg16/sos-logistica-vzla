@@ -2,11 +2,21 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { centroSchema, type Centro } from "@sos/shared";
 import { join } from "path";
+import { createIdentityModule } from "./src/infrastructure/identity.module";
 
 const app = new Hono();
 
-// Habilitar CORS para que el frontend pueda consumir la API
-app.use("/*", cors());
+// CORS con credenciales para que el frontend mande la cookie del refresh token.
+app.use(
+  "/*",
+  cors({
+    origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+    credentials: true,
+  }),
+);
+
+// Bounded context `identity` — autenticación bajo /auth.
+app.route("/auth", createIdentityModule().routes);
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
 
