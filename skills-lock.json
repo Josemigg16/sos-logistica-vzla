@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "skills": {
+    "clean-architecture": {
+      "source": "/Users/josem/.claude/skills/clean-architecture",
+      "sourceType": "local",
+      "computedHash": "728e4b11b72cb5e21d809aa76449860ec287e55149bc57b142f8b2041e7018a3"
+    },
+    "domain-driven-design": {
+      "source": "wondelai/skills",
+      "sourceType": "github",
+      "skillPath": "domain-driven-design/SKILL.md",
+      "computedHash": "8c99f2c4f802cdd1855f850d60378a8b697ca3fd2d6749346643da675bfc44a4"
+    }
+  }
+}
