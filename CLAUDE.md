@@ -80,6 +80,18 @@ Ante una duda de arquitectura: leer la skill antes de escribir código.
 
 ---
 
+## Frontend — rutas activas
+
+El router es **TanStack Router v1 file-based**. Las rutas viven en `apps/web/src/routes/`.
+`routeTree.gen.ts` se genera automáticamente — **nunca editarlo a mano**.
+
+| Ruta | Archivo | Página |
+|------|---------|--------|
+| `/` | `routes/index.tsx` | Panel público de necesidades (página principal) |
+| `/map` | `routes/map.tsx` | Mapa de centros de acopio |
+
+---
+
 ## Comandos
 
 ```bash

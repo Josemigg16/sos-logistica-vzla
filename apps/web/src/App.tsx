@@ -1,15 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
-import { 
-  MapPin, 
-  Phone, 
-  User, 
-  Search, 
-  Package, 
-  ChevronUp, 
-  ChevronDown, 
-  Layers, 
+import {
+  MapPin,
+  Phone,
+  User,
+  Search,
+  Package,
+  ChevronUp,
+  ChevronDown,
   Info,
-  HeartHandshake,
   Sun,
   Moon
 } from "lucide-react";
@@ -134,35 +132,42 @@ export default function App() {
 
   // Color de estado del stock
   const getStockColor = (level: number) => {
-    if (level >= 75) return "bg-emerald-500";
-    if (level >= 40) return "bg-amber-500";
-    return "bg-rose-500";
+    if (level >= 75) return "bg-[#4A89C0]";
+    if (level >= 40) return "bg-[#2B5F8E]";
+    return "bg-[#C8DCF0]";
   };
 
   const getStockTextColor = (level: number) => {
-    if (level >= 75) return "text-emerald-400";
-    if (level >= 40) return "text-amber-400";
-    return "text-rose-400";
+    if (level >= 75) return "text-[#4A89C0]";
+    if (level >= 40) return "text-[#C8DCF0]";
+    return "text-white";
   };
 
   const getStockLabel = (level: number) => {
     if (level >= 75) return "Abastecido";
-    if (level >= 40) return "Crítico";
+    if (level >= 40) return "Limitado";
     return "Bajo Mínimo";
   };
 
   return (
-    <div className="relative flex flex-col w-full h-full select-none bg-background text-foreground transition-colors duration-300 antialiased">
+    <div className="mapa-layout relative flex flex-col select-none bg-background text-foreground transition-colors duration-300 antialiased">
       
       {/* HEADER DE LA APP */}
       <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
         <div className="flex items-center gap-3">
-          <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-500 dark:text-emerald-400 shadow-inner">
-            <HeartHandshake className="w-6 h-6 animate-pulse" />
-          </div>
+          <img
+            src="/src/assets/branding/white-isotipo-blue-background.webp"
+            alt="Portuguesa Unida"
+            className="w-10 h-10 rounded-lg object-cover"
+          />
           <div>
-            <h1 className="text-sm font-semibold tracking-tight text-foreground m-0 leading-none">SOS Logística</h1>
-            <p className="text-[10px] text-muted-foreground mt-1 leading-none font-medium">Centros de Acopio Humanitario</p>
+            <h1
+              className="text-sm font-black text-foreground m-0 leading-none tracking-wide"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
+            >
+              PORTUGUESA UNIDA
+            </h1>
+            <p className="text-[10px] text-muted-foreground mt-0.5 leading-none font-medium">Centros de Acopio</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -211,10 +216,10 @@ export default function App() {
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer"
             title="Cambiar tema"
           >
-            {theme === "dark" ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-violet-600" />}
+            {theme === "dark" ? <Sun className="w-4 h-4 text-blue-300" /> : <Moon className="w-4 h-4 text-blue-700" />}
           </button>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-semibold border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 animate-ping"></span>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
             Público
           </div>
         </div>
@@ -324,7 +329,7 @@ export default function App() {
             onClick={() => setSelectedCategoryFilter(null)}
             className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors duration-200 border active:scale-[0.96] transition-transform ${
               !selectedCategoryFilter
-                ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-lg shadow-emerald-500/10 font-semibold"
+                ? "bg-[#2B5F8E] text-white border-[#4A89C0]/60 shadow-lg shadow-[#2B5F8E]/30 font-semibold"
                 : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
             }`}
           >
@@ -336,7 +341,7 @@ export default function App() {
               onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat ? null : cat)}
               className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors duration-200 border active:scale-[0.96] transition-transform ${
                 selectedCategoryFilter === cat
-                  ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-lg shadow-emerald-500/10 font-semibold"
+                  ? "bg-[#2B5F8E] text-white border-[#4A89C0]/60 shadow-lg shadow-[#2B5F8E]/30 font-semibold"
                   : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
               }`}
             >
