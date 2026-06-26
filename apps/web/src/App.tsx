@@ -44,11 +44,25 @@ export default function App() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const [centros] = useState<Centro[]>(centrosData as Centro[]);
+  const [centros, setCentros] = useState<Centro[]>(centrosData as Centro[]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
+
+  useEffect(() => {
+    fetch("http://localhost:3000/api/centros")
+      .then((res) => {
+        if (!res.ok) throw new Error("API response not OK");
+        return res.json();
+      })
+      .then((data) => {
+        setCentros(data);
+      })
+      .catch((err) => {
+        console.warn("No se pudo conectar con el API backend, usando fallback local:", err);
+      });
+  }, []);
 
   // Obtener el centro seleccionado actualmente
   const selectedCentro = useMemo(() => {
