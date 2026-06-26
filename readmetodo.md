@@ -35,10 +35,5 @@ Mapa público interactivo que muestra centros de acopio humanitario con su infor
 
 ---
 
-## Pendiente de definir
-
 ### Persistencia de datos
-Pregunta abierta: ¿necesita persistir entre reinicios?
-- A) No — memoria RAM, el admin reenvía si se reinicia
-- B) Sí, simple — JSON file o SQLite con `bun:sqlite`
-- C) Sí, robusto — Drizzle + DB (según arquitectura del proyecto)
+Robusto — Drizzle + DB (según arquitectura del proyecto)
