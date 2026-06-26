@@ -10,9 +10,10 @@ interface MapProps {
   theme?: "light" | "dark";
   children?: React.ReactNode;
   className?: string;
+  onClick?: (lngLat: [number, number]) => void;
 }
 
-export function Map({ center, zoom, theme = "dark", children, className }: MapProps) {
+export function Map({ center, zoom, theme = "dark", children, className, onClick }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
 
@@ -60,6 +61,21 @@ export function Map({ center, zoom, theme = "dark", children, className }: MapPr
       lastCenter.current = center;
     }
   }, [center, map]);
+
+  // Escuchar clics en el mapa
+  useEffect(() => {
+    if (!map || !onClick) return;
+    const handleMapClick = (e: maplibregl.MapMouseEvent) => {
+      // Evitar que el clic en un marcador propague el evento al mapa principal
+      // Nota: los marcadores usan addEventListener con e.stopPropagation()
+      onClick([e.lngLat.lng, e.lngLat.lat]);
+    };
+    map.on("click", handleMapClick);
+    return () => {
+      map.off("click", handleMapClick);
+    };
+  }, [map, onClick]);
+
 
   return (
     <div ref={containerRef} className={className} style={{ width: "100%", height: "100%", position: "relative" }}>
@@ -149,3 +165,98 @@ export function MapMarker({ coordinates, onClick, color = "#22c55e", active = fa
 
   return null;
 }
+
+interface MapRouteProps {
+  coordinates: [number, number][];
+  color?: string;
+}
+
+export function MapRoute({ coordinates, color = "#10b981" }: MapRouteProps) {
+  const { map } = useContext(MapContext);
+
+  useEffect(() => {
+    if (!map || coordinates.length < 2) return;
+
+    let isMounted = true;
+    let geometryData: any = null;
+    const sourceId = "intelligent-route-source";
+    const layerId = "intelligent-route-layer";
+
+    const drawRoute = () => {
+      if (!map || !geometryData) return;
+
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+
+        map.addSource(sourceId, {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            properties: {},
+            geometry: geometryData,
+          },
+        });
+
+        map.addLayer({
+          id: layerId,
+          type: "line",
+          source: sourceId,
+          layout: {
+            "line-join": "round",
+            "line-cap": "round",
+          },
+          paint: {
+            "line-color": color,
+            "line-width": 5.5,
+            "line-opacity": 0.85,
+          },
+        });
+      } catch (err) {
+        console.error("Error drawing route layer:", err);
+      }
+    };
+
+    const fetchRoute = async () => {
+      try {
+        const coordsString = coordinates.map((c) => `${c[0]},${c[1]}`).join(";");
+        const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?geometries=geojson&overview=full`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Error fetching route from OSRM");
+        const data = await res.json();
+        
+        if (!isMounted) return;
+
+        if (data.routes && data.routes.length > 0) {
+          geometryData = data.routes[0].geometry;
+          drawRoute();
+        }
+      } catch (err) {
+        console.error("Error fetching OSRM route:", err);
+      }
+    };
+
+    const onStyleData = () => {
+      if (geometryData && !map.getSource(sourceId)) {
+        drawRoute();
+      }
+    };
+
+    fetchRoute();
+    map.on("styledata", onStyleData);
+
+    return () => {
+      isMounted = false;
+      map.off("styledata", onStyleData);
+      try {
+        if (map.getLayer(layerId)) map.removeLayer(layerId);
+        if (map.getSource(sourceId)) map.removeSource(sourceId);
+      } catch (err) {
+        console.warn("Error cleaning up route source/layer:", err);
+      }
+    };
+  }, [map, coordinates, color]);
+
+  return null;
+}
+
