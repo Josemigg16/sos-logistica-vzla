@@ -124,7 +124,7 @@ export default function App() {
   };
 
   return (
-    <div className="relative flex flex-col w-full h-full select-none bg-background text-foreground transition-colors duration-300 antialiased">
+    <div className="mapa-layout relative flex flex-col select-none bg-background text-foreground transition-colors duration-300 antialiased">
       
       {/* HEADER DE LA APP */}
       <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
