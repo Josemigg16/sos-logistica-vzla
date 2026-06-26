@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
+import { Map, MapMarker } from '@/components/ui/map'
+import centrosData from '@/data/centros.json'
 import {
   Heart,
   TrendingUp,
@@ -17,6 +19,7 @@ import {
   Wind,
   Sparkles,
   CalendarClock,
+  HandHeart,
 } from 'lucide-react'
 
 import isologo from '@/assets/branding/white-isologo.webp'
@@ -519,9 +522,8 @@ function NecesidadesPage() {
 
         {/* ── HEADER ── */}
         <header className="mb-10">
-          <div className="flex items-center justify-between mb-8">
-
-            {/* Brand logo — isologo completo sobre fondo transparente */}
+          {/* Top bar: brand + "En vivo" badge */}
+          <div className="flex items-center justify-between mb-10">
             <div className="flex items-center gap-3">
               <img
                 src={isologo}
@@ -535,40 +537,126 @@ function NecesidadesPage() {
               </span>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Link
-                to="/map"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/30 border border-[#2B5F8E]/50 text-white/70 text-xs font-medium hover:bg-[#2B5F8E]/50 hover:text-white transition-all duration-200 group"
-              >
-                <MapPin className="w-3.5 h-3.5" />
-                Ver mapa
-                <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </Link>
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#4A89C0]/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
-                <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-wider">En vivo</span>
-              </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#4A89C0]/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
+              <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-wider">En vivo</span>
             </div>
           </div>
 
-          {/* Title */}
-          <div className="mb-6">
-            <h1
-              className="text-white leading-[0.95] tracking-tight mb-4"
-              style={{
-                fontFamily: "'Barlow Condensed', sans-serif",
-                fontStyle: 'italic',
-                fontWeight: 800,
-                fontSize: 'clamp(2.6rem, 7vw, 4.5rem)',
-              }}
+          {/* Hero row: title on the left, big CTA on the right */}
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-8 lg:gap-12 items-start mb-8">
+
+            {/* Title block */}
+            <div>
+              <h1
+                className="text-white leading-[0.92] tracking-tight mb-5"
+                style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontStyle: 'italic',
+                  fontWeight: 800,
+                  fontSize: 'clamp(2.6rem, 7vw, 4.5rem)',
+                }}
+              >
+                LO QUE MÁS<br />
+                <span style={{ color: '#C8DCF0' }}>NECESITAMOS HOY</span>
+              </h1>
+              <p className="text-sm text-white/50 max-w-lg leading-relaxed">
+                Estas son las necesidades urgentes de los centros de acopio activos.
+                Cada donación se registra y actualiza estas cifras en tiempo real.
+              </p>
+            </div>
+
+            {/* Big CTA block — real MapLibre map preview as background */}
+            <Link
+              to="/map"
+              className="group relative flex flex-col justify-between gap-5 p-6 lg:p-7 rounded-2xl overflow-hidden
+                         shadow-[0_8px_40px_rgba(15,35,55,0.6)]
+                         hover:shadow-[0_16px_60px_rgba(74,137,192,0.4)]
+                         active:scale-[0.98] transition-[transform,box-shadow] duration-300
+                         w-full lg:w-[320px] min-h-[240px]
+                         border border-[#4A89C0]/30 bg-[#0F2337]"
             >
-              LO QUE MÁS<br />
-              <span style={{ color: '#C8DCF0' }}>NECESITAMOS HOY</span>
-            </h1>
-            <p className="text-sm text-white/50 max-w-lg leading-relaxed">
-              Estas son las necesidades urgentes de los centros de acopio activos.
-              Cada donación se registra y actualiza estas cifras en tiempo real.
-            </p>
+              {/* Real interactive map preview — disabled pointer events so the whole card is the link */}
+              <div className="pointer-events-none absolute inset-0 z-0">
+                <Map
+                  center={[-69.7, 9.05]}
+                  zoom={6.3}
+                  theme="dark"
+                  className="w-full h-full"
+                >
+                  {(centrosData as Array<{ id: string; coordenadas: [number, number]; tipo: string }>).map((c) => (
+                    <MapMarker
+                      key={c.id}
+                      coordinates={c.coordenadas}
+                      color={
+                        c.tipo === 'acopio' ? '#3b82f6' :
+                        c.tipo === 'salida' ? '#ef4444' :
+                        c.tipo === 'destino' ? '#22c55e' :
+                        '#3b82f6'
+                      }
+                    />
+                  ))}
+                </Map>
+              </div>
+
+              {/* Brand-tinted overlay for text legibility */}
+              <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-[#0F2337]/85 via-[#0F2337]/55 to-[#2B5F8E]/70" />
+
+              {/* Top decorative stripe */}
+              <div className="pointer-events-none absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#4A89C0] via-[#C8DCF0] to-[#4A89C0] z-[2]" />
+
+              {/* Shimmer on hover */}
+              <span className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br from-transparent via-white/15 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+
+              {/* Top row: icon + tag */}
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white text-[#0F2337] shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+                  <HandHeart className="w-6 h-6" strokeWidth={2.4} />
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-md border border-white/20">
+                  <MapPin className="w-3 h-3 text-[#C8DCF0]" />
+                  <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-[0.1em]">
+                    Explora
+                  </span>
+                </div>
+              </div>
+
+              {/* Big headline */}
+              <div className="relative z-10">
+                <span
+                  className="block text-white leading-[0.95] tracking-tight"
+                  style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontStyle: 'italic',
+                    fontWeight: 800,
+                    fontSize: 'clamp(1.7rem, 2.6vw, 2.2rem)',
+                    textShadow: '0 2px 16px rgba(15,35,55,0.85)',
+                  }}
+                >
+                  QUIERO<br />AYUDAR
+                </span>
+                <span
+                  className="block text-[12px] text-white/85 mt-2 font-medium leading-snug"
+                  style={{ textShadow: '0 1px 8px rgba(15,35,55,0.85)' }}
+                >
+                  Ver los centros de acopio cercanos y cómo donar
+                </span>
+              </div>
+
+              {/* Bottom row */}
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
+                  <span className="text-[10px] font-semibold text-[#C8DCF0]/90" style={{ textShadow: '0 1px 6px rgba(15,35,55,0.8)' }}>
+                    {(centrosData as unknown[]).length} centros activos
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-white uppercase tracking-wider" style={{ textShadow: '0 1px 6px rgba(15,35,55,0.8)' }}>
+                  <span>Ir al mapa</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={3} />
+                </div>
+              </div>
+            </Link>
           </div>
 
           {/* Stats */}
@@ -671,13 +759,22 @@ function NecesidadesPage() {
               ? 'Aunque algunas metas ya están cubiertas, los centros siguen activos y las familias siguen llegando. Lo que sobre hoy se convierte en reserva para mañana.'
               : 'Los centros de acopio están activos y recibiendo donaciones todos los días. Cada ítem entregado actualiza estas cifras en tiempo real.'}
           </p>
+
+          {/* Footer CTA — same as header */}
+          <Link
+            to="/map"
+            className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-white text-[#0F2337] font-bold uppercase tracking-wide shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0] active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200 mb-8"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.05rem', letterSpacing: '0.05em' }}
+          >
+            <HandHeart className="w-5 h-5" strokeWidth={2.5} />
+            <span>Quiero ayudar ahora</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Link>
+
           <div className="flex items-center justify-center gap-3 text-[11px] text-white/20">
             <img src={isologo} alt="Portuguesa Unida" className="h-5 w-auto opacity-30 object-contain" />
             <span>·</span>
-            <Link to="/map" className="hover:text-white/50 transition-colors flex items-center gap-1">
-              <MapPin className="w-3 h-3" />
-              Ver centros en el mapa
-            </Link>
+            <span>Ayuda humanitaria · Portuguesa</span>
           </div>
         </footer>
       </div>
