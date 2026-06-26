@@ -23,6 +23,7 @@ export const centroSchema = z.object({
   coordenadas: z.tuple([z.number(), z.number()]),
   tipo: tipoCentroSchema,
   inventario: z.record(z.string(), z.number()),
+  metadata: z.record(z.unknown()).optional(),
 });
 
 export type Centro = z.infer<typeof centroSchema>;

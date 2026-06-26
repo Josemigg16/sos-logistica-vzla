@@ -60,6 +60,10 @@ Crea un nuevo centro o actualiza uno existente si coincide el `id`.
       "Productos de limpieza": 80,
       "Abrigo y refugio": 35,
       "Artículos para bebés y grupos vulnerables": 90
+    },
+    "metadata": {
+      "observaciones": "Ubicado al lado de la estación de servicio",
+      "capacidad_m3": 150
     }
   }
   ```
@@ -100,6 +104,9 @@ const nuevoCentro: Centro = {
   inventario: {
     "Víveres": 100,
     "Herramientas": 90
+  },
+  metadata: {
+    "operador": "Bolipuertos"
   }
 };
 
