@@ -53,7 +53,7 @@ export default function App() {
     localStorage.setItem("theme", theme);
   }, [theme]);
 
-  const [centros, setCentros] = useState<Centro[]>(centrosData as Centro[]);
+  const [centros, setCentros] = useState<Centro[]>(centrosData as unknown as Centro[]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);

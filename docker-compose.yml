@@ -10,6 +10,8 @@ services:
     # (PGDATA is now /var/lib/postgresql/18/docker). Mount the parent.
     volumes:
       - pgdata:/var/lib/postgresql
+    ports:
+      - "5432:5432" # Expuesto al host para desarrollo y auditoría local
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sos} -d ${POSTGRES_DB:-sos_logistica}"]
       interval: 10s
