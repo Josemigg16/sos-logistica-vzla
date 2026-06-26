@@ -9,7 +9,9 @@ import {
   ChevronDown,
   Info,
   Sun,
-  Moon
+  Moon,
+  Layers,
+  HeartHandshake
 } from "lucide-react";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import centrosData from "@/data/centros.json";
@@ -24,6 +26,12 @@ interface Centro {
   coordenadas: [number, number];
   tipo: "acopio" | "salida" | "destino";
   inventario: Record<string, number>;
+  verificacion?: {
+    imagenes: string[];
+    fecha: string;
+    operario: string;
+    novedades?: string;
+  };
 }
 
 export default function App() {
@@ -49,6 +57,7 @@ export default function App() {
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
 
   // Estados para la ruta personalizada entre dos puntos
   const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
@@ -75,6 +84,21 @@ export default function App() {
   }, [centros]);
 
 
+
+  // Cerrar lightbox con la tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setActiveImageUrl(null);
+      }
+    };
+    if (activeImageUrl) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activeImageUrl]);
 
   useEffect(() => {
     fetch("http://localhost:3000/api/centros")
@@ -433,7 +457,7 @@ export default function App() {
             </div>
 
             {/* Contenido Expandible (Inventario y contactos) */}
-            <div className={`flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar ${isDetailsExpanded ? "block" : "hidden md:block"}`}>
+            <div className={`flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar pb-12 ${isDetailsExpanded ? "block" : "hidden md:block"}`}>
               
               {/* Información de Contacto */}
               <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-background/50 border border-border/80 mb-4">
@@ -485,6 +509,59 @@ export default function App() {
                 </div>
               </div>
 
+              {/* Verificación de Carga Útil */}
+              {selectedCentro.verificacion && (
+                <div className="mt-5 border-t border-border/50 pt-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <HeartHandshake className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
+                      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider text-balance">Verificación de Carga</h3>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground font-mono bg-secondary/80 px-2 py-0.5 rounded-md border border-border/40">
+                      {new Date(selectedCentro.verificacion.fecha).toLocaleDateString("es-VE", {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit"
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col gap-2.5">
+                    {/* Imágenes de verificación */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedCentro.verificacion.imagenes.map((imgUrl, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => setActiveImageUrl(imgUrl)}
+                          className="relative aspect-[4/3] rounded-md overflow-hidden bg-secondary/50 group cursor-pointer shadow-sm hover:shadow-md ring-1 ring-black/10 dark:ring-white/10 active:scale-[0.96] transition-[box-shadow,transform] duration-200"
+                          title="Click para ampliar imagen"
+                        >
+                          <img
+                            src={imgUrl}
+                            alt={`Verificación ${idx + 1}`}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <span className="text-[10px] text-white font-bold tracking-wider uppercase">Ver foto</span>
+                          </div>
+                          {/* Lupa de zoom permanente en móvil / hover en desktop */}
+                          <div className="absolute bottom-1.5 right-1.5 p-1 rounded bg-black/60 backdrop-blur-sm border border-white/10 text-white opacity-80 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200">
+                            <Search className="w-3 h-3" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {selectedCentro.verificacion.novedades && (
+                      <p className="text-[10.5px] text-muted-foreground text-pretty bg-secondary/30 p-2.5 rounded-lg border border-border/20 italic leading-relaxed mt-0.5">
+                        "{selectedCentro.verificacion.novedades}"
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* Nota de actualización */}
               <div className="flex items-center gap-2 mt-5 p-3 rounded-lg bg-background/20 border border-border/50 text-muted-foreground text-[10px]">
                 <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
@@ -495,6 +572,29 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Lightbox / Modal de Verificación */}
+      {activeImageUrl && (
+        <div
+          onClick={() => setActiveImageUrl(null)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md cursor-zoom-out animate-in fade-in duration-200"
+        >
+          <div className="relative max-w-[90vw] max-h-[85vh] md:max-w-4xl flex flex-col items-center animate-in zoom-in-95 duration-300">
+            <button
+              onClick={() => setActiveImageUrl(null)}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 font-semibold text-xs bg-white/10 hover:bg-white/20 px-3.5 py-1.5 rounded-lg border border-white/10 active:scale-95 transition-[transform,background-color] duration-200 cursor-pointer"
+            >
+              Cerrar (Esc)
+            </button>
+            <img
+              src={activeImageUrl}
+              alt="Verificación ampliada"
+              className="w-full h-full object-contain rounded-2xl shadow-2xl border border-white/10 cursor-default"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

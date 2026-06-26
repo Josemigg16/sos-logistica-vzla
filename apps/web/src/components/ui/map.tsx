@@ -72,7 +72,13 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
     };
     map.on("click", handleMapClick);
     return () => {
-      map.off("click", handleMapClick);
+      try {
+        if (map && typeof map.off === "function") {
+          map.off("click", handleMapClick);
+        }
+      } catch (err) {
+        console.warn("Error removing click listener:", err);
+      }
     };
   }, [map, onClick]);
 
@@ -94,7 +100,13 @@ export function MapControls() {
     const nav = new maplibregl.NavigationControl({ showCompass: false });
     map.addControl(nav, "top-right");
     return () => {
-      map.removeControl(nav);
+      try {
+        if (map && typeof map.removeControl === "function") {
+          map.removeControl(nav);
+        }
+      } catch (err) {
+        console.warn("Error removing control:", err);
+      }
     };
   }, [map]);
 
@@ -159,7 +171,11 @@ export function MapMarker({ coordinates, onClick, color = "#22c55e", active = fa
     markerRef.current = marker;
 
     return () => {
-      marker.remove();
+      try {
+        marker.remove();
+      } catch (err) {
+        console.warn("Error removing marker:", err);
+      }
     };
   }, [map, coordinates, color, onClick, active]);
 
@@ -247,10 +263,20 @@ export function MapRoute({ coordinates, color = "#10b981" }: MapRouteProps) {
 
     return () => {
       isMounted = false;
-      map.off("styledata", onStyleData);
       try {
-        if (map.getLayer(layerId)) map.removeLayer(layerId);
-        if (map.getSource(sourceId)) map.removeSource(sourceId);
+        if (map && typeof map.off === "function") {
+          map.off("styledata", onStyleData);
+        }
+      } catch (err) {
+        console.warn("Error removing styledata listener:", err);
+      }
+      try {
+        if (map && typeof map.getLayer === "function" && map.getLayer(layerId)) {
+          map.removeLayer(layerId);
+        }
+        if (map && typeof map.getSource === "function" && map.getSource(sourceId)) {
+          map.removeSource(sourceId);
+        }
       } catch (err) {
         console.warn("Error cleaning up route source/layer:", err);
       }
