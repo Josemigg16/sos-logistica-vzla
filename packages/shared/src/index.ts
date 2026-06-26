@@ -14,6 +14,13 @@ export const TIPOS_CENTRO = ["acopio", "salida", "destino"] as const;
 export const tipoCentroSchema = z.enum(TIPOS_CENTRO);
 export type TipoCentro = z.infer<typeof tipoCentroSchema>;
 
+export const verificacionSchema = z.object({
+  imagenes: z.array(z.string()),
+  fecha: z.string(),
+  operario: z.string(),
+  novedades: z.string().optional(),
+});
+
 export const centroSchema = z.object({
   id: z.string(),
   nombre: z.string(),
@@ -24,7 +31,9 @@ export const centroSchema = z.object({
   tipo: tipoCentroSchema,
   inventario: z.record(z.string(), z.number()),
   metadata: z.record(z.unknown()).optional(),
+  verificacion: verificacionSchema.optional(),
 });
+
 
 export type Centro = z.infer<typeof centroSchema>;
 

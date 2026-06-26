@@ -23,7 +23,10 @@
     "direccion": "Calle Rondón, Sector Centro, Valencia",
     "contacto": "+58 241 857 3341",
     "responsable": "Ing. Carlos Pérez",
-    "coordenadas": [-68.0044, 10.1804],
+    "coordenadas": [
+      -68.0044,
+      10.1804
+    ],
     "tipo": "acopio",
     "inventario": {
       "Víveres": 90,
@@ -33,6 +36,14 @@
       "Productos de limpieza": 45,
       "Abrigo y refugio": 60,
       "Artículos para bebés y grupos vulnerables": 30
+    },
+    "verificacion": {
+      "imagenes": [
+        "/recepcion_carga_2.png"
+      ],
+      "fecha": "2026-06-26T15:15:00Z",
+      "operario": "Ing. Carlos Pérez",
+      "novedades": "Llegada de medicamentos y kits de higiene personal. Todo descargado de forma segura y sin daños."
     }
   },
   {
@@ -59,7 +70,10 @@
     "direccion": "Carrera 19 con Calle 25, Barquisimeto",
     "contacto": "+58 251 233 4589",
     "responsable": "Lic. Elena Rivas",
-    "coordenadas": [-69.3136, 10.0678],
+    "coordenadas": [
+      -69.3136,
+      10.0678
+    ],
     "tipo": "destino",
     "inventario": {
       "Víveres": 60,
@@ -69,6 +83,14 @@
       "Productos de limpieza": 55,
       "Abrigo y refugio": 40,
       "Artículos para bebés y grupos vulnerables": 70
+    },
+    "verificacion": {
+      "imagenes": [
+        "/recepcion_carga_1.png"
+      ],
+      "fecha": "2026-06-26T18:30:00Z",
+      "operario": "Lic. Elena Rivas",
+      "novedades": "Se recibe camión de Portuguesa con insumos médicos de primera necesidad y víveres. Descarga completada."
     }
   },
   {
