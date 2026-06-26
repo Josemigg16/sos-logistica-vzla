@@ -13,6 +13,22 @@ Guía de agentes: ver [agents.md](./agents.md).
 - Sin build después de cambios
 - Conventional commits únicamente, sin Co-Authored-By ni atribución AI
 - No crear archivos de documentación salvo que se pida explícitamente
+- **Código en inglés, UI en español.** Excepción: siglas/nombres propios sin traducción (`ZODI`).
+
+---
+
+## TDD (activado — no negociable)
+
+Este proyecto trabaja **test-first**. El ciclo es **RED → GREEN → REFACTOR**:
+
+1. **RED** — escribí el test que falla ANTES del código de producción.
+2. **GREEN** — el mínimo código para que pase.
+3. **REFACTOR** — limpiá con los tests en verde.
+
+- Runner: `bun test`. Tests `*.test.ts` co-locados (unit) o en `tests/` (e2e).
+- Ningún use case, entidad ni endpoint se da por hecho sin su test.
+- Tests sin Postgres: usar los adapters in-memory (`InMemory*Repository`) — implementan los mismos puertos que Drizzle.
+- Antes de cerrar un cambio: `bun test` en verde. Si está rojo, no está hecho.
 
 ---
 
@@ -41,18 +57,25 @@ apps/api/src/
 
 ## Lenguaje ubicuo
 
-Usá SIEMPRE estos términos en código, variables, funciones y schemas:
+**El código va en inglés; la UI en español.** El concepto del negocio se piensa
+en español (así habla el coordinador), pero el identificador en código es su
+traducción al inglés. Usá SIEMPRE el término de la columna "Código":
 
-| Término | Representa |
-|---------|-----------|
-| `Incidente` | Evento de desastre activo |
-| `Recurso` | Bien o personal disponible |
-| `Operacion` | Misión de respuesta activa |
-| `Asignacion` | Vínculo recurso ↔ operación |
-| `Prioridad` | Urgencia: `CRITICA` / `ALTA` / `MEDIA` / `BAJA` |
-| `Estado` | Ciclo de vida de entidades |
-| `Zona` | Área geográfica afectada |
-| `CategoriasInventario` | Catálogo de tipos de donaciones/suministros: `Víveres`, `Herramientas`, `Higiene personal`, `Medicamentos`, `Productos de limpieza`, `Abrigo y refugio`, `Artículos para bebés y grupos vulnerables` |
+| Concepto (negocio) | Código (inglés) | Representa |
+|--------------------|-----------------|-----------|
+| Incidente | `Incident` | Evento de desastre activo |
+| Recurso | `Resource` | Bien o personal disponible |
+| Operación | `Operation` | Misión de respuesta activa |
+| Asignación | `Assignment` | Vínculo recurso ↔ operación |
+| Prioridad | `Priority` → `CRITICAL` / `HIGH` / `MEDIUM` / `LOW` | Urgencia |
+| Estado | `Status` | Ciclo de vida de entidades |
+| Zona | `Zone` | Área geográfica afectada |
+| Centro de acopio | `Hub` (rol `HUB_COORDINATOR`) | Punto de recolección de donativos |
+| Categorías de inventario | `InventoryCategory` | Catálogo de tipos de suministros (los valores son labels de UI, en español) |
+| Usuario / Rol / Sesión | `User` / `Role` / `Session` | Bounded context `identity` |
+
+**Excepción — siglas y nombres propios NO se traducen:** `ZODI` se queda `ZODI`
+en código (es una sigla institucional, como `FBI`).
 
 **Nunca usar:** `DataManager`, `RequestHandler`, `ProcessorService`, `Helper`, `Utils`, `Manager`.
 
@@ -62,10 +85,11 @@ Usá SIEMPRE estos términos en código, variables, funciones y schemas:
 
 | Módulo | Qué hace |
 |--------|---------|
-| `incidentes` | Registro y ciclo de vida de desastres |
-| `recursos` | Inventario y disponibilidad |
-| `operaciones` | Coordinación de respuesta activa |
-| `reportes` | Lecturas optimizadas (queries directas, sin pasar por domain) |
+| `identity` | Identidad y acceso: usuarios, roles, autenticación |
+| `incidents` | Registro y ciclo de vida de desastres |
+| `resources` | Inventario y disponibilidad |
+| `operations` | Coordinación de respuesta activa |
+| `reports` | Lecturas optimizadas (queries directas, sin pasar por domain) |
 
 ---
 

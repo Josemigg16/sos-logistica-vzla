@@ -54,13 +54,13 @@ Para exploración sin compromiso:
 
 ### Bien — contexto de dominio
 
-> "Agregá la entidad `Recurso` con su aggregate root. Tiene `cantidad`, `tipo` (VEHICULO / PERSONAL / SUMINISTRO) y `estado` (DISPONIBLE / ASIGNADO / FUERA_DE_SERVICIO). Vivir en `domain/recursos/`."
+> "Agregá la entidad `Resource` con su aggregate root. Tiene `quantity`, `type` (VEHICLE / PERSONNEL / SUPPLY) y `status` (AVAILABLE / ASSIGNED / OUT_OF_SERVICE). Vivir en `domain/resources/`."
 
 ### Mal — sin contexto
 
 > "Creá una clase para recursos."
 
-La diferencia: el agente con contexto sabe que `Recurso` es un aggregate root, que no puede tener imports de Drizzle, y que `tipo` y `estado` son value objects o enums del dominio.
+La diferencia: el agente con contexto sabe que `Resource` es un aggregate root, que no puede tener imports de Drizzle, y que `type` y `status` son value objects o enums del dominio. (Recordá: **código en inglés, UI en español.**)
 
 ---
 
@@ -85,12 +85,15 @@ Incluir en prompts complejos cuando el agente no tenga contexto previo:
 
 ```
 Contexto: app de respuesta a desastres naturales.
-- Incidente: evento activo (terremoto, inundación, etc.)
-- Recurso: bien o personal (vehículos, médicos, suministros)
-- Operacion: misión de respuesta coordinada
-- Asignacion: recurso asignado a una operación
-- Prioridad: CRITICA / ALTA / MEDIA / BAJA
-- Categorías de Inventario (Catálogos): Víveres, Herramientas, Higiene personal, Medicamentos, Productos de limpieza, Abrigo y refugio, Artículos para bebés y grupos vulnerables
+Código en inglés, UI en español. Siglas no se traducen (ZODI).
+- Incidente (`Incident`): evento activo (terremoto, inundación, etc.)
+- Recurso (`Resource`): bien o personal (vehículos, médicos, suministros)
+- Operación (`Operation`): misión de respuesta coordinada
+- Asignación (`Assignment`): recurso asignado a una operación
+- Prioridad (`Priority`): CRITICAL / HIGH / MEDIUM / LOW
+- Centro de acopio (`Hub`): punto de recolección de donativos
+- Identidad (`identity`): usuarios (`User`), roles (`Role`), sesiones (`Session`)
+- Categorías de inventario (`InventoryCategory`): los valores son labels de UI en español (Víveres, Herramientas, Higiene personal, Medicamentos, Productos de limpieza, Abrigo y refugio, Artículos para bebés y grupos vulnerables)
 Stack: Bun, Hono, Drizzle, PostgreSQL, React + TanStack.
 Arquitectura: Clean Architecture + DDD (skills en .claude/skills/).
 ```
@@ -101,7 +104,7 @@ Arquitectura: Clean Architecture + DDD (skills en .claude/skills/).
 
 | Pedido | Problema | Alternativa |
 |--------|---------|-------------|
-| "Creá un service para procesar incidentes" | `Service` es anémico y ambiguo | "Creá el use case `RegistrarIncidente` en `application/incidentes/`" |
+| "Creá un service para procesar incidentes" | `Service` es anémico y ambiguo | "Creá el use case `RegisterIncident` en `application/incidents/`" |
 | "Conectá el frontend directo a la BD" | Rompe la arquitectura de capas | "Creá un endpoint en Hono que llame al use case" |
-| "Ponele un `id` y guardalo en Drizzle" | Persiste sin pasar por domain | "Usá el repositorio de `Incidente` definido en `domain/`" |
-| "Hacé un CRUD genérico" | Sin ubiquitous language | Nombrar las operaciones: `RegistrarIncidente`, `CerrarIncidente`, `EscalarPrioridad` |
+| "Ponele un `id` y guardalo en Drizzle" | Persiste sin pasar por domain | "Usá el repositorio de `Incident` definido en `domain/`" |
+| "Hacé un CRUD genérico" | Sin ubiquitous language | Nombrar las operaciones: `RegisterIncident`, `CloseIncident`, `EscalatePriority` |

@@ -37,3 +37,5 @@ export const centroSchema = z.object({
 
 export type Centro = z.infer<typeof centroSchema>;
 
+export * from "./identity";
+
