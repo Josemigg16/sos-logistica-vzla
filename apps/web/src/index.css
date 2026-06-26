@@ -55,6 +55,7 @@
     --input: 240 5.9% 85%;
     --ring: 142 70.6% 40%;
     --radius: 0.75rem;
+    color-scheme: light;
   }
 
   .dark {
@@ -77,6 +78,7 @@
     --border: 240 3.7% 15%;
     --input: 240 3.7% 15%;
     --ring: 142 70.6% 45.3%;
+    color-scheme: dark;
   }
 }
 
@@ -148,6 +150,11 @@ html, body, #root {
 .no-scrollbar {
   -ms-overflow-style: auto;
   scrollbar-width: thin;
+    scrollbar-color: hsl(240deg 2.62% 17.79%) transparent;
+}
+
+.dark .no-scrollbar::-webkit-scrollbar-thumb {
+    scrollbar-color: hsl(240, 5%, 82%) transparent;
 }
 
 /* Evitar solapamiento de controles de mapa con cabecera en móviles */
