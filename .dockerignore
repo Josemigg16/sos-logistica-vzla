@@ -1,0 +1,13 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.gitignore
+.env
+**/.env
+.claude
+.agents
+.kilocode
+.kiro
+.windsurf
+**/*.md
