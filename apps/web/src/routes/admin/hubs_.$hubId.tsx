@@ -5,7 +5,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_HUBS } from '@/lib/session'
 import { HubDashboard, fetchHubById } from '@/components/hub-dashboard'
 
-export const Route = createFileRoute('/admin/hubs/$hubId')({ component: HubDetailGate })
+export const Route = createFileRoute('/admin/hubs_/$hubId')({ component: HubDetailGate })
 
 function HubDetailGate() {
   const { user } = useAuth()
