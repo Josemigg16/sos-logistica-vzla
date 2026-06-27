@@ -117,7 +117,7 @@ async function deleteDriver(id: string): Promise<void> {
 type Tab = 'vehicle-types' | 'vehicles' | 'drivers'
 
 function AdminFleetPage() {
-  const [tab, setTab] = useState<Tab>('vehicle-types')
+  const [tab, setTab] = useState<Tab>('vehicles')
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-6xl mx-auto lg:mx-0">
@@ -142,7 +142,9 @@ function AdminFleetPage() {
       {/* Tabs */}
       <div className="flex gap-1 mb-6 bg-[#152D46]/60 rounded-xl p-1 border border-[#2B5F8E]/30 w-fit">
         {([
-          { id: 'vehicle-types', label: 'Tipos', icon: <Tag className="w-3.5 h-3.5" /> },
+          // CRUD de tipos de vehículos deshabilitado: el tipo de vehículo es fijo
+          // y es sembrado por la base de datos como "Carga y Transporte" para toda la flota de carga.
+          // { id: 'vehicle-types', label: 'Tipos', icon: <Tag className="w-3.5 h-3.5" /> },
           { id: 'vehicles', label: 'Vehículos', icon: <Truck className="w-3.5 h-3.5" /> },
           { id: 'drivers', label: 'Choferes', icon: <User className="w-3.5 h-3.5" /> },
         ] as { id: Tab; label: string; icon: React.ReactNode }[]).map((t) => (
@@ -161,7 +163,7 @@ function AdminFleetPage() {
         ))}
       </div>
 
-      {tab === 'vehicle-types' && <VehicleTypesTab />}
+      {/* {tab === 'vehicle-types' && <VehicleTypesTab />} */}
       {tab === 'vehicles' && <VehiclesTab />}
       {tab === 'drivers' && <DriversTab />}
     </div>

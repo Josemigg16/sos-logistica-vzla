@@ -17,12 +17,14 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminTraspasoRouteImport } from './routes/admin/traspaso'
 import { Route as AdminNeedsRouteImport } from './routes/admin/needs'
 import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 import { Route as AdminFleetRouteImport } from './routes/admin/fleet'
 import { Route as AdminCoordinatorRouteImport } from './routes/admin/coordinator'
 import { Route as AdminConvoysRouteImport } from './routes/admin/convoys'
 import { Route as AdminCatalogRouteImport } from './routes/admin/catalog'
+import { Route as AdminCargarRouteImport } from './routes/admin/cargar'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -64,6 +66,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminTraspasoRoute = AdminTraspasoRouteImport.update({
+  id: '/traspaso',
+  path: '/traspaso',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminNeedsRoute = AdminNeedsRouteImport.update({
   id: '/needs',
   path: '/needs',
@@ -94,6 +101,11 @@ const AdminCatalogRoute = AdminCatalogRouteImport.update({
   path: '/catalog',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCargarRoute = AdminCargarRouteImport.update({
+  id: '/cargar',
+  path: '/cargar',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -102,12 +114,14 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
+  '/admin/cargar': typeof AdminCargarRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/convoys': typeof AdminConvoysRoute
   '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
+  '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -117,12 +131,14 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
+  '/admin/cargar': typeof AdminCargarRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/convoys': typeof AdminConvoysRoute
   '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
+  '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -134,12 +150,14 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
+  '/admin/cargar': typeof AdminCargarRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/convoys': typeof AdminConvoysRoute
   '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
+  '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -152,12 +170,14 @@ export interface FileRouteTypes {
     | '/map'
     | '/needs-register'
     | '/register'
+    | '/admin/cargar'
     | '/admin/catalog'
     | '/admin/convoys'
     | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
+    | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
@@ -167,12 +187,14 @@ export interface FileRouteTypes {
     | '/map'
     | '/needs-register'
     | '/register'
+    | '/admin/cargar'
     | '/admin/catalog'
     | '/admin/convoys'
     | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
+    | '/admin/traspaso'
     | '/admin/users'
     | '/admin'
   id:
@@ -183,12 +205,14 @@ export interface FileRouteTypes {
     | '/map'
     | '/needs-register'
     | '/register'
+    | '/admin/cargar'
     | '/admin/catalog'
     | '/admin/convoys'
     | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
+    | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -260,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/traspaso': {
+      id: '/admin/traspaso'
+      path: '/traspaso'
+      fullPath: '/admin/traspaso'
+      preLoaderRoute: typeof AdminTraspasoRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/needs': {
       id: '/admin/needs'
       path: '/needs'
@@ -302,27 +333,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCatalogRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/cargar': {
+      id: '/admin/cargar'
+      path: '/cargar'
+      fullPath: '/admin/cargar'
+      preLoaderRoute: typeof AdminCargarRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminCargarRoute: typeof AdminCargarRoute
   AdminCatalogRoute: typeof AdminCatalogRoute
   AdminConvoysRoute: typeof AdminConvoysRoute
   AdminCoordinatorRoute: typeof AdminCoordinatorRoute
   AdminFleetRoute: typeof AdminFleetRoute
   AdminHubsRoute: typeof AdminHubsRoute
   AdminNeedsRoute: typeof AdminNeedsRoute
+  AdminTraspasoRoute: typeof AdminTraspasoRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminCargarRoute: AdminCargarRoute,
   AdminCatalogRoute: AdminCatalogRoute,
   AdminConvoysRoute: AdminConvoysRoute,
   AdminCoordinatorRoute: AdminCoordinatorRoute,
   AdminFleetRoute: AdminFleetRoute,
   AdminHubsRoute: AdminHubsRoute,
   AdminNeedsRoute: AdminNeedsRoute,
+  AdminTraspasoRoute: AdminTraspasoRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
 }
