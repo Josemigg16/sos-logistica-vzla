@@ -12,10 +12,11 @@ import {
   AlertCircle,
   CheckCircle2,
   Inbox,
+  Search,
 } from 'lucide-react'
 import { API_URL } from '@/lib/auth/config'
 import logotipo from '@/assets/branding/white-logotipo.webp'
-import { INVENTORY_CATEGORIES, type InventoryCategoryName } from '@sos/shared'
+import { INVENTORY_CATEGORIES } from '@sos/shared'
 
 export const Route = createFileRoute('/needs-register')({
   component: PublicNeedsRegisterPage,
@@ -72,9 +73,7 @@ function PublicNeedsRegisterPage() {
   const [itemQuery, setItemQuery] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isCreatingCustomProduct, setIsCreatingCustomProduct] = useState(false)
-  const [customCategory, setCustomCategory] = useState<InventoryCategoryName>(
-    INVENTORY_CATEGORIES[0]
-  )
+  const [customCategory, setCustomCategory] = useState<string>(INVENTORY_CATEGORIES[0])
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const [meta, setMeta] = useState<number>(0)
@@ -88,10 +87,10 @@ function PublicNeedsRegisterPage() {
   const [errorMsg, setErrorMsg] = useState('')
 
   // 1. Fetch Centers (filter to 'acopio' / collection centers)
-  const { data: centers = [] } = useQuery<Center[]>({
+  const { data: centers = [], isLoading: loadingCenters } = useQuery<Center[]>({
     queryKey: ['centros'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/centros`)
+      const res = await fetch(`${API_URL}/api/centros`)
       if (!res.ok) throw new Error('API error')
       const all = await res.json()
       return all.filter((c: Center) => c.tipo === 'acopio')
@@ -99,10 +98,10 @@ function PublicNeedsRegisterPage() {
   })
 
   // 2. Fetch Catalog Products
-  const { data: catalogProducts = [] } = useQuery<Product[]>({
+  const { data: catalogProducts = [], isLoading: loadingProducts } = useQuery<Product[]>({
     queryKey: ['productos'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/productos`)
+      const res = await fetch(`${API_URL}/api/productos`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },
@@ -113,7 +112,7 @@ function PublicNeedsRegisterPage() {
     queryKey: ['necesidades', selectedHubId],
     queryFn: async () => {
       if (!selectedHubId) return []
-      const res = await fetch(`${API_URL}/necesidades?hubId=${selectedHubId}`)
+      const res = await fetch(`${API_URL}/api/necesidades?hubId=${selectedHubId}`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },
@@ -132,7 +131,7 @@ function PublicNeedsRegisterPage() {
   // Submit Need Mutation
   const createNeedMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch(`${API_URL}/necesidades`, {
+      const res = await fetch(`${API_URL}/api/necesidades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
@@ -382,9 +381,7 @@ function PublicNeedsRegisterPage() {
                           </label>
                           <select
                             value={customCategory}
-                            onChange={(e) =>
-                              setCustomCategory(e.target.value as InventoryCategoryName)
-                            }
+                            onChange={(e) => setCustomCategory(e.target.value)}
                             className="w-full px-2 py-1.5 rounded-lg bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-xs text-white focus:outline-none cursor-pointer"
                           >
                             {INVENTORY_CATEGORIES.map((cat) => (

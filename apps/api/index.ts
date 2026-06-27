@@ -1,5 +1,7 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
+import { logger } from "hono/logger";
 import { join } from "path";
 import {
   centroSchema,
@@ -13,6 +15,8 @@ import { createResourcesModule } from "./src/infrastructure/resources.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
 
 const app = new Hono();
+
+app.use("*", logger());
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
 
@@ -203,7 +207,7 @@ app.delete("/api/centros/:id", async (c) => {
 
 // --- Needs (necesidades) — public read + admin CRUD, persistido en base de datos relacional ---
 
-const getNeedsHandler = async (c) => {
+const getNeedsHandler = async (c: Context) => {
   try {
     const hubId = c.req.query("hubId");
     let query = db
@@ -246,7 +250,7 @@ const getNeedsHandler = async (c) => {
 app.get("/api/necesidades", getNeedsHandler);
 app.get("/api/needs", getNeedsHandler);
 
-const postNeedsHandler = async (c) => {
+const postNeedsHandler = async (c: Context) => {
   try {
     const body = await c.req.json();
     if (!body.hubId || !body.nombre || !body.categoria || !body.meta || !body.prioridad) {
@@ -254,7 +258,7 @@ const postNeedsHandler = async (c) => {
     }
 
     // 1. Search for existing product (case-insensitive check on name)
-    let product = await db
+    let product: any = await db
       .select()
       .from(products)
       .where(eq(sql`LOWER(${products.name})`, body.nombre.toLowerCase()))
@@ -315,9 +319,9 @@ const postNeedsHandler = async (c) => {
 app.post("/api/necesidades", postNeedsHandler);
 app.post("/api/needs", postNeedsHandler);
 
-const putNeedsHandler = async (c) => {
+const putNeedsHandler = async (c: Context) => {
   try {
-    const id = c.req.param("id");
+    const id = c.req.param("id") as string;
     const body = await c.req.json();
 
     const needExists = await db
@@ -378,9 +382,9 @@ const putNeedsHandler = async (c) => {
 app.put("/api/necesidades/:id", putNeedsHandler);
 app.put("/api/needs/:id", putNeedsHandler);
 
-const deleteNeedsHandler = async (c) => {
+const deleteNeedsHandler = async (c: Context) => {
   try {
-    const id = c.req.param("id");
+    const id = c.req.param("id") as string;
     const deleted = await db.delete(needs).where(eq(needs.id, id)).returning();
     if (deleted.length === 0) {
       return c.json({ error: "Necesidad no encontrada" }, 404);

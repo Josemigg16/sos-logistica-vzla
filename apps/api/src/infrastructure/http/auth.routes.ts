@@ -37,17 +37,27 @@ function toAdminView(user: User): AdminUserView {
 }
 
 const REFRESH_COOKIE = "refresh_token";
-// La API se monta bajo /api, así que la cookie debe viajar a /api/auth/refresh.
-// Restringimos al path de auth (no a todo /api) para que no se filtre al resto.
-const REFRESH_PATH = "/api/auth";
+
+function getRefreshCookiePath(c: Context): string {
+  return c.req.path.startsWith("/api") ? "/api/auth" : "/auth";
+}
 
 function setRefreshCookie(c: Context, token: string, expiresAt: Date): void {
+  const host = c.req.header("host") ?? "";
+  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+
   setCookie(c, REFRESH_COOKIE, token, {
     httpOnly: true,
-    secure: config.isProd,
+    secure: config.isProd && !isLocal,
     sameSite: "Lax",
-    path: REFRESH_PATH,
+    path: getRefreshCookiePath(c),
     expires: expiresAt,
+  });
+}
+
+function deleteRefreshCookie(c: Context): void {
+  deleteCookie(c, REFRESH_COOKIE, {
+    path: getRefreshCookiePath(c),
   });
 }
 
@@ -91,14 +101,14 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
       setRefreshCookie(c, result.refreshToken, result.refreshExpiresAt);
       return c.json({ accessToken: result.accessToken });
     } catch (error) {
-      deleteCookie(c, REFRESH_COOKIE, { path: REFRESH_PATH });
+      deleteRefreshCookie(c);
       return mapError(c, error);
     }
   });
 
   router.post("/logout", async (c) => {
     await deps.revokeSession.execute(getCookie(c, REFRESH_COOKIE));
-    deleteCookie(c, REFRESH_COOKIE, { path: REFRESH_PATH });
+    deleteRefreshCookie(c);
     return c.json({ ok: true });
   });
 
