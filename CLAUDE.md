@@ -14,6 +14,7 @@ Guía de agentes: ver [agents.md](./agents.md).
 - Conventional commits únicamente, sin Co-Authored-By ni atribución AI
 - No crear archivos de documentación salvo que se pida explícitamente
 - **Código en inglés, UI en español.** Excepción: siglas/nombres propios sin traducción (`ZODI`).
+- **Rutas SIN prefijo `/api`.** Nunca anteponer `/api` a las rutas del backend (ni en Hono, ni en cookies `Path`, ni en el cliente del frontend). Las rutas arrancan directo: `/auth/...`, `/resources/...`, etc.
 
 ---
 

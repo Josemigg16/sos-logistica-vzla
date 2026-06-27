@@ -76,6 +76,7 @@ Al leer `CLAUDE.md` y las skills, cualquier agente respeta:
 | `adapt-controller-thin` | Handlers Hono que solo llaman use cases |
 | `usecase-single-responsibility` | Un use case = una acción de negocio |
 | Ubiquitous language | Nombres del dominio, nunca `Manager` / `Helper` |
+| Rutas sin `/api` | Nunca prefijar rutas con `/api` (Hono, cookies `Path`, cliente frontend) |
 
 ---
 
