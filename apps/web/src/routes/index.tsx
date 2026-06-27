@@ -21,6 +21,7 @@ import {
   CalendarClock,
   HandHeart,
   Warehouse,
+  LogIn,
 } from 'lucide-react'
 
 import logotipo from '@/assets/branding/white-logotipo.webp'
@@ -432,9 +433,20 @@ function NecesidadesPage() {
               </span>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#4A89C0]/30">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
-              <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-wider">En vivo</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#4A89C0]/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
+                <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-wider">En vivo</span>
+              </div>
+              <Link
+                to="/login"
+                className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-[0.97] transition-[transform,background-color,border-color] duration-200"
+              >
+                <LogIn className="w-3 h-3 text-white/60 group-hover:text-white/90 transition-colors" strokeWidth={2.5} />
+                <span className="text-[10px] font-bold text-white/60 group-hover:text-white/90 uppercase tracking-wider transition-colors">
+                  Iniciar sesión
+                </span>
+              </Link>
             </div>
           </div>
 
