@@ -40,6 +40,7 @@ const LOTE_STATUS_META: Record<LoteStatus, { label: string; color: string }> = {
   EMBALADO: { label: 'Embalado', color: 'text-sky-400 bg-sky-400/10' },
   EN_TRANSITO: { label: 'En tránsito', color: 'text-yellow-400 bg-yellow-400/10' },
   ENTREGADO: { label: 'Entregado', color: 'text-emerald-400 bg-emerald-400/10' },
+  RECIBIDO: { label: 'Recibido', color: 'text-teal-400 bg-teal-400/10' },
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────

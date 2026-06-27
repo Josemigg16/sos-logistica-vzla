@@ -54,6 +54,7 @@ const STATUS_LABELS: Record<ConvoyStatus, string> = {
   EN_RUTA: 'En ruta',
   ENTREGADO: 'Entregada',
   CANCELADO: 'Cancelada',
+  RECIBIDO: 'Recibido',
 }
 
 const STATUS_COLORS: Record<ConvoyStatus, string> = {
@@ -61,6 +62,7 @@ const STATUS_COLORS: Record<ConvoyStatus, string> = {
   EN_RUTA: 'text-amber-300 bg-amber-400/10',
   ENTREGADO: 'text-emerald-300 bg-emerald-400/10',
   CANCELADO: 'text-red-300 bg-red-400/10',
+  RECIBIDO: 'text-teal-300 bg-teal-400/10',
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
