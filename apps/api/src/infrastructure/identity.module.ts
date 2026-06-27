@@ -39,6 +39,6 @@ export function createIdentityModule() {
 
   return {
     useCases,
-    routes: createAuthRoutes(useCases),
+    routes: createAuthRoutes({ ...useCases, userRepo: users, hasher }),
   };
 }

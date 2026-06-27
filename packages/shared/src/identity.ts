@@ -23,13 +23,13 @@ export type UserStatus = z.infer<typeof userStatusSchema>;
 
 export const loginSchema = z.object({
   username: z.string().trim().toLowerCase().min(3).max(64),
-  password: z.string().min(8).max(128),
+  password: z.string().min(4).max(128),
 });
 export type LoginRequest = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
   username: z.string().trim().toLowerCase().min(3).max(64),
-  password: z.string().min(8).max(128),
+  password: z.string().min(4).max(128),
   role: roleSchema,
   email: z.string().email().max(255).optional(),
 });
@@ -40,4 +40,21 @@ export interface PublicUser {
   username: string;
   role: RoleName;
   email: string | null;
+}
+
+/** Payload para actualizar un usuario desde el panel admin. Todos opcionales. */
+export const updateUserSchema = z
+  .object({
+    role: roleSchema,
+    status: userStatusSchema,
+    email: z.string().email().max(255).nullable(),
+    password: z.string().min(4).max(128),
+  })
+  .partial();
+export type UpdateUserRequest = z.infer<typeof updateUserSchema>;
+
+/** Listado público de usuarios — extiende `PublicUser` con `status` y `createdAt`. */
+export interface AdminUserView extends PublicUser {
+  status: UserStatus;
+  createdAt: string;
 }

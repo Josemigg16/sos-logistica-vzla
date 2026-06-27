@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, Link, Navigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen } from 'lucide-react'
+import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
-import { hasAnyRole, ROLES_VIEW_ADMIN } from '@/lib/session'
+import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS } from '@/lib/session'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/admin')({
@@ -176,6 +176,9 @@ function SidebarContent({
             <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
             <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Logistica" />
             <NavLink to="/admin/catalog" icon={<BookOpen className="w-4 h-4" />} label="Catálogo" />
+            {hasAnyRole(user, ...ROLES_MANAGE_USERS) && (
+              <NavLink to="/admin/users" icon={<UsersIcon className="w-4 h-4" />} label="Usuarios" />
+            )}
           </nav>
       </div>
 

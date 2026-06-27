@@ -77,6 +77,22 @@ export class User {
     this.props.status = "SUSPENDED";
   }
 
+  activate(): void {
+    this.props.status = "ACTIVE";
+  }
+
+  changeRole(role: Role): void {
+    this.props.role = role;
+  }
+
+  changeEmail(email: string | null): void {
+    this.props.email = email;
+  }
+
+  changeCredential(credential: Credential): void {
+    this.props.credential = credential;
+  }
+
   toPublic(): PublicUser {
     return {
       id: this.props.id,

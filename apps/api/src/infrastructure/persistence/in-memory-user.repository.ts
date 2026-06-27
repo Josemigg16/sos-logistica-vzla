@@ -19,7 +19,15 @@ export class InMemoryUserRepository implements UserRepository {
     return null;
   }
 
+  async findAll(): Promise<User[]> {
+    return Array.from(this.byId.values());
+  }
+
   async save(user: User): Promise<void> {
     this.byId.set(user.id, user);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    return this.byId.delete(id);
   }
 }

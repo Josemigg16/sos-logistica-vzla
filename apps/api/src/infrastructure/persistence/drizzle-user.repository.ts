@@ -35,6 +35,16 @@ export class DrizzleUserRepository implements UserRepository {
     return row ? toDomain(row) : null;
   }
 
+  async findAll(): Promise<User[]> {
+    const rows = await db.select().from(users);
+    return rows.map(toDomain);
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id)).returning({ id: users.id });
+    return result.length > 0;
+  }
+
   async save(user: User): Promise<void> {
     const values = {
       id: user.id,

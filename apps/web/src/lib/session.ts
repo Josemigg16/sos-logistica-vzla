@@ -14,6 +14,9 @@ export function hasAnyRole(user: SessionUser | null, ...roles: RoleName[]): bool
 /** Roles autorizados para gestionar necesidades del panel público. */
 export const ROLES_MANAGE_NEEDS: RoleName[] = ['ADMIN', 'ZODI_DESTINATION']
 
+/** Roles autorizados para gestionar usuarios del sistema. */
+export const ROLES_MANAGE_USERS: RoleName[] = ['ADMIN']
+
 /** Roles autorizados para gestionar centros de acopio (hubs). */
 export const ROLES_MANAGE_HUBS: RoleName[] = ['ADMIN', 'MANAGER']
 

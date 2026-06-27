@@ -1,11 +1,15 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { PackagePlus, ChevronRight, ShieldCheck, MapPin } from 'lucide-react'
+import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon } from 'lucide-react'
+import { useAuth } from '@/lib/auth/auth-context'
+import { hasAnyRole, ROLES_MANAGE_USERS } from '@/lib/session'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
 })
 
 function AdminDashboard() {
+  const { user } = useAuth()
+  const canManageUsers = hasAnyRole(user, ...ROLES_MANAGE_USERS)
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto lg:mx-0">
       {/* Header */}
@@ -50,6 +54,15 @@ function AdminDashboard() {
           description="Registrar nuevos puntos y actualizar sus inventarios."
           stat="Gestionar puntos"
         />
+        {canManageUsers && (
+          <AdminSectionCard
+            to="/admin/users"
+            icon={<UsersIcon className="w-6 h-6" />}
+            title="Usuarios"
+            description="Crear cuentas, asignar roles, suspender o eliminar accesos."
+            stat="Gestionar accesos"
+          />
+        )}
       </div>
     </div>
   )

@@ -2,11 +2,16 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign } from "hono/jwt";
-import { loginSchema, registerSchema } from "@sos/shared";
+import { loginSchema, registerSchema, updateUserSchema, type AdminUserView } from "@sos/shared";
 import type { AuthenticateUser } from "../../application/identity/authenticate-user";
 import type { RegisterUser } from "../../application/identity/register-user";
 import type { RefreshSession } from "../../application/identity/refresh-session";
 import type { RevokeSession } from "../../application/identity/revoke-session";
+import type { UserRepository } from "../../domain/identity/repositories/user.repository";
+import type { PasswordHasher } from "../../application/identity/ports/password-hasher";
+import type { User } from "../../domain/identity/entities/user";
+import { Credential } from "../../domain/identity/value-objects/credential";
+import { Role } from "../../domain/identity/value-objects/role";
 import { IdentityError } from "../../domain/identity/errors";
 import { config } from "../../config";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
@@ -16,6 +21,19 @@ export interface AuthRoutesDeps {
   registerUser: RegisterUser;
   refreshSession: RefreshSession;
   revokeSession: RevokeSession;
+  userRepo: UserRepository;
+  hasher: PasswordHasher;
+}
+
+function toAdminView(user: User): AdminUserView {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role.value,
+    status: user.status,
+    email: user.email,
+    createdAt: user.createdAt.toISOString(),
+  };
 }
 
 const REFRESH_COOKIE = "refresh_token";
@@ -125,6 +143,66 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
     );
 
     return c.json({ accessToken });
+  });
+
+  // ─── Gestión de usuarios (solo ADMIN) ───
+
+  // Listar todos los usuarios — vista admin con role, status, email, fecha.
+  router.get("/users", authentication, requireRole("ADMIN"), async (c) => {
+    try {
+      const users = await deps.userRepo.findAll();
+      return c.json({ users: users.map(toAdminView) });
+    } catch (error) {
+      console.error("Error al listar usuarios:", error);
+      return c.json({ error: "Error interno" }, 500);
+    }
+  });
+
+  // Actualizar role / status / email / password de un usuario.
+  router.put("/users/:id", authentication, requireRole("ADMIN"), async (c) => {
+    const id = c.req.param("id");
+    const parsed = updateUserSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
+    }
+    try {
+      const user = await deps.userRepo.findById(id);
+      if (!user) return c.json({ error: "Usuario no encontrado" }, 404);
+
+      const patch = parsed.data;
+      if (patch.role !== undefined) user.changeRole(Role.create(patch.role));
+      if (patch.status !== undefined) {
+        if (patch.status === "ACTIVE") user.activate();
+        else user.suspend();
+      }
+      if (patch.email !== undefined) user.changeEmail(patch.email);
+      if (patch.password !== undefined) {
+        const hash = await deps.hasher.hash(patch.password);
+        user.changeCredential(Credential.fromHash(hash));
+      }
+
+      await deps.userRepo.save(user);
+      return c.json({ user: toAdminView(user) });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // Eliminar usuario. El actor no puede eliminarse a sí mismo.
+  router.delete("/users/:id", authentication, requireRole("ADMIN"), async (c) => {
+    const id = c.req.param("id");
+    const actor = c.get("actor");
+    if (actor.userId === id) {
+      return c.json({ error: "No puedes eliminar tu propia cuenta" }, 400);
+    }
+    try {
+      const deleted = await deps.userRepo.delete(id);
+      if (!deleted) return c.json({ error: "Usuario no encontrado" }, 404);
+      return c.json({ ok: true });
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+      return c.json({ error: "Error interno" }, 500);
+    }
   });
 
   return router;
