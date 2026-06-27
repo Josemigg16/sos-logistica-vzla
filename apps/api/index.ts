@@ -51,7 +51,7 @@ app.use(
 );
 
 // Obtener todos los productos (catálogo maestro) desde Postgres vía Drizzle
-app.get("/api/productos", async (c) => {
+app.get("/productos", async (c) => {
   try {
     const list = await db.select().from(products);
     return c.json(list);
@@ -62,7 +62,7 @@ app.get("/api/productos", async (c) => {
 });
 
 // Crear un nuevo producto en el catálogo maestro
-app.post("/api/productos", async (c) => {
+app.post("/productos", async (c) => {
   try {
     const body = await c.req.json();
     const { name, category, unit, description } = body;
@@ -107,7 +107,7 @@ app.post("/api/productos", async (c) => {
 });
 
 // Actualizar un producto existente en el catálogo maestro
-app.put("/api/productos/:id", async (c) => {
+app.put("/productos/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const body = await c.req.json();
@@ -158,7 +158,7 @@ app.put("/api/productos/:id", async (c) => {
 });
 
 // Eliminar un producto del catálogo maestro
-app.delete("/api/productos/:id", async (c) => {
+app.delete("/productos/:id", async (c) => {
   try {
     const id = c.req.param("id");
 
@@ -178,24 +178,23 @@ app.delete("/api/productos/:id", async (c) => {
   }
 });
 
-// Toda la API cuelga de /api: un solo prefijo para que el nginx la sirva
-// same-origin bajo /api y el frontend hable contra una sola base.
+// Toda la API cuelga de la raíz: el nginx la sirve bajo el proxy_pass que remueve el prefijo.
 
-// Bounded context `identity` — autenticación bajo /api/auth.
-app.route("/api/auth", createIdentityModule().routes);
+// Bounded context `identity` — autenticación bajo /auth.
+app.route("/auth", createIdentityModule().routes);
 
-// Bounded context `resources` — hubs y stock de insumos bajo /api/resources.
-app.route("/api/resources", createResourcesModule().routes);
+// Bounded context `resources` — hubs y stock de insumos bajo /resources.
+app.route("/resources", createResourcesModule().routes);
 
-// Bounded context `operations` — planificación de viajes bajo /api/operations.
-app.route("/api/operations", createOperationsModule().routes);
+// Bounded context `operations` — planificación de viajes bajo /operations.
+app.route("/operations", createOperationsModule().routes);
 
-// Bounded context `fleet` — choferes, vehículos y tipos de vehículo bajo /api/fleet.
-app.route("/api/fleet", createFleetModule().routes);
+// Bounded context `fleet` — choferes, vehículos y tipos de vehículo bajo /fleet.
+app.route("/fleet", createFleetModule().routes);
 
 // --- Endpoints del Servidor ---
 
-app.get("/api/health", (c) =>
+app.get("/health", (c) =>
   c.json({ status: "ok", service: "sos-api", ts: new Date().toISOString() })
 );
 
@@ -215,7 +214,7 @@ const API_TO_DB_TYPE = {
 } as const;
 
 // Obtener todos los centros (hubs) desde Postgres vía Drizzle
-app.get("/api/centros", async (c) => {
+app.get("/centros", async (c) => {
   try {
     const rows = await db.query.hubs.findMany({
       with: {
@@ -250,7 +249,7 @@ app.get("/api/centros", async (c) => {
 });
 
 // Guardar o actualizar un centro (hub) en Postgres vía Drizzle
-app.post("/api/centros", async (c) => {
+app.post("/centros", async (c) => {
   try {
     const body = await c.req.json();
     const result = centroSchema.safeParse(body);
@@ -308,7 +307,7 @@ app.post("/api/centros", async (c) => {
 });
 
 // Eliminar un centro
-app.delete("/api/centros/:id", async (c) => {
+app.delete("/centros/:id", async (c) => {
   try {
     const id = c.req.param("id");
     const centros = await readCentros();
@@ -369,8 +368,8 @@ const getNeedsHandler = async (c: Context) => {
   }
 };
 
-app.get("/api/necesidades", getNeedsHandler);
-app.get("/api/needs", getNeedsHandler);
+app.get("/necesidades", getNeedsHandler);
+app.get("/needs", getNeedsHandler);
 
 const postNeedsHandler = async (c: Context) => {
   try {
@@ -438,8 +437,8 @@ const postNeedsHandler = async (c: Context) => {
   }
 };
 
-app.post("/api/necesidades", postNeedsHandler);
-app.post("/api/needs", postNeedsHandler);
+app.post("/necesidades", postNeedsHandler);
+app.post("/needs", postNeedsHandler);
 
 const putNeedsHandler = async (c: Context) => {
   try {
@@ -501,8 +500,8 @@ const putNeedsHandler = async (c: Context) => {
   }
 };
 
-app.put("/api/necesidades/:id", putNeedsHandler);
-app.put("/api/needs/:id", putNeedsHandler);
+app.put("/necesidades/:id", putNeedsHandler);
+app.put("/needs/:id", putNeedsHandler);
 
 const deleteNeedsHandler = async (c: Context) => {
   try {
@@ -518,8 +517,8 @@ const deleteNeedsHandler = async (c: Context) => {
   }
 };
 
-app.delete("/api/necesidades/:id", deleteNeedsHandler);
-app.delete("/api/needs/:id", deleteNeedsHandler);
+app.delete("/necesidades/:id", deleteNeedsHandler);
+app.delete("/needs/:id", deleteNeedsHandler);
 
 const port = Number(process.env.PORT ?? 8081);
 

@@ -39,7 +39,7 @@ function toAdminView(user: User): AdminUserView {
 const REFRESH_COOKIE = "refresh_token";
 
 function getRefreshCookiePath(c: Context): string {
-  return c.req.path.startsWith("/api") ? "/api/auth" : "/auth";
+  return "/";
 }
 
 function setRefreshCookie(c: Context, token: string, expiresAt: Date): void {

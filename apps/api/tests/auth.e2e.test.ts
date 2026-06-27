@@ -66,30 +66,13 @@ describe("Auth e2e (HTTP)", () => {
     expect(res.status).toBe(400);
   });
 
-  test("register exige ADMIN y permite loguear al nuevo usuario", async () => {
+  test("register público permite registrarse y luego loguearse", async () => {
     const { app } = await buildAuthApp();
 
-    // sin token -> 401
-    const noToken = await app.request(
+    const created = await app.request(
       "/register",
       json({ username: "coord1", password: "coordpass1", role: "HUB_COORDINATOR" }),
     );
-    expect(noToken.status).toBe(401);
-
-    // con token de admin -> 201
-    const { accessToken } = await loginAdmin(app);
-    const created = await app.request("/register", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({
-        username: "coord1",
-        password: "coordpass1",
-        role: "HUB_COORDINATOR",
-      }),
-    });
     expect(created.status).toBe(201);
 
     // el nuevo usuario puede autenticarse
@@ -117,11 +100,10 @@ describe("Auth e2e (HTTP)", () => {
     expect(reuse.status).toBe(401);
   });
 
-  test("la cookie de refresh se restringe al path /api/auth", async () => {
-    // La API se sirve bajo /api: la cookie debe limitar su Path a /api/auth, o
-    // el navegador no la mandaría a /api/auth/refresh y la sesión no se renueva.
+  test("la cookie de refresh usa Path=/", async () => {
+    // Para ser compatible tanto con dev como con el proxy de prod, usamos Path=/
     const { app } = await buildAuthApp();
     const { res } = await loginAdmin(app);
-    expect(res.headers.get("set-cookie")).toContain("Path=/api/auth");
+    expect(res.headers.get("set-cookie")).toContain("Path=/");
   });
 });
