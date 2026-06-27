@@ -13,6 +13,7 @@ import { PlanConvoy } from "../../application/convoys/plan-convoy";
 import { StartConvoy } from "../../application/convoys/start-convoy";
 import { config } from "../../config";
 import { Convoy } from "../../domain/convoys/entities/convoy";
+import { Lote } from "../../domain/cargo/entities/lote";
 import { User } from "../../domain/identity/entities/user";
 import { Credential } from "../../domain/identity/value-objects/credential";
 import { Role } from "../../domain/identity/value-objects/role";
@@ -517,5 +518,218 @@ describe("convoys routes", () => {
 
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ code: "INVALID_TRANSITION" });
+  });
+});
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Convoy-cargo lifecycle — verifica los efectos sobre lotes en cada transición
+// ──────────────────────────────────────────────────────────────────────────────
+
+function makeLoteEnTransito(id: string, vehiculoId: string, convoyId: string | null = null): Lote {
+  return Lote.rehydrate({
+    id,
+    hubOrigenId: ORIGIN_ID,
+    hubOrigenNombre: "Salida ZODI",
+    hubDestinoId: DESTINATION_ID,
+    hubDestinoNombre: "Destino ZODI",
+    vehiculoId,
+    vehiculoPlaca: "ABC-123",
+    convoyId,
+    estado: "EN_TRANSITO",
+    nota: null,
+    pesoTotalKg: 100,
+    creadoPorId: "user-1",
+    confirmadoPorId: null,
+    confirmadoEn: null,
+    items: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
+function makeLoteEntregado(id: string, convoyId: string): Lote {
+  return Lote.rehydrate({
+    id,
+    hubOrigenId: ORIGIN_ID,
+    hubOrigenNombre: "Salida ZODI",
+    hubDestinoId: DESTINATION_ID,
+    hubDestinoNombre: "Destino ZODI",
+    vehiculoId: null,
+    vehiculoPlaca: null,
+    convoyId,
+    estado: "ENTREGADO",
+    nota: null,
+    pesoTotalKg: 100,
+    creadoPorId: "user-1",
+    confirmadoPorId: null,
+    confirmadoEn: null,
+    items: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  });
+}
+
+describe("convoy-cargo lifecycle", () => {
+  let ctx: TestContext;
+
+  beforeEach(() => {
+    ctx = buildContext();
+  });
+
+  test("dispatch (→EN_RUTA) stamps convoyId on EN_TRANSITO lotes on convoy vehicles", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    await ctx.convoys.save(convoy);
+
+    const lote = makeLoteEnTransito("lote-001", VEHICLE_ID);
+    await ctx.lotes.save(lote);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/dispatch`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ convoy: { status: "EN_RUTA" } });
+
+    const updated = await ctx.lotes.findById("lote-001");
+    expect(updated?.convoyId).toBe(convoy.id);
+  });
+
+  test("dispatch does NOT touch lotes on vehicles that do not belong to the convoy", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    await ctx.convoys.save(convoy);
+
+    const otherLote = makeLoteEnTransito("lote-other", SECOND_VEHICLE_ID);
+    await ctx.lotes.save(otherLote);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/dispatch`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(200);
+
+    const notTouched = await ctx.lotes.findById("lote-other");
+    expect(notTouched?.convoyId).toBeNull();
+  });
+
+  test("dispatch stamps convoyId on lotes across multiple convoy vehicles", async () => {
+    const convoy = Convoy.create({
+      id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      origenId: ORIGIN_ID,
+      destinoId: DESTINATION_ID,
+      escoltaNombre: "Juan Perez",
+      escoltaCedula: "V-12345678",
+      vehicleIds: [VEHICLE_ID, SECOND_VEHICLE_ID],
+    });
+    await ctx.convoys.save(convoy);
+
+    await ctx.lotes.save(makeLoteEnTransito("lote-v1", VEHICLE_ID));
+    await ctx.lotes.save(makeLoteEnTransito("lote-v2", SECOND_VEHICLE_ID));
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/dispatch`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(200);
+
+    const lote1 = await ctx.lotes.findById("lote-v1");
+    const lote2 = await ctx.lotes.findById("lote-v2");
+    expect(lote1?.convoyId).toBe(convoy.id);
+    expect(lote2?.convoyId).toBe(convoy.id);
+  });
+
+  test("confirm-arrival (→RECIBIDO) cascades all convoy lotes to RECIBIDO with actorId", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    convoy.dispatch();
+    convoy.deliver();
+    await ctx.convoys.save(convoy);
+
+    await ctx.lotes.save(makeLoteEntregado("lote-001", convoy.id));
+    await ctx.lotes.save(makeLoteEntregado("lote-002", convoy.id));
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/confirm-arrival`, {
+      method: "POST",
+      headers: await authHeader("ZODI_DESTINATION"),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ convoy: { status: "RECIBIDO" } });
+
+    const lote1 = await ctx.lotes.findById("lote-001");
+    const lote2 = await ctx.lotes.findById("lote-002");
+    expect(lote1?.estado).toBe("RECIBIDO");
+    expect(lote1?.confirmadoPorId).toBe(ESCORT_ID);
+    expect(lote1?.confirmadoEn).not.toBeNull();
+    expect(lote2?.estado).toBe("RECIBIDO");
+    expect(lote2?.confirmadoPorId).toBe(ESCORT_ID);
+  });
+
+  test("confirm-arrival ignores lotes still in EN_TRANSITO and transitions the convoy anyway", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    convoy.dispatch();
+    convoy.deliver();
+    await ctx.convoys.save(convoy);
+
+    await ctx.lotes.save(makeLoteEnTransito("lote-pending", VEHICLE_ID, convoy.id));
+    await ctx.lotes.save(makeLoteEntregado("lote-ok", convoy.id));
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/confirm-arrival`, {
+      method: "POST",
+      headers: await authHeader("ZODI_DESTINATION"),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ convoy: { status: "RECIBIDO" } });
+
+    // El lote ENTREGADO cascadea a RECIBIDO
+    const loteOk = await ctx.lotes.findById("lote-ok");
+    expect(loteOk?.estado).toBe("RECIBIDO");
+
+    // El lote EN_TRANSITO queda intacto
+    const lotePending = await ctx.lotes.findById("lote-pending");
+    expect(lotePending?.estado).toBe("EN_TRANSITO");
+  });
+
+  test("full lifecycle: PLANIFICADO → EN_RUTA (lotes sellados) → ENTREGADO → RECIBIDO (lotes recibidos)", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    await ctx.convoys.save(convoy);
+
+    const lote = makeLoteEnTransito("lote-001", VEHICLE_ID);
+    await ctx.lotes.save(lote);
+
+    // Paso 1: dispatch → EN_RUTA, convoyId estampado en el lote
+    const dispatchRes = await ctx.app.request(`/convoys/${convoy.id}/dispatch`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+    expect(dispatchRes.status).toBe(200);
+    const loteDespatchado = await ctx.lotes.findById("lote-001");
+    expect(loteDespatchado?.convoyId).toBe(convoy.id);
+
+    // Paso 2: el ZODI_SENDER marca el lote como entregado (EN_TRANSITO → ENTREGADO)
+    loteDespatchado!.markDelivered();
+    await ctx.lotes.save(loteDespatchado!);
+
+    // Paso 3: complete → convoy ENTREGADO
+    const completeRes = await ctx.app.request(`/convoys/${convoy.id}/complete`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+    expect(completeRes.status).toBe(200);
+    expect(await completeRes.json()).toMatchObject({ convoy: { status: "ENTREGADO" } });
+
+    // Paso 4: confirm-arrival → RECIBIDO, lote cascadea a RECIBIDO
+    const confirmRes = await ctx.app.request(`/convoys/${convoy.id}/confirm-arrival`, {
+      method: "POST",
+      headers: await authHeader("ZODI_DESTINATION"),
+    });
+    expect(confirmRes.status).toBe(200);
+    expect(await confirmRes.json()).toMatchObject({ convoy: { status: "RECIBIDO" } });
+
+    const loteRecibido = await ctx.lotes.findById("lote-001");
+    expect(loteRecibido?.estado).toBe("RECIBIDO");
+    expect(loteRecibido?.confirmadoPorId).toBe(ESCORT_ID);
   });
 });

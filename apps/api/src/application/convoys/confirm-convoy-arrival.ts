@@ -1,6 +1,5 @@
 import type { PublicConvoy } from "@sos/shared";
 import { ConvoyNotFoundError } from "../../domain/convoys/errors";
-import { LoteNotDeliveredError } from "../../domain/cargo/errors";
 import type { ConvoyRepository } from "../../domain/convoys/repositories/convoy.repository";
 import type { LoteRepository } from "../../domain/cargo/repositories/lote.repository";
 
@@ -20,18 +19,11 @@ export class ConfirmConvoyArrival {
     if (!convoy) throw new ConvoyNotFoundError(command.id);
 
     const convoyLotes = await this.lotes.findByConvoyId(convoy.id);
+    const lotesEntregados = convoyLotes.filter((l) => l.estado === "ENTREGADO");
 
-    // Validar primero todos los lotes antes de mutar el estado del convoy
-    for (const lote of convoyLotes) {
-      if (lote.estado !== "ENTREGADO") {
-        throw new LoteNotDeliveredError(lote.id);
-      }
-    }
-
-    // Si todos son válidos, procedemos con las transiciones
     convoy.confirmArrival();
 
-    for (const lote of convoyLotes) {
+    for (const lote of lotesEntregados) {
       lote.confirmReceipt(command.actorId);
     }
 

@@ -5,7 +5,6 @@ import {
   ConvoyNotFoundError,
   InvalidConvoyTransitionError,
 } from "../../domain/convoys/errors";
-import { LoteNotDeliveredError } from "../../domain/cargo/errors";
 import { InMemoryConvoyRepository } from "../../infrastructure/persistence/in-memory-convoy.repository";
 import { InMemoryLoteRepository } from "../../infrastructure/persistence/in-memory-lote.repository";
 import { ConfirmConvoyArrival } from "./confirm-convoy-arrival";
@@ -100,14 +99,12 @@ describe("ConfirmConvoyArrival", () => {
     ).rejects.toBeInstanceOf(InvalidConvoyTransitionError);
   });
 
-  test("throws LoteNotDeliveredError and rollbacks/does not save when a lote is not ENTREGADO", async () => {
+  test("ignores EN_TRANSITO lotes and still transitions the convoy to RECIBIDO", async () => {
     const convoy = makeConvoy("ENTREGADO");
     await convoys.save(convoy);
-    convoys.saveCount = 0;
 
-    // Crear un lote en estado EN_TRANSITO (no ENTREGADO) asignado al convoy
-    const lote = Lote.rehydrate({
-      id: "lote-bad",
+    const loteEnTransito = Lote.rehydrate({
+      id: "lote-pending",
       hubOrigenId: "hub-1",
       hubOrigenNombre: "Hub 1",
       hubDestinoId: "hub-2",
@@ -125,19 +122,16 @@ describe("ConfirmConvoyArrival", () => {
       createdAt: new Date(),
       updatedAt: new Date(),
     });
-    await lotes.save(lote);
+    await lotes.save(loteEnTransito);
 
-    await expect(
-      confirmArrival.execute({ id: convoy.id, actorId: "actor-123" })
-    ).rejects.toBeInstanceOf(LoteNotDeliveredError);
+    const result = await confirmArrival.execute({ id: convoy.id, actorId: "actor-123" });
 
-    // El convoy NO debe haberse guardado como RECIBIDO en base de datos
-    expect(convoys.saveCount).toBe(0);
-    expect((await convoys.findById(convoy.id))?.status).toBe("ENTREGADO");
+    expect(result.status).toBe("RECIBIDO");
+    expect((await convoys.findById(convoy.id))?.status).toBe("RECIBIDO");
 
-    // El lote NO debe haberse modificado a RECIBIDO
-    const updatedLote = await lotes.findById("lote-bad");
-    expect(updatedLote?.estado).toBe("EN_TRANSITO");
-    expect(updatedLote?.confirmadoPorId).toBeNull();
+    // El lote EN_TRANSITO queda intacto
+    const loteAfter = await lotes.findById("lote-pending");
+    expect(loteAfter?.estado).toBe("EN_TRANSITO");
+    expect(loteAfter?.confirmadoPorId).toBeNull();
   });
 });
