@@ -1,37 +1,43 @@
-import { createFileRoute, Outlet, Link, redirect, useRouterState } from '@tanstack/react-router'
+import { createFileRoute, Outlet, Link, Navigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X } from 'lucide-react'
-import { getCurrentUser, hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
+import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2 } from 'lucide-react'
+import { useAuth } from '@/lib/auth/auth-context'
+import type { SessionUser } from '@/lib/auth/auth-client'
+import { hasAnyRole, ROLES_VIEW_ADMIN } from '@/lib/session'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/admin')({
-  beforeLoad: () => {
-    const user = getCurrentUser()
-    if (!user) {
-      throw redirect({ to: '/' })
-    }
-    const allowed = hasAnyRole(user, ...ROLES_MANAGE_NEEDS, 'MANAGER', 'HUB_COORDINATOR')
-    if (!allowed) {
-      throw redirect({ to: '/' })
-    }
-    return { user }
-  },
-  component: AdminLayout,
+  component: AdminRoute,
 })
 
-const SIDEBAR_WIDTH = 256 // 16rem / 64 tailwind units
+function AdminRoute() {
+  const { status, user } = useAuth()
 
-function AdminLayout() {
-  const { user } = Route.useRouteContext()
+  if (status === 'loading') return <AdminSplash />
+  if (status === 'unauthenticated' || !user) return <Navigate to="/login" />
+  if (!hasAnyRole(user, ...ROLES_VIEW_ADMIN)) return <Navigate to="/" />
+
+  return <AdminLayout user={user} />
+}
+
+function AdminSplash() {
+  return (
+    <div
+      className="flex min-h-dvh w-full items-center justify-center"
+      style={{ background: 'linear-gradient(160deg, #152D46 0%, #0F2337 50%, #0A1B2A 100%)' }}
+    >
+      <Loader2 className="h-7 w-7 animate-spin text-[#4A89C0]" strokeWidth={2.5} />
+    </div>
+  )
+}
+
+function AdminLayout({ user }: { user: SessionUser }) {
+  const { logout } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const currentPath = useRouterState({ select: (s) => s.location.pathname })
 
-  // Close drawer on route change
-  useEffect(() => {
-    setDrawerOpen(false)
-  }, [currentPath])
+  useEffect(() => { setDrawerOpen(false) }, [currentPath])
 
-  // Lock body scroll when mobile drawer is open
   useEffect(() => {
     if (drawerOpen) {
       document.body.style.overflow = 'hidden'
@@ -39,7 +45,6 @@ function AdminLayout() {
     }
   }, [drawerOpen])
 
-  // Close drawer with Escape
   useEffect(() => {
     if (!drawerOpen) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawerOpen(false) }
@@ -52,7 +57,6 @@ function AdminLayout() {
       className="min-h-dvh w-full"
       style={{ background: 'linear-gradient(180deg, #0F2337 0%, #0A1B2A 100%)' }}
     >
-      {/* Grid pattern background */}
       <div
         className="pointer-events-none fixed inset-0 z-0"
         style={{
@@ -64,7 +68,7 @@ function AdminLayout() {
         }}
       />
 
-      {/* ─── Mobile header (visible only < lg) ─── */}
+      {/* ─── Mobile header (< lg) ─── */}
       <header className="lg:hidden flex items-center justify-between gap-3 p-3 border-b border-[#2B5F8E]/30 bg-[#0F2337]/95 backdrop-blur-md sticky top-0 z-30">
         <button
           onClick={() => setDrawerOpen(true)}
@@ -81,34 +85,31 @@ function AdminLayout() {
           </span>
         </Link>
 
-        <Link
-          to="/"
+        <button
+          onClick={() => { void logout() }}
           className="flex items-center justify-center w-10 h-10 rounded-lg text-white/60 hover:text-white hover:bg-[#2B5F8E]/30 active:scale-[0.96] transition-[transform,background-color,color] duration-200 shrink-0"
-          aria-label="Salir del panel"
-          title="Salir del panel"
+          aria-label="Cerrar sesión"
+          title="Cerrar sesión"
         >
           <LogOut className="w-4 h-4" />
-        </Link>
+        </button>
       </header>
 
-      {/* ─── Desktop sidebar (fixed, ≥lg) ─── */}
+      {/* ─── Desktop sidebar (≥ lg) ─── */}
       <aside
-        className="hidden lg:flex fixed inset-y-0 left-0 z-20 flex-col border-r border-[#2B5F8E]/30 bg-[#0F2337]/90 backdrop-blur-md"
-        style={{ width: SIDEBAR_WIDTH }}
+        className="hidden lg:flex fixed inset-y-0 left-0 z-20 flex-col border-r border-[#2B5F8E]/30 bg-[#0F2337]/90 backdrop-blur-md w-64"
       >
-        <SidebarContent user={user} />
+        <SidebarContent user={user} onLogout={() => { void logout() }} />
       </aside>
 
       {/* ─── Mobile drawer (< lg) ─── */}
       {drawerOpen && (
         <>
-          {/* Overlay */}
           <div
             className="lg:hidden fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
             onClick={() => setDrawerOpen(false)}
             aria-hidden="true"
           />
-          {/* Panel */}
           <aside
             className="lg:hidden fixed inset-y-0 left-0 z-50 flex flex-col border-r border-[#2B5F8E]/40 bg-[#0F2337] shadow-[0_20px_60px_rgba(0,0,0,0.6)]"
             style={{ width: 'min(80vw, 280px)' }}
@@ -125,16 +126,13 @@ function AdminLayout() {
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <SidebarContent user={user} compact />
+            <SidebarContent user={user} onLogout={() => { void logout() }} compact />
           </aside>
         </>
       )}
 
       {/* ─── Main content ─── */}
-      <main
-        className="relative z-10 min-h-dvh min-w-0"
-        style={{ paddingLeft: 0 }}
-      >
+      <main className="relative z-10 min-h-dvh min-w-0">
         <div className="lg:pl-64">
           <Outlet />
         </div>
@@ -143,17 +141,17 @@ function AdminLayout() {
   )
 }
 
-// ─── Sidebar content (shared by desktop & mobile drawer) ───
 function SidebarContent({
   user,
+  onLogout,
   compact = false,
 }: {
-  user: { username: string; role: string }
+  user: SessionUser
+  onLogout: () => void
   compact?: boolean
 }) {
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Header */}
       {!compact && (
         <div className="p-5 pb-3 shrink-0">
           <Link to="/admin" className="flex items-center gap-2">
@@ -167,7 +165,6 @@ function SidebarContent({
         </div>
       )}
 
-      {/* Nav (scrollable if it overflows) */}
       <div className="flex-1 min-h-0 overflow-y-auto px-5 pt-2 pb-4">
         <div className="mb-3 flex items-center gap-1.5 text-[10px] font-bold text-[#C8DCF0]/50 uppercase tracking-[0.15em]">
           <ShieldAlert className="w-3 h-3" />
@@ -180,7 +177,6 @@ function SidebarContent({
         </nav>
       </div>
 
-      {/* User footer */}
       <div className="p-5 pt-4 border-t border-[#2B5F8E]/20 shrink-0">
         <div className="flex items-center gap-3 mb-3">
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-[#2B5F8E] text-white font-bold text-sm shrink-0">
@@ -193,13 +189,13 @@ function SidebarContent({
             </p>
           </div>
         </div>
-        <Link
-          to="/"
+        <button
+          onClick={onLogout}
           className="flex items-center gap-2 w-full px-3 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-[#2B5F8E]/30 active:scale-[0.96] transition-[transform,background-color,color] duration-200"
         >
           <LogOut className="w-3.5 h-3.5" />
-          Salir del panel
-        </Link>
+          Cerrar sesión
+        </button>
       </div>
     </div>
   )

@@ -1,29 +1,23 @@
 import type { RoleName } from '@sos/shared'
+import type { SessionUser } from './auth/auth-client'
 
 /**
- * Mock session of the current user.
- * Replace with the real /auth/me integration when login is wired up.
+ * Helpers de autorización por rol. La fuente de verdad es `AuthProvider`
+ * (`useAuth()`); estas utilidades solo facilitan checks declarativos.
  */
-export interface SessionUser {
-  id: string
-  username: string
-  role: RoleName
-}
-
-const MOCK_USER: SessionUser = {
-  id: 'mock-admin-001',
-  username: 'admin',
-  role: 'ADMIN',
-}
-
-export function getCurrentUser(): SessionUser | null {
-  return MOCK_USER
-}
 
 export function hasAnyRole(user: SessionUser | null, ...roles: RoleName[]): boolean {
   if (!user) return false
   return roles.includes(user.role)
 }
 
-/** Roles authorized to manage needs shown in the public panel. */
+/** Roles autorizados para gestionar necesidades del panel público. */
 export const ROLES_MANAGE_NEEDS: RoleName[] = ['ADMIN', 'ZODI_DESTINATION']
+
+/** Roles autorizados para entrar al panel admin (vista). */
+export const ROLES_VIEW_ADMIN: RoleName[] = [
+  'ADMIN',
+  'MANAGER',
+  'HUB_COORDINATOR',
+  'ZODI_DESTINATION',
+]

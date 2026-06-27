@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import {
@@ -13,17 +13,20 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react'
-import { getCurrentUser, hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
+import { useAuth } from '@/lib/auth/auth-context'
+import { hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
 
 export const Route = createFileRoute('/admin/needs')({
-  beforeLoad: () => {
-    const user = getCurrentUser()
-    if (!user || !hasAnyRole(user, ...ROLES_MANAGE_NEEDS)) {
-      throw redirect({ to: '/admin' })
-    }
-  },
-  component: AdminNeedsPage,
+  component: NeedsGate,
 })
+
+function NeedsGate() {
+  const { user } = useAuth()
+  if (!hasAnyRole(user, ...ROLES_MANAGE_NEEDS)) {
+    return <Navigate to="/admin" />
+  }
+  return <AdminNeedsPage />
+}
 
 // --- Types ---
 type Priority = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'
@@ -184,11 +187,18 @@ function getPct(received: number, goal: number) {
 // --- API client with offline fallback ---
 // If the backend is unreachable, mutations fall back to local-only operations.
 // The cache (TanStack Query) becomes the source of truth for the session.
-const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+import { API_URL } from '@/lib/auth/config'
+import { getToken } from '@/lib/auth/token-store'
+
+function authHeaders(): HeadersInit {
+  const token = getToken()
+  const base: HeadersInit = { 'Content-Type': 'application/json' }
+  return token ? { ...base, Authorization: `Bearer ${token}` } : base
+}
 
 async function fetchNeeds(): Promise<Need[]> {
   try {
-    const res = await fetch(`${apiUrl}/api/necesidades`)
+    const res = await fetch(`${API_URL}/api/necesidades`)
     if (!res.ok) throw new Error('API error')
     return res.json()
   } catch {
@@ -206,9 +216,9 @@ async function tryFetch(input: RequestInfo, init?: RequestInit): Promise<Respons
 }
 
 async function createNeed(draft: NeedDraft): Promise<Need> {
-  const res = await tryFetch(`${apiUrl}/api/necesidades`, {
+  const res = await tryFetch(`${API_URL}/api/necesidades`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(draft),
   })
   if (res?.ok) return res.json()
@@ -221,9 +231,9 @@ async function createNeed(draft: NeedDraft): Promise<Need> {
 }
 
 async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
-  const res = await tryFetch(`${apiUrl}/api/necesidades/${id}`, {
+  const res = await tryFetch(`${API_URL}/api/necesidades/${id}`, {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders(),
     body: JSON.stringify(draft),
   })
   if (res?.ok) return res.json()
@@ -235,7 +245,10 @@ async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
 }
 
 async function deleteNeed(id: string): Promise<string> {
-  await tryFetch(`${apiUrl}/api/necesidades/${id}`, { method: 'DELETE' })
+  await tryFetch(`${API_URL}/api/necesidades/${id}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  })
   return id
 }
 
