@@ -3,6 +3,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -22,9 +23,34 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const REFRESH_INTERVAL_MS = 13 * 60 * 1000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<AuthStatus>("loading");
   const [user, setUser] = useState<SessionUser | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopTimer = useCallback(() => {
+    if (timerRef.current !== null) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const startTimer = useCallback(() => {
+    stopTimer();
+    timerRef.current = setInterval(async () => {
+      const token = await authClient.refresh();
+      if (!token) {
+        stopTimer();
+        clearToken();
+        setUser(null);
+        setStatus("unauthenticated");
+        return;
+      }
+      setToken(token);
+    }, REFRESH_INTERVAL_MS);
+  }, [stopTimer]);
 
   // Al arrancar restauramos la sesión: la cookie httpOnly del refresh sobrevive
   // al reload, así que pedimos un access token nuevo y resolvemos el usuario.
@@ -47,25 +73,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       setUser(me);
       setStatus("authenticated");
+      startTimer();
     })();
     return () => {
       active = false;
+      stopTimer();
     };
-  }, []);
+  }, [startTimer, stopTimer]);
 
   const login = useCallback(async (credentials: LoginRequest) => {
     const { accessToken, user: loggedUser } = await authClient.login(credentials);
     setToken(accessToken);
     setUser(loggedUser);
     setStatus("authenticated");
-  }, []);
+    startTimer();
+  }, [startTimer]);
 
   const logout = useCallback(async () => {
+    stopTimer();
     await authClient.logout();
     clearToken();
     setUser(null);
     setStatus("unauthenticated");
-  }, []);
+  }, [stopTimer]);
 
   return (
     <AuthContext.Provider value={{ status, user, login, logout }}>
