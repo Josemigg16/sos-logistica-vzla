@@ -1,9 +1,10 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Inbox, Loader2, Plus, X, Save, Pencil, Trash2 } from 'lucide-react'
+import { Search, Inbox, Loader2, Plus, Save, Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { useToast } from '@/components/ui/toast'
+import { FormSheet } from '@/components/ui/form-sheet'
 import { INVENTORY_CATEGORIES, type ProductMaster } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
@@ -46,13 +47,8 @@ function AdminCatalogPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<ProductMaster | null>(null)
   const [deletingProduct, setDeletingProduct] = useState<ProductMaster | null>(null)
-
-  // Form States (Shared for Create/Edit)
-  const [name, setName] = useState('')
-  const [category, setCategory] = useState<typeof INVENTORY_CATEGORIES[number]>(INVENTORY_CATEGORIES[0])
-  const [unit, setUnit] = useState('')
-  const [description, setDescription] = useState('')
-  const [formError, setFormError] = useState<string | null>(null)
+  // Error del servidor para los formularios de crear/editar.
+  const [serverError, setServerError] = useState<string | null>(null)
 
   const { data: products = [], isLoading } = useQuery<ProductMaster[]>({
     queryKey: ['productos'],
@@ -65,22 +61,14 @@ function AdminCatalogPage() {
 
   // Open Create Modal
   const openCreate = () => {
-    setName('')
-    setCategory(INVENTORY_CATEGORIES[0])
-    setUnit('')
-    setDescription('')
-    setFormError(null)
+    setServerError(null)
     setIsCreateOpen(true)
   }
 
   // Open Edit Modal
   const openEdit = (prod: ProductMaster) => {
+    setServerError(null)
     setEditingProduct(prod)
-    setName(prod.name)
-    setCategory(prod.category)
-    setUnit(prod.unit)
-    setDescription(prod.description)
-    setFormError(null)
   }
 
   // Create Mutation
@@ -105,7 +93,7 @@ function AdminCatalogPage() {
       toast.success('Producto creado', `"${created.name}" se agregó al catálogo.`)
     },
     onError: (error: any) => {
-      setFormError(error.message || 'Error al guardar el producto')
+      setServerError(error.message || 'Error al guardar el producto')
     },
   })
 
@@ -136,7 +124,7 @@ function AdminCatalogPage() {
       toast.success('Cambios guardados', `Se actualizó "${updated.name}".`)
     },
     onError: (error: any) => {
-      setFormError(error.message || 'Error al actualizar el producto')
+      setServerError(error.message || 'Error al actualizar el producto')
     },
   })
 
@@ -175,50 +163,6 @@ function AdminCatalogPage() {
       return matchesSearch && matchesCategory
     })
   }, [products, searchTerm, selectedCategory])
-
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setFormError(null)
-
-    if (!name.trim()) {
-      setFormError('El nombre del producto es requerido')
-      return
-    }
-    if (!unit.trim()) {
-      setFormError('La unidad de medida es requerida')
-      return
-    }
-
-    createProductMutation.mutate({
-      name: name.trim(),
-      category,
-      unit: unit.trim(),
-      description: description.trim(),
-    })
-  }
-
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!editingProduct) return
-    setFormError(null)
-
-    if (!name.trim()) {
-      setFormError('El nombre del producto es requerido')
-      return
-    }
-    if (!unit.trim()) {
-      setFormError('La unidad de medida es requerida')
-      return
-    }
-
-    updateProductMutation.mutate({
-      id: editingProduct.id,
-      name: name.trim(),
-      category,
-      unit: unit.trim(),
-      description: description.trim(),
-    })
-  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-6xl mx-auto lg:mx-0">
@@ -365,250 +309,35 @@ function AdminCatalogPage() {
         </div>
       )}
 
-      {/* Modal / Dialog de Creación de Producto */}
+      {/* Modal de Creación de Producto */}
       {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg bg-[#0F2337] border border-[#2B5F8E]/50 rounded-2xl shadow-2xl p-6 overflow-hidden">
-            {/* Header Modal */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#2B5F8E]/20 mb-4">
-              <h2 className="text-white font-bold text-base tracking-tight uppercase">
-                Crear Nuevo Producto
-              </h2>
-              <button
-                onClick={() => {
-                  setIsCreateOpen(false)
-                  setFormError(null)
-                }}
-                className="text-white/50 hover:text-white transition-colors duration-200 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Formulario */}
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              {formError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex gap-2 items-center">
-                  <span className="font-semibold">Error:</span> {formError}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                  Nombre del Producto
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                    Categoría
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
-                  >
-                    {INVENTORY_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                    Unidad de Medida
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. litros, kg, unidades, paquetes"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                  Descripción
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Detalles sobre el suministro, especificaciones o empaque..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
-                />
-              </div>
-
-              {/* Botones de acción */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-[#2B5F8E]/20">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsCreateOpen(false)
-                    setFormError(null)
-                  }}
-                  className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={createProductMutation.isPending}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
-                >
-                  {createProductMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Guardar Producto
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ProductFormSheet
+          title="Crear Nuevo Producto"
+          submitLabel="Guardar Producto"
+          serverError={serverError}
+          isSubmitting={createProductMutation.isPending}
+          onClose={() => setIsCreateOpen(false)}
+          onSubmit={(values) => {
+            setServerError(null)
+            createProductMutation.mutate(values)
+          }}
+        />
       )}
 
-      {/* Modal / Dialog de Edición de Producto */}
+      {/* Modal de Edición de Producto */}
       {editingProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
-          <div className="relative w-full max-w-lg bg-[#0F2337] border border-[#2B5F8E]/50 rounded-2xl shadow-2xl p-6 overflow-hidden">
-            {/* Header Modal */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#2B5F8E]/20 mb-4">
-              <h2 className="text-white font-bold text-base tracking-tight uppercase">
-                Editar Producto
-              </h2>
-              <button
-                onClick={() => {
-                  setEditingProduct(null)
-                  setFormError(null)
-                }}
-                className="text-white/50 hover:text-white transition-colors duration-200 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            {/* Formulario */}
-            <form onSubmit={handleEditSubmit} className="space-y-4">
-              {formError && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex gap-2 items-center">
-                  <span className="font-semibold">Error:</span> {formError}
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                  Nombre del Producto
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                    Categoría
-                  </label>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value as any)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
-                  >
-                    {INVENTORY_CATEGORIES.map((cat) => (
-                      <option key={cat} value={cat}>
-                        {cat}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                    Unidad de Medida
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ej. litros, kg, unidades, paquetes"
-                    value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-                  Descripción
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Detalles sobre el suministro, especificaciones o empaque..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
-                />
-              </div>
-
-              {/* Botones de acción */}
-              <div className="flex justify-end gap-3 pt-4 border-t border-[#2B5F8E]/20">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingProduct(null)
-                    setFormError(null)
-                  }}
-                  className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={updateProductMutation.isPending}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
-                >
-                  {updateProductMutation.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4" />
-                      Guardar Cambios
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <ProductFormSheet
+          title="Editar Producto"
+          submitLabel="Guardar Cambios"
+          initial={editingProduct}
+          serverError={serverError}
+          isSubmitting={updateProductMutation.isPending}
+          onClose={() => setEditingProduct(null)}
+          onSubmit={(values) => {
+            setServerError(null)
+            updateProductMutation.mutate({ id: editingProduct.id, ...values })
+          }}
+        />
       )}
 
       {/* Modal / Dialog de Confirmación de Eliminación */}
@@ -643,5 +372,180 @@ function AdminCatalogPage() {
         </div>
       )}
     </div>
+  )
+}
+
+// --- Form Sheet (crear / editar producto) ---
+
+interface ProductFormValues {
+  name: string
+  category: typeof INVENTORY_CATEGORIES[number]
+  unit: string
+  description: string
+}
+
+interface ProductFormSheetProps {
+  title: string
+  submitLabel: string
+  /** Producto a editar; ausente → modo creación. */
+  initial?: ProductMaster
+  /** Error del servidor (mutación) a mostrar en el form. */
+  serverError: string | null
+  isSubmitting: boolean
+  onClose: () => void
+  onSubmit: (values: ProductFormValues) => void
+}
+
+function ProductFormSheet({
+  title,
+  submitLabel,
+  initial,
+  serverError,
+  isSubmitting,
+  onClose,
+  onSubmit,
+}: ProductFormSheetProps) {
+  const [name, setName] = useState(initial?.name ?? '')
+  const [category, setCategory] = useState<typeof INVENTORY_CATEGORIES[number]>(
+    initial?.category ?? INVENTORY_CATEGORIES[0],
+  )
+  const [unit, setUnit] = useState(initial?.unit ?? '')
+  const [description, setDescription] = useState(initial?.description ?? '')
+  const [validationError, setValidationError] = useState<string | null>(null)
+
+  // Dirty tracking: comparo el snapshot actual contra el baseline inicial.
+  const snapshot = JSON.stringify({ name, category, unit, description })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
+  const formError = validationError ?? serverError
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setValidationError(null)
+
+    if (!name.trim()) {
+      setValidationError('El nombre del producto es requerido')
+      return
+    }
+    if (!unit.trim()) {
+      setValidationError('La unidad de medida es requerida')
+      return
+    }
+
+    onSubmit({
+      name: name.trim(),
+      category,
+      unit: unit.trim(),
+      description: description.trim(),
+    })
+  }
+
+  return (
+    <FormSheet
+      title={title}
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      size="lg"
+      footer={(requestClose) => (
+        <div className="flex justify-end gap-3">
+          <button
+            type="button"
+            onClick={requestClose}
+            className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 active:scale-[0.97] cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 active:scale-[0.97] cursor-pointer"
+          >
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="w-4 h-4" />
+                {submitLabel}
+              </>
+            )}
+          </button>
+        </div>
+      )}
+    >
+      <div className="flex flex-col gap-4">
+        {formError && (
+          <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex gap-2 items-center">
+            <span className="font-semibold">Error:</span> {formError}
+          </div>
+        )}
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+            Nombre del Producto
+          </label>
+          <input
+            type="text"
+            required
+            placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+              Categoría
+            </label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as any)}
+              className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
+            >
+              {INVENTORY_CATEGORIES.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+              Unidad de Medida
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Ej. litros, kg, unidades, paquetes"
+              value={unit}
+              onChange={(e) => setUnit(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+            Descripción
+          </label>
+          <textarea
+            rows={3}
+            placeholder="Detalles sobre el suministro, especificaciones o empaque..."
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
+          />
+        </div>
+      </div>
+    </FormSheet>
   )
 }

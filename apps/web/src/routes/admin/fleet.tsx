@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Plus,
   Pencil,
@@ -18,6 +18,7 @@ import { hasAnyRole, ROLES_MANAGE_FLEET } from '@/lib/session'
 import { useToast } from '@/components/ui/toast'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
+import { FormSheet } from '@/components/ui/form-sheet'
 
 export const Route = createFileRoute('/admin/fleet')({ component: FleetGate })
 
@@ -166,7 +167,15 @@ function AdminFleetPage() {
       {/* {tab === 'vehicle-types' && <VehicleTypesTab />} */}
       {tab === 'vehicles' && <VehiclesTab />}
       {tab === 'drivers' && <DriversTab />}
+
+      <FleetStyles />
     </div>
+  )
+}
+
+function FleetStyles() {
+  return (
+    <style>{`.fleet-input{width:100%;padding:0.6rem 0.85rem;background:rgba(255,255,255,0.04);border:1px solid rgba(43,95,142,0.4);border-radius:0.5rem;color:white;font-size:0.875rem}.fleet-input:focus{outline:none;border-color:rgba(74,137,192,0.8);background:rgba(255,255,255,0.06)}.fleet-input option{background:#0F2337}`}</style>
   )
 }
 
@@ -389,9 +398,25 @@ function VehicleTypeModal({ title, initial, onClose, onSubmit, isSubmitting, err
 }) {
   const [nombre, setNombre] = useState(initial?.nombre ?? '')
   const [descripcion, setDescripcion] = useState(initial?.descripcion ?? '')
+
+  const snapshot = JSON.stringify({ nombre, descripcion })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
   return (
-    <ModalShell title={title} onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, descripcion }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title={title}
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, descripcion }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} label={initial ? 'GUARDAR' : 'CREAR'} />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <Field label="Nombre" hint="ej: Camión, Camioneta, Furgón">
           <input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre del tipo" />
@@ -399,9 +424,8 @@ function VehicleTypeModal({ title, initial, onClose, onSubmit, isSubmitting, err
         <Field label="Descripción">
           <input className="fleet-input" value={descripcion} onChange={(e) => setDescripcion(e.target.value)} placeholder="Descripción opcional" />
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} label={initial ? 'GUARDAR' : 'CREAR'} />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -499,9 +523,22 @@ function VehicleModal({ title, types, onClose, onSubmit, isSubmitting, errorMsg,
   const [modelo, setModelo] = useState('')
   const [capacidad, setCapacidad] = useState('')
   const [tipoId, setTipoId] = useState('')
+
+  const isDirty = Boolean(placa || modelo || capacidad || tipoId)
+
   return (
-    <ModalShell title={title} onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ placa, modelo, capacidadCargaKg: Number(capacidad), tipoVehiculoId: tipoId || undefined }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title={title}
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ placa, modelo, capacidadCargaKg: Number(capacidad), tipoVehiculoId: tipoId || undefined }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} label="CREAR" />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <Field label="Placa" hint="ej: ABC-123"><input required className="fleet-input" value={placa} onChange={(e) => setPlaca(e.target.value.toUpperCase())} placeholder="ABC-123" /></Field>
         <Field label="Modelo"><input required className="fleet-input" value={modelo} onChange={(e) => setModelo(e.target.value)} placeholder="ej: Ford F-150" /></Field>
@@ -512,9 +549,8 @@ function VehicleModal({ title, types, onClose, onSubmit, isSubmitting, errorMsg,
             {types.map((t) => <option key={t.id} value={t.id}>{t.nombre}</option>)}
           </select>
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} label="CREAR" />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -526,9 +562,25 @@ function VehicleEditModal({ title, vehicle, drivers, onClose, onSubmit, isSubmit
   const [modelo, setModelo] = useState(vehicle.modelo)
   const [estado, setEstado] = useState<VehicleStatus>(vehicle.estado)
   const [choferId, setChoferId] = useState(vehicle.choferId ?? '')
+
+  const snapshot = JSON.stringify({ modelo, estado, choferId })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
   return (
-    <ModalShell title={title} onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ modelo, estado, choferId: choferId || null }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title={title}
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ modelo, estado, choferId: choferId || null }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <Field label="Modelo"><input required className="fleet-input" value={modelo} onChange={(e) => setModelo(e.target.value)} /></Field>
         <Field label="Estado">
@@ -544,9 +596,8 @@ function VehicleEditModal({ title, vehicle, drivers, onClose, onSubmit, isSubmit
             {drivers.map((d) => <option key={d.id} value={d.id}>{d.nombre} {d.apellido}</option>)}
           </select>
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -640,9 +691,22 @@ function DriverCreateModal({ onClose, onSubmit, isSubmitting, errorMsg, onDismis
   const [cedula, setCedula] = useState('')
   const [licencia, setLicencia] = useState('')
   const [telefono, setTelefono] = useState('')
+
+  const isDirty = Boolean(nombre || apellido || cedula || licencia || telefono)
+
   return (
-    <ModalShell title="Nuevo chofer" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, cedula, licencia, telefono }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Nuevo chofer"
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, cedula, licencia, telefono }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} label="CREAR CHOFER" />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre"><input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="ej: Juan" /></Field>
@@ -651,9 +715,8 @@ function DriverCreateModal({ onClose, onSubmit, isSubmitting, errorMsg, onDismis
         <Field label="Cédula"><input required className="fleet-input" value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="ej: V-12345678" /></Field>
         <Field label="Nro. de licencia"><input required className="fleet-input" value={licencia} onChange={(e) => setLicencia(e.target.value)} placeholder="ej: Grado 5 - 12345678" /></Field>
         <Field label="Teléfono"><input required className="fleet-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="ej: 0414-1234567" /></Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} label="CREAR CHOFER" />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -667,9 +730,25 @@ function DriverEditModal({ driver, onClose, onSubmit, isSubmitting, errorMsg, on
   const [licencia, setLicencia] = useState(driver.licencia)
   const [telefono, setTelefono] = useState(driver.telefono)
   const [disponible, setDisponible] = useState(driver.disponible)
+
+  const snapshot = JSON.stringify({ nombre, apellido, licencia, telefono, disponible })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
   return (
-    <ModalShell title="Editar chofer" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, licencia, telefono, disponible }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Editar chofer"
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, licencia, telefono, disponible }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre"><input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} /></Field>
@@ -683,8 +762,7 @@ function DriverEditModal({ driver, onClose, onSubmit, isSubmitting, errorMsg, on
             <option value="false">No disponible</option>
           </select>
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
