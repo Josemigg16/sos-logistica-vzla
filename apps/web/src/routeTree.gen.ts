@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as NeedsRegisterRouteImport } from './routes/needs-register'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
@@ -21,6 +22,11 @@ import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 import { Route as AdminFleetRouteImport } from './routes/admin/fleet'
 import { Route as AdminCatalogRouteImport } from './routes/admin/catalog'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const NeedsRegisterRoute = NeedsRegisterRouteImport.update({
   id: '/needs-register',
   path: '/needs-register',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
+  '/register': typeof RegisterRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
+  '/register': typeof RegisterRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
+  '/register': typeof RegisterRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
@@ -124,6 +133,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/needs-register'
+    | '/register'
     | '/admin/catalog'
     | '/admin/fleet'
     | '/admin/hubs'
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/needs-register'
+    | '/register'
     | '/admin/catalog'
     | '/admin/fleet'
     | '/admin/hubs'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/needs-register'
+    | '/register'
     | '/admin/catalog'
     | '/admin/fleet'
     | '/admin/hubs'
@@ -163,10 +175,18 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
   NeedsRegisterRoute: typeof NeedsRegisterRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/needs-register': {
       id: '/needs-register'
       path: '/needs-register'
@@ -273,6 +293,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
   NeedsRegisterRoute: NeedsRegisterRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

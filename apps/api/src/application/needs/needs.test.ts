@@ -206,15 +206,16 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     expect(res.status).toBe(201);
   });
 
-  test("POST /needs returns 400 when hubId is missing", async () => {
+  test("POST /needs succeeds without hubId (hubId is optional)", async () => {
     const res = await app.request("/needs", {
       method: "POST",
       headers: auth,
       body: JSON.stringify({ nombre: "Arroz", categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(201);
     const body = await res.json() as any;
-    expect(body.error).toBe("Faltan campos requeridos");
+    expect(body.hubId).toBeUndefined();
+    expect(body.nombre).toBe("Arroz");
   });
 
   test("POST /needs returns 400 when nombre is missing", async () => {

@@ -51,7 +51,7 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
     try {
       const body = await c.req.json();
 
-      if (!body.hubId || !body.nombre || !body.categoria || !body.meta || !body.prioridad) {
+      if (!body.nombre || !body.categoria || !body.meta || !body.prioridad) {
         return c.json({ error: "Faltan campos requeridos" }, 400);
       }
 

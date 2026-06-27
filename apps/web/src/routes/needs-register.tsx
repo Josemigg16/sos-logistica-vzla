@@ -106,8 +106,7 @@ function NeedsRegisterPage() {
     queryFn: async () => {
       const res = await fetch(`${API_URL}/centros`)
       if (!res.ok) throw new Error('API error')
-      const all = await res.json()
-      return all.filter((c: Center) => c.tipo === 'acopio')
+      return res.json()
     },
   })
 
@@ -152,17 +151,13 @@ function NeedsRegisterPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedHubId) {
-      setErrorMsg('Debe seleccionar un centro de acopio.')
-      return
-    }
     if (meta <= 0) {
       setErrorMsg('La cantidad requerida debe ser mayor a 0.')
       return
     }
 
     createNeedMutation.mutate({
-      hubId: selectedHubId,
+      ...(selectedHubId ? { hubId: selectedHubId } : {}),
       nombre: tipoInsumo,
       categoria: tipoInsumo,
       meta,
@@ -276,10 +271,8 @@ function NeedsRegisterPage() {
                 </div>
               </div>
 
-              {selectedHubId && (
-                <>
-                  {/* Tipo de Insumo */}
-                  <div>
+              {/* Tipo de Insumo */}
+              <div>
                     <label className="text-[10px] font-bold text-white/50 uppercase tracking-wider block mb-1.5">
                       Tipo de Insumo
                     </label>
@@ -380,8 +373,6 @@ function NeedsRegisterPage() {
                       </>
                     )}
                   </button>
-                </>
-              )}
             </form>
           </div>
 

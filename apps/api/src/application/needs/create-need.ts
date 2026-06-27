@@ -3,7 +3,7 @@ import type { NeedRepository, NeedRow } from "../../domain/resources/repositorie
 import type { ProductCatalogPort } from "./ports/product-catalog.port";
 
 export interface CreateNeedCommand {
-  hubId: string;
+  hubId?: string;
   nombre: string;
   categoria: string;
   meta: number;

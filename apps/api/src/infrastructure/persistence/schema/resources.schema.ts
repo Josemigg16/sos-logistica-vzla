@@ -38,8 +38,7 @@ export const products = pgTable("products", {
 export const needs = pgTable("needs", {
   id: uuid("id").primaryKey().defaultRandom(),
   hubId: uuid("hub_id")
-    .notNull()
-    .references(() => hubs.id, { onDelete: "cascade" }),
+    .references(() => hubs.id, { onDelete: "set null" }),
   productId: uuid("product_id")
     .notNull()
     .references(() => products.id, { onDelete: "cascade" }),
