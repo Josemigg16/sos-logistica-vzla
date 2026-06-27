@@ -32,7 +32,7 @@ describe("GET /productos", () => {
     const { app } = makeApp();
     const res = await app.fetch(new Request("http://localhost/productos"));
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(0);
   });
@@ -47,7 +47,7 @@ describe("GET /productos", () => {
       }),
     );
     const res = await app.fetch(new Request("http://localhost/productos"));
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(1);
     expect(body[0].name).toBe("Agua embotellada");
@@ -65,7 +65,7 @@ describe("POST /productos", () => {
       }),
     );
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.id).toBeTruthy();
     expect(body.name).toBe("Agua embotellada");
     expect(body.category).toBe("Víveres");
@@ -138,7 +138,7 @@ describe("POST /productos", () => {
       }),
     );
     expect(res.status).toBe(409);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Ya existe un producto con este nombre en el catálogo");
   });
 });
@@ -153,7 +153,7 @@ describe("PUT /productos/:id", () => {
         body: JSON.stringify(VALID_PRODUCT),
       }),
     );
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
 
     const res = await app.fetch(
       new Request(`http://localhost/productos/${created.id}`, {
@@ -163,7 +163,7 @@ describe("PUT /productos/:id", () => {
       }),
     );
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.id).toBe(created.id);
     expect(body.name).toBe("Agua mineral");
     expect(body.unit).toBe("botellas");
@@ -179,7 +179,7 @@ describe("PUT /productos/:id", () => {
       }),
     );
     expect(res.status).toBe(404);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Producto no encontrado");
   });
 
@@ -199,7 +199,7 @@ describe("PUT /productos/:id", () => {
         body: JSON.stringify({ name: "Producto B", category: "Víveres", unit: "kg", description: "" }),
       }),
     );
-    const { id } = await r1.json();
+    const { id } = await r1.json() as any;
 
     const res = await app.fetch(
       new Request(`http://localhost/productos/${id}`, {
@@ -209,7 +209,7 @@ describe("PUT /productos/:id", () => {
       }),
     );
     expect(res.status).toBe(409);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Ya existe un producto con este nombre en el catálogo");
   });
 
@@ -222,7 +222,7 @@ describe("PUT /productos/:id", () => {
         body: JSON.stringify(VALID_PRODUCT),
       }),
     );
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
 
     const res = await app.fetch(
       new Request(`http://localhost/productos/${created.id}`, {
@@ -232,7 +232,7 @@ describe("PUT /productos/:id", () => {
       }),
     );
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.description).toBe("Updated");
   });
 });
@@ -247,7 +247,7 @@ describe("DELETE /productos/:id", () => {
         body: JSON.stringify(VALID_PRODUCT),
       }),
     );
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
 
     const res = await app.fetch(
       new Request(`http://localhost/productos/${created.id}`, {
@@ -255,7 +255,7 @@ describe("DELETE /productos/:id", () => {
       }),
     );
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.success).toBe(true);
     expect(body.deleted).toBeDefined();
     expect(body.deleted.name).toBe("Agua embotellada");
@@ -270,7 +270,7 @@ describe("DELETE /productos/:id", () => {
       }),
     );
     expect(res.status).toBe(404);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Producto no encontrado");
   });
 
@@ -283,12 +283,12 @@ describe("DELETE /productos/:id", () => {
         body: JSON.stringify(VALID_PRODUCT),
       }),
     );
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
     await app.fetch(
       new Request(`http://localhost/productos/${created.id}`, { method: "DELETE" }),
     );
     const listRes = await app.fetch(new Request("http://localhost/productos"));
-    const list = await listRes.json();
+    const list = await listRes.json() as any;
     expect(list).toHaveLength(0);
   });
 });

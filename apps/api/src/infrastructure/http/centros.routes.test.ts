@@ -43,7 +43,7 @@ describe("GET /centros — lista vacía", () => {
     const app = buildApp();
     const res = await app.request("/centros");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual([]);
+    expect(await res.json() as any).toEqual([]);
   });
 });
 
@@ -59,7 +59,7 @@ describe("POST /centros — upsert hub + inventario", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.success).toBe(true);
 
     // Shape del Centro (ACL contract)
@@ -93,7 +93,7 @@ describe("POST /centros — upsert hub + inventario", () => {
     });
 
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.centro.nombre).toBe("Centro Actualizado");
   });
 
@@ -113,7 +113,7 @@ describe("POST /centros — upsert hub + inventario", () => {
     });
 
     const listRes = await app.request("/centros");
-    const list = await listRes.json();
+    const list = await listRes.json() as any;
     // "Víveres" must be gone; only "Medicamentos" remains
     expect(list[0].inventario).toEqual({ "Medicamentos": 30 });
   });
@@ -140,7 +140,7 @@ describe("GET /centros — after POST", () => {
 
     const res = await app.request("/centros");
     expect(res.status).toBe(200);
-    const list = await res.json();
+    const list = await res.json() as any;
     expect(list).toHaveLength(1);
     expect(list[0]).toMatchObject({
       id: CENTRO_ID,
@@ -170,7 +170,7 @@ describe("GET /centros — after POST", () => {
     }
 
     const res = await app.request("/centros");
-    const list = await res.json();
+    const list = await res.json() as any;
     const tipos_in_response = list.map((c: { tipo: string }) => c.tipo).sort();
     expect(tipos_in_response).toEqual(["acopio", "destino", "salida"]);
   });
@@ -187,10 +187,10 @@ describe("DELETE /centros/:id", () => {
 
     const res = await app.request(`/centros/${CENTRO_ID}`, { method: "DELETE" });
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ success: true });
+    expect(await res.json() as any).toEqual({ success: true });
 
     const listRes = await app.request("/centros");
-    expect(await listRes.json()).toHaveLength(0);
+    expect(await listRes.json() as any).toHaveLength(0);
   });
 
   test("returns 404 for non-existent hub", async () => {

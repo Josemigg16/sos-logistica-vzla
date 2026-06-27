@@ -67,7 +67,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("GET /needs returns empty array when no needs exist", async () => {
     const res = await app.request("/needs");
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(Array.isArray(body)).toBe(true);
     expect(body).toHaveLength(0);
   });
@@ -75,7 +75,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("GET /necesidades is an alias for GET /needs", async () => {
     const res = await app.request("/necesidades");
     expect(res.status).toBe(200);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(Array.isArray(body)).toBe(true);
   });
 
@@ -95,7 +95,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.id).toBeDefined();
     expect(body.hubId).toBe(hubId);
     expect(body.productId).toBeDefined();
@@ -124,7 +124,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.unidad).toBe("cajas");
   });
 
@@ -151,7 +151,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.unidad).toBe("litros"); // from existing product, not auto-created
   });
 
@@ -170,7 +170,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(res.status).toBe(201);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.fechaNecesidad).toBe("2024-12-31");
   });
 
@@ -196,7 +196,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ nombre: "Arroz", categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Faltan campos requeridos");
   });
 
@@ -207,7 +207,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Faltan campos requeridos");
   });
 
@@ -218,7 +218,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, nombre: "Arroz", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Faltan campos requeridos");
   });
 
@@ -229,7 +229,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, nombre: "Arroz", categoria: "Víveres", prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Faltan campos requeridos");
   });
 
@@ -240,7 +240,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, nombre: "Arroz", categoria: "Víveres", meta: 10 }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Faltan campos requeridos");
   });
 
@@ -263,7 +263,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     const res = await app.request("/needs");
     expect(res.status).toBe(200);
-    const list = await res.json();
+    const list = await res.json() as any;
 
     expect(list).toHaveLength(1);
     const item = list[0];
@@ -312,14 +312,14 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     // Filter by hub1
     const res = await app.request(`/needs?hubId=${hubId}`);
-    const list = await res.json();
+    const list = await res.json() as any;
     expect(list).toHaveLength(1);
     expect(list[0].hubId).toBe(hubId);
     expect(list[0].nombre).toBe("Agua");
 
     // Filter by hub2
     const res2 = await app.request(`/needs?hubId=${hub2.id}`);
-    const list2 = await res2.json();
+    const list2 = await res2.json() as any;
     expect(list2).toHaveLength(1);
     expect(list2[0].hubId).toBe(hub2.id);
   });
@@ -332,7 +332,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hubId, nombre: "Leche en polvo", categoria: "Víveres", meta: 40, prioridad: "ALTA" }),
     });
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
     const id = created.id;
 
     const updateRes = await app.request(`/needs/${id}`, {
@@ -342,7 +342,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(updateRes.status).toBe(200);
-    const updated = await updateRes.json();
+    const updated = await updateRes.json() as any;
     expect(updated.id).toBe(id);
     expect(updated.meta).toBe(80);
     expect(updated.recibido).toBe(20);
@@ -358,7 +358,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hubId, nombre: "Aceite vegetal", categoria: "Víveres", meta: 30, prioridad: "ALTA" }),
     });
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
     const id = created.id;
 
     const updateRes = await app.request(`/necesidades/${id}`, {
@@ -368,7 +368,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(updateRes.status).toBe(200);
-    const updated = await updateRes.json();
+    const updated = await updateRes.json() as any;
     expect(updated.meta).toBe(60);
   });
 
@@ -380,7 +380,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ meta: 50 }),
     });
     expect(res.status).toBe(404);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Necesidad no encontrada");
   });
 
@@ -392,17 +392,17 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hubId, nombre: "Sábanas", categoria: "Abrigo y refugio", meta: 15, prioridad: "BAJA" }),
     });
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
     const id = created.id;
 
     const delRes = await app.request(`/needs/${id}`, { method: "DELETE" });
     expect(delRes.status).toBe(200);
-    const body = await delRes.json();
+    const body = await delRes.json() as any;
     expect(body.ok).toBe(true);
 
     // Verify it's gone
     const listRes = await app.request("/needs");
-    const list = await listRes.json();
+    const list = await listRes.json() as any;
     expect(list).toHaveLength(0);
   });
 
@@ -412,12 +412,12 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hubId, nombre: "Escobas", categoria: "Productos de limpieza", meta: 10, prioridad: "BAJA" }),
     });
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
     const id = created.id;
 
     const delRes = await app.request(`/necesidades/${id}`, { method: "DELETE" });
     expect(delRes.status).toBe(200);
-    const body = await delRes.json();
+    const body = await delRes.json() as any;
     expect(body.ok).toBe(true);
   });
 
@@ -425,7 +425,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     const fakeId = crypto.randomUUID();
     const res = await app.request(`/needs/${fakeId}`, { method: "DELETE" });
     expect(res.status).toBe(404);
-    const body = await res.json();
+    const body = await res.json() as any;
     expect(body.error).toBe("Necesidad no encontrada");
   });
 
@@ -446,7 +446,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     const res = await app.request("/needs");
-    const list = await res.json();
+    const list = await res.json() as any;
     expect(list[0].fechaNecesidad).toBe("2024-06-15");
   });
 
@@ -456,7 +456,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ hubId, nombre: "Palas", categoria: "Herramientas", meta: 5, prioridad: "ALTA" }),
     });
-    const created = await createRes.json();
+    const created = await createRes.json() as any;
     const id = created.id;
 
     const updateRes = await app.request(`/needs/${id}`, {
@@ -466,7 +466,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
 
     expect(updateRes.status).toBe(200);
-    const updated = await updateRes.json();
+    const updated = await updateRes.json() as any;
     expect(updated.fechaNecesidad).toBe("2025-03-20");
   });
 });
