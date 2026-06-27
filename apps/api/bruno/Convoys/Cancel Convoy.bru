@@ -1,0 +1,25 @@
+meta {
+  name: Cancel Convoy
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/convoys/:id/cancel
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000001
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Cancela la caravana: PLANIFICADO o EN_RUTA → CANCELADO. Requiere rol ZODI_SENDER.
+
+  409 con `code: "INVALID_TRANSITION"` si ya está ENTREGADO o CANCELADO.
+}

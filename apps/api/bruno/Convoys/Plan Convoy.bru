@@ -1,0 +1,34 @@
+meta {
+  name: Plan Convoy
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/convoys
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "origenId": "00000000-0000-0000-0000-000000000001",
+    "destinoId": "00000000-0000-0000-0000-000000000002",
+    "escoltaId": "00000000-0000-0000-0000-000000000003",
+    "vehicleIds": ["00000000-0000-0000-0000-000000000004"]
+  }
+}
+
+docs {
+  Planifica una nueva caravana (estado inicial PLANIFICADO). Requiere rol ZODI_SENDER.
+
+  - `origenId` / `destinoId`: hubs de salida y destino (uuid).
+  - `escoltaId`: usuario escolta (uuid).
+  - `vehicleIds`: al menos un vehículo (uuid).
+
+  Respuesta 201: `{ "convoy": { ... } }`.
+}

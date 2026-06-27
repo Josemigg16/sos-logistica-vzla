@@ -18,6 +18,7 @@ import {
   Loader2
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import type { PublicConvoy } from "@sos/shared";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
@@ -66,6 +67,7 @@ export default function App() {
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
 
   // Estados para la ruta personalizada entre dos puntos
   const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
@@ -120,6 +122,31 @@ export default function App() {
       .catch((err) => {
         console.warn("No se pudo conectar con el API backend, usando fallback local:", err);
       });
+  }, []);
+
+  useEffect(() => {
+    const loadActiveConvoys = () => {
+      fetch(`${API_URL}/convoys?status=EN_RUTA`)
+        .then((res) => {
+          if (!res.ok) throw new Error("API response not OK");
+          return res.json();
+        })
+        .then((data: PublicConvoy[] | { convoys?: PublicConvoy[]; data?: PublicConvoy[]; items?: PublicConvoy[] }) => {
+          if (Array.isArray(data)) {
+            setActiveConvoys(data);
+            return;
+          }
+          setActiveConvoys(data.convoys ?? data.data ?? data.items ?? []);
+        })
+        .catch((err) => {
+          console.warn("No se pudieron cargar las caravanas activas:", err);
+          setActiveConvoys([]);
+        });
+    };
+
+    loadActiveConvoys();
+    const intervalId = window.setInterval(loadActiveConvoys, 30_000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   // Obtener el centro seleccionado actualmente
@@ -347,6 +374,20 @@ export default function App() {
               <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
               <span className="text-[11px] font-medium text-foreground">Llegada Centro Acopio Destino</span>
             </div>
+            {activeConvoys.length > 0 && (
+              <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex w-3 h-3">
+                    <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping"></span>
+                    <span className="relative inline-flex w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.75)]"></span>
+                  </span>
+                  <span className="text-[11px] font-semibold text-foreground">Caravanas en ruta</span>
+                </div>
+                <span className="min-w-6 px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-[11px] font-black text-amber-500 dark:text-amber-300 text-center tabular-nums">
+                  {activeConvoys.length}
+                </span>
+              </div>
+            )}
             {showSupplyRoute && (
               <div className="flex items-center gap-2.5 border-t border-border/50 pt-1.5 mt-0.5 animate-in fade-in duration-300">
                 <span className="w-6 h-1 rounded bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>

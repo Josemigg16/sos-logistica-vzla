@@ -1,0 +1,22 @@
+meta {
+  name: Get Convoy
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/convoys/:id
+  body: none
+  auth: none
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000001
+}
+
+docs {
+  Detalle de una caravana por ID. Endpoint público.
+
+  Respuesta 200: `{ "convoy": { ... } }`.
+  404 con `{ "error", "code": "CONVOY_NOT_FOUND" }` si no existe.
+}

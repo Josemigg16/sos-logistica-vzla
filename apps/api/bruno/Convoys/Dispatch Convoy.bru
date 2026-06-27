@@ -1,0 +1,25 @@
+meta {
+  name: Dispatch Convoy
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/convoys/:id/dispatch
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000001
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Despacha la caravana: PLANIFICADO → EN_RUTA. Requiere rol ZODI_SENDER.
+
+  409 con `code: "INVALID_TRANSITION"` si el estado no lo permite.
+}
