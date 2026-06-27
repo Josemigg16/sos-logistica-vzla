@@ -4,12 +4,17 @@ import { ListLotes } from "./list-lotes";
 import { DeleteLote } from "./delete-lote";
 import { AssignVehicle } from "./assign-vehicle";
 import { TransferLote } from "./transfer-lote";
+import { MarkLoteDelivered } from "./mark-lote-delivered";
+import { ConfirmLoteReceipt } from "./confirm-lote-receipt";
 import { InMemoryLoteRepository } from "../../infrastructure/persistence/in-memory-lote.repository";
 import {
   LoteNotFoundError,
   VehicleHasNoDriverError,
   VehicleCapacityExceededError,
   LoteNotInTransitError,
+  LoteAlreadyDeliveredError,
+  LoteNotDeliveredError,
+  LoteAlreadyReceivedError,
 } from "../../domain/cargo/errors";
 
 const hubA = { id: "hub-a", name: "Centro A" };
@@ -40,6 +45,8 @@ describe("Lote use cases", () => {
   let deleteLote: DeleteLote;
   let assignVehicle: AssignVehicle;
   let transferLote: TransferLote;
+  let markLoteDelivered: MarkLoteDelivered;
+  let confirmLoteReceipt: ConfirmLoteReceipt;
 
   beforeEach(() => {
     repo = new InMemoryLoteRepository();
@@ -48,7 +55,20 @@ describe("Lote use cases", () => {
     deleteLote = new DeleteLote(repo);
     assignVehicle = new AssignVehicle(repo, vehicleLookup);
     transferLote = new TransferLote(repo, vehicleLookup);
+    markLoteDelivered = new MarkLoteDelivered(repo);
+    confirmLoteReceipt = new ConfirmLoteReceipt(repo);
   });
+
+  // Lleva un lote recién creado hasta EN_TRANSITO (listo para entrega).
+  async function loteEnTransito() {
+    const lote = await createLote.execute({
+      hubOrigenId: hubA.id,
+      hubDestinoId: hubB.id,
+      items: [{ productId: "p1", cantidad: 1, pesoKg: 50 }],
+    });
+    await assignVehicle.execute(lote.id, { vehiculoId: vehicleWithDriver.id });
+    return lote.id;
+  }
 
   test("creates a lote in EMBALADO state", async () => {
     const lote = await createLote.execute({
@@ -126,6 +146,53 @@ describe("Lote use cases", () => {
     await expect(
       transferLote.execute(lote.id, { vehiculoDestinoId: vehicleWithDriver.id, motivo: "" })
     ).rejects.toBeInstanceOf(LoteNotInTransitError);
+  });
+
+  // --- Acto 1: entrega del ZODI_SENDER (EN_TRANSITO → ENTREGADO) ---
+
+  test("marks a lote as ENTREGADO when in transit", async () => {
+    const id = await loteEnTransito();
+    const delivered = await markLoteDelivered.execute(id);
+    expect(delivered.estado).toBe("ENTREGADO");
+    expect(delivered.vehiculoId).toBeNull();
+  });
+
+  test("throws LoteNotInTransitError when delivering an EMBALADO lote", async () => {
+    const lote = await createLote.execute({ hubOrigenId: hubA.id, items: [{ productId: "p1", cantidad: 1 }] });
+    await expect(markLoteDelivered.execute(lote.id)).rejects.toBeInstanceOf(LoteNotInTransitError);
+  });
+
+  test("throws LoteAlreadyDeliveredError when delivering twice", async () => {
+    const id = await loteEnTransito();
+    await markLoteDelivered.execute(id);
+    await expect(markLoteDelivered.execute(id)).rejects.toBeInstanceOf(LoteAlreadyDeliveredError);
+  });
+
+  // --- Acto 2: confirmación de recepción del ZODI_DESTINATION (ENTREGADO → RECIBIDO) ---
+
+  test("confirms receipt and records who confirmed it", async () => {
+    const id = await loteEnTransito();
+    await markLoteDelivered.execute(id);
+    const received = await confirmLoteReceipt.execute(id, "user-destino");
+    expect(received.estado).toBe("RECIBIDO");
+    expect(received.confirmadoPorId).toBe("user-destino");
+    expect(received.confirmadoEn).not.toBeNull();
+  });
+
+  test("throws LoteNotDeliveredError when confirming a lote still in transit", async () => {
+    const id = await loteEnTransito();
+    await expect(confirmLoteReceipt.execute(id, "user-destino")).rejects.toBeInstanceOf(LoteNotDeliveredError);
+  });
+
+  test("throws LoteAlreadyReceivedError when confirming twice", async () => {
+    const id = await loteEnTransito();
+    await markLoteDelivered.execute(id);
+    await confirmLoteReceipt.execute(id, "user-destino");
+    await expect(confirmLoteReceipt.execute(id, "user-destino")).rejects.toBeInstanceOf(LoteAlreadyReceivedError);
+  });
+
+  test("throws LoteNotFoundError when confirming a missing lote", async () => {
+    await expect(confirmLoteReceipt.execute("non-existent", "user-destino")).rejects.toBeInstanceOf(LoteNotFoundError);
   });
 
   test("deletes a lote", async () => {

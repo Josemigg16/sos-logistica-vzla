@@ -26,6 +26,9 @@ export const lotes = pgTable("lotes", {
   pesoTotalKg: doublePrecision("peso_total_kg").notNull().default(0),
   creadoPorId: uuid("creado_por_id")
     .references(() => users.id, { onDelete: "set null" }),
+  confirmadoPorId: uuid("confirmado_por_id")
+    .references(() => users.id, { onDelete: "set null" }),
+  confirmadoEn: timestamp("confirmado_en", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

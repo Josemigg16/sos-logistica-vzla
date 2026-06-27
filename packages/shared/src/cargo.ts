@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const LOTE_STATUSES = ["EMBALADO", "EN_TRANSITO", "ENTREGADO"] as const;
+export const LOTE_STATUSES = ["EMBALADO", "EN_TRANSITO", "ENTREGADO", "RECIBIDO"] as const;
 export const loteStatusSchema = z.enum(LOTE_STATUSES);
 export type LoteStatus = z.infer<typeof loteStatusSchema>;
 
@@ -60,6 +60,8 @@ export interface PublicLote {
   nota: string | null;
   pesoTotalKg: number;
   creadoPorId: string | null;
+  confirmadoPorId: string | null;
+  confirmadoEn: string | null;
   items: PublicLoteItem[];
   createdAt: string;
   updatedAt: string;
