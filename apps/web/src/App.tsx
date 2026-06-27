@@ -825,7 +825,7 @@ export default function App() {
               toast.success('Centro de acopio registrado', 'Tu centro ya aparece en el mapa público.');
             } catch (err) {
               console.error(err);
-              toast.error('No se pudo registrar el centro', 'Verificá los datos e intentá de nuevo.');
+              toast.error('No se pudo registrar el centro', 'Verifica los datos e intenta de nuevo.');
             } finally {
               setIsSaving(false);
             }
@@ -1008,7 +1008,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 />
               </Map>
               <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/80 text-[8px] text-white/70 pointer-events-none">
-                Hacé clic o arrastrá el marcador para ubicar el centro
+                Haz clic o arrastra el marcador para ubicar el centro
               </div>
             </div>
           </div>

@@ -161,7 +161,7 @@ function RegisterHubSection() {
             <MapMarker coordinates={[lngNum, latNum]} color={markerColor} active />
           </MapView>
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-[#0F2337]/90 text-[10px] text-white/70 border border-[#2B5F8E]/40 pointer-events-none">
-            Hacé clic en el mapa para marcar la ubicación
+            Haz clic en el mapa para marcar la ubicación
           </div>
         </div>
 

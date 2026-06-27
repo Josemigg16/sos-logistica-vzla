@@ -155,7 +155,7 @@ function AdminCatalogPage() {
       toast.success('Producto eliminado', removed ? `"${removed.name}" fue dado de baja del catálogo.` : 'Se eliminó del catálogo.')
     },
     onError: (error: any) => {
-      toast.error('No se pudo eliminar', error.message || 'Intentá nuevamente en unos segundos.')
+      toast.error('No se pudo eliminar', error.message || 'Intenta nuevamente en unos segundos.')
     },
   })
 
@@ -353,7 +353,7 @@ function AdminCatalogPage() {
               ¿Eliminar Producto del Catálogo?
             </h2>
             <p className="text-xs text-white/60 leading-relaxed mb-6">
-              Esta acción dará de baja al producto <strong className="text-white">"{deletingProduct.name}"</strong> del catálogo maestro. Asegurate de que no existan dependencias o registros de necesidades activos vinculados a este producto.
+              Esta acción dará de baja al producto <strong className="text-white">"{deletingProduct.name}"</strong> del catálogo maestro. Asegúrate de que no existan dependencias o registros de necesidades activos vinculados a este producto.
             </p>
 
             <div className="flex justify-end gap-3">
