@@ -21,7 +21,6 @@ import type { ListDrivers } from "../../application/fleet/list-drivers";
 import type { UpdateDriver } from "../../application/fleet/update-driver";
 import type { DeleteDriver } from "../../application/fleet/delete-driver";
 import { FleetError } from "../../domain/fleet/errors";
-import { IdentityError } from "../../domain/identity/errors";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
 export interface FleetRoutesDeps {
@@ -44,11 +43,10 @@ const FLEET_ERROR_STATUS: Record<string, 400 | 404 | 409> = {
   VEHICLE_NOT_FOUND: 404,
   DRIVER_NOT_FOUND: 404,
   PLACA_TAKEN: 409,
-  USERNAME_TAKEN: 409,
 };
 
 function mapError(c: Context, error: unknown) {
-  if (error instanceof FleetError || error instanceof IdentityError) {
+  if (error instanceof FleetError) {
     const status = FLEET_ERROR_STATUS[(error as any).code] ?? 400;
     return c.json({ error: error.message, code: (error as any).code }, status);
   }

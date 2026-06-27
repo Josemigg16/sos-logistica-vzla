@@ -2,9 +2,10 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { sign } from "hono/jwt";
-import { loginSchema, registerSchema, updateUserSchema, type AdminUserView } from "@sos/shared";
+import { loginSchema, registerSchema, signupSchema, updateUserSchema, type AdminUserView } from "@sos/shared";
 import type { AuthenticateUser } from "../../application/identity/authenticate-user";
 import type { RegisterUser } from "../../application/identity/register-user";
+import type { SelfRegisterCoordinator } from "../../application/identity/self-register-coordinator";
 import type { RefreshSession } from "../../application/identity/refresh-session";
 import type { RevokeSession } from "../../application/identity/revoke-session";
 import type { UserRepository } from "../../domain/identity/repositories/user.repository";
@@ -19,6 +20,7 @@ import { authentication, requireRole, type AuthEnv } from "./middleware/authenti
 export interface AuthRoutesDeps {
   authenticateUser: AuthenticateUser;
   registerUser: RegisterUser;
+  selfRegisterCoordinator: SelfRegisterCoordinator;
   refreshSession: RefreshSession;
   revokeSession: RevokeSession;
   userRepo: UserRepository;
@@ -112,7 +114,21 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
     return c.json({ ok: true });
   });
 
-  // Alta de usuarios público (signup) para facilitar el registro de choferes, voluntarios, etc.
+  // Auto-registro público para coordinadores de centros de acopio
+  router.post("/signup", async (c) => {
+    const parsed = signupSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
+    }
+    try {
+      const user = await deps.selfRegisterCoordinator.execute(parsed.data);
+      return c.json({ user }, 201);
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // Alta de usuarios (solo ADMIN — permite especificar cualquier rol)
   router.post("/register", async (c) => {
     const parsed = registerSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {

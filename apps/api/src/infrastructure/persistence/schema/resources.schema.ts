@@ -64,6 +64,7 @@ export const hubs = pgTable("hubs", {
   type: hubTypeEnum("type").notNull(),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
+  coordinatorId: uuid("coordinator_id").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

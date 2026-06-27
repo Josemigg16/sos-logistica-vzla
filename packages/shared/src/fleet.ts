@@ -61,23 +61,28 @@ export interface PublicVehicle {
 // --- Chofer ---
 
 export const createDriverSchema = z.object({
-  username: z.string().trim().toLowerCase().min(3).max(64),
-  password: z.string().min(8).max(128),
+  nombre: z.string().trim().min(1).max(80),
+  apellido: z.string().trim().min(1).max(80),
+  cedula: z.string().trim().min(4).max(20),
   licencia: z.string().trim().min(1).max(50),
-  telefono: z.string().trim().min(1).max(20),
+  telefono: z.string().trim().min(7).max(20),
 });
 export type CreateDriverRequest = z.infer<typeof createDriverSchema>;
 
 export const updateDriverSchema = z.object({
+  nombre: z.string().trim().min(1).max(80).optional(),
+  apellido: z.string().trim().min(1).max(80).optional(),
   licencia: z.string().trim().min(1).max(50).optional(),
-  telefono: z.string().trim().min(1).max(20).optional(),
+  telefono: z.string().trim().min(7).max(20).optional(),
   disponible: z.boolean().optional(),
 });
 export type UpdateDriverRequest = z.infer<typeof updateDriverSchema>;
 
 export interface PublicDriver {
   id: string;
-  username: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
   licencia: string;
   telefono: string;
   disponible: boolean;

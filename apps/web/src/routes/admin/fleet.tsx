@@ -96,12 +96,12 @@ async function fetchDrivers(): Promise<PublicDriver[]> {
   if (!res.ok) throw new Error('No se pudieron cargar los choferes')
   return (await res.json()).drivers
 }
-async function createDriver(d: { username: string; password: string; licencia: string; telefono: string }): Promise<PublicDriver> {
+async function createDriver(d: { nombre: string; apellido: string; cedula: string; licencia: string; telefono: string }): Promise<PublicDriver> {
   const res = await fetch(`${API_URL}/fleet/drivers`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) })
   if (!res.ok) throw new Error(await readError(res, 'No se pudo crear'))
   return (await res.json()).driver
 }
-async function updateDriver(id: string, d: { licencia?: string; telefono?: string; disponible?: boolean }): Promise<PublicDriver> {
+async function updateDriver(id: string, d: { nombre?: string; apellido?: string; licencia?: string; telefono?: string; disponible?: boolean }): Promise<PublicDriver> {
   const res = await fetch(`${API_URL}/fleet/drivers/${id}`, { method: 'PUT', headers: authHeaders(), body: JSON.stringify(d) })
   if (!res.ok) throw new Error(await readError(res, 'No se pudo actualizar'))
   return (await res.json()).driver
@@ -405,7 +405,7 @@ function VehiclesTab() {
   const deleteMut = useMutation({ mutationFn: deleteVehicle, onSuccess: () => { qc.invalidateQueries({ queryKey: ['fleet-vehicles'] }); setDeleting(null) }, onError })
 
   const typesMap = Object.fromEntries(types.map((t) => [t.id, t.nombre]))
-  const driversMap = Object.fromEntries(drivers.map((d) => [d.id, d.username]))
+  const driversMap = Object.fromEntries(drivers.map((d) => [d.id, `${d.nombre} ${d.apellido}`]))
 
   const STATUS_COLORS: Record<VehicleStatus, string> = {
     DISPONIBLE: 'text-emerald-400 bg-emerald-400/10',
@@ -502,7 +502,7 @@ function VehicleEditModal({ title, vehicle, drivers, onClose, onSubmit, isSubmit
         <Field label="Chofer asignado">
           <select className="fleet-input" value={choferId} onChange={(e) => setChoferId(e.target.value)}>
             <option value="">Sin chofer</option>
-            {drivers.map((d) => <option key={d.id} value={d.id}>{d.username}</option>)}
+            {drivers.map((d) => <option key={d.id} value={d.id}>{d.nombre} {d.apellido}</option>)}
           </select>
         </Field>
         <ModalActions onCancel={onClose} isSubmitting={isSubmitting} />
@@ -541,17 +541,18 @@ function DriversTab() {
       {isLoading ? <LoadingRows /> : drivers.length === 0 ? (
         <EmptyRow label="choferes" onCreate={() => setCreating(true)} />
       ) : (
-        <TableShell headers={['Usuario', 'Licencia', 'Teléfono', 'Disponible', 'Acciones']}>
+        <TableShell headers={['Chofer', 'Cédula', 'Licencia', 'Teléfono', 'Disponible', 'Acciones']}>
           {drivers.map((d) => (
             <tr key={d.id} className="hover:bg-[#2B5F8E]/10 transition-colors">
               <td className="px-5 py-3">
                 <div className="flex items-center gap-2">
                   <div className="w-7 h-7 rounded-lg bg-[#2B5F8E] flex items-center justify-center text-xs font-bold text-white shrink-0">
-                    {d.username.charAt(0).toUpperCase()}
+                    {d.nombre.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-white">{d.username}</span>
+                  <span className="font-medium text-white">{d.nombre} {d.apellido}</span>
                 </div>
               </td>
+              <td className="px-5 py-3 text-white/60 font-mono text-xs">{d.cedula}</td>
               <td className="px-5 py-3 text-white/80 font-mono text-xs">{d.licencia}</td>
               <td className="px-5 py-3 text-white/60">{d.telefono}</td>
               <td className="px-5 py-3">
@@ -567,26 +568,30 @@ function DriversTab() {
 
       {creating && <DriverCreateModal onClose={() => setCreating(false)} onSubmit={(d) => createMut.mutate(d)} isSubmitting={createMut.isPending} errorMsg={errorMsg} onDismissError={() => setErrorMsg(null)} />}
       {editing && <DriverEditModal driver={editing} onClose={() => setEditing(null)} onSubmit={(d) => updateMut.mutate({ id: editing.id, d })} isSubmitting={updateMut.isPending} errorMsg={errorMsg} onDismissError={() => setErrorMsg(null)} />}
-      {deleting && <DeleteConfirm name={deleting.username} onConfirm={() => deleteMut.mutate(deleting.id)} onCancel={() => setDeleting(null)} isSubmitting={deleteMut.isPending} />}
+      {deleting && <DeleteConfirm name={`${deleting.nombre} ${deleting.apellido}`} onConfirm={() => deleteMut.mutate(deleting.id)} onCancel={() => setDeleting(null)} isSubmitting={deleteMut.isPending} />}
     </div>
   )
 }
 
 function DriverCreateModal({ onClose, onSubmit, isSubmitting, errorMsg, onDismissError }: {
   onClose: () => void
-  onSubmit: (d: { username: string; password: string; licencia: string; telefono: string }) => void
+  onSubmit: (d: { nombre: string; apellido: string; cedula: string; licencia: string; telefono: string }) => void
   isSubmitting: boolean; errorMsg: string | null; onDismissError: () => void
 }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [nombre, setNombre] = useState('')
+  const [apellido, setApellido] = useState('')
+  const [cedula, setCedula] = useState('')
   const [licencia, setLicencia] = useState('')
   const [telefono, setTelefono] = useState('')
   return (
     <ModalShell title="Nuevo chofer" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ username, password, licencia, telefono }) }} className="p-5 flex flex-col gap-4">
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, cedula, licencia, telefono }) }} className="p-5 flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
-        <Field label="Usuario" hint="mínimo 3 caracteres"><input required minLength={3} className="fleet-input" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="ej: jperez" /></Field>
-        <Field label="Contraseña" hint="mínimo 8 caracteres"><input required minLength={8} type="password" className="fleet-input" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" /></Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Nombre"><input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="ej: Juan" /></Field>
+          <Field label="Apellido"><input required className="fleet-input" value={apellido} onChange={(e) => setApellido(e.target.value)} placeholder="ej: Pérez" /></Field>
+        </div>
+        <Field label="Cédula"><input required className="fleet-input" value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="ej: V-12345678" /></Field>
         <Field label="Nro. de licencia"><input required className="fleet-input" value={licencia} onChange={(e) => setLicencia(e.target.value)} placeholder="ej: Grado 5 - 12345678" /></Field>
         <Field label="Teléfono"><input required className="fleet-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="ej: 0414-1234567" /></Field>
         <ModalActions onCancel={onClose} isSubmitting={isSubmitting} label="CREAR CHOFER" />
@@ -597,16 +602,22 @@ function DriverCreateModal({ onClose, onSubmit, isSubmitting, errorMsg, onDismis
 
 function DriverEditModal({ driver, onClose, onSubmit, isSubmitting, errorMsg, onDismissError }: {
   driver: PublicDriver; onClose: () => void
-  onSubmit: (d: { licencia?: string; telefono?: string; disponible?: boolean }) => void
+  onSubmit: (d: { nombre?: string; apellido?: string; licencia?: string; telefono?: string; disponible?: boolean }) => void
   isSubmitting: boolean; errorMsg: string | null; onDismissError: () => void
 }) {
+  const [nombre, setNombre] = useState(driver.nombre)
+  const [apellido, setApellido] = useState(driver.apellido)
   const [licencia, setLicencia] = useState(driver.licencia)
   const [telefono, setTelefono] = useState(driver.telefono)
   const [disponible, setDisponible] = useState(driver.disponible)
   return (
     <ModalShell title="Editar chofer" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ licencia, telefono, disponible }) }} className="p-5 flex flex-col gap-4">
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, licencia, telefono, disponible }) }} className="p-5 flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Nombre"><input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} /></Field>
+          <Field label="Apellido"><input required className="fleet-input" value={apellido} onChange={(e) => setApellido(e.target.value)} /></Field>
+        </div>
         <Field label="Nro. de licencia"><input required className="fleet-input" value={licencia} onChange={(e) => setLicencia(e.target.value)} /></Field>
         <Field label="Teléfono"><input required className="fleet-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} /></Field>
         <Field label="Disponibilidad">

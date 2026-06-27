@@ -13,16 +13,12 @@ import { DeleteDriver } from "../application/fleet/delete-driver";
 import { DrizzleVehicleTypeRepository } from "./persistence/drizzle-vehicle-type.repository";
 import { DrizzleVehicleRepository } from "./persistence/drizzle-vehicle.repository";
 import { DrizzleDriverRepository } from "./persistence/drizzle-driver.repository";
-import { DrizzleUserRepository } from "./persistence/drizzle-user.repository";
-import { BunPasswordHasher } from "./auth/bun-password-hasher";
 import { createFleetRoutes } from "./http/fleet.routes";
 
 export function createFleetModule() {
   const vehicleTypes = new DrizzleVehicleTypeRepository();
   const vehicles = new DrizzleVehicleRepository();
   const drivers = new DrizzleDriverRepository();
-  const users = new DrizzleUserRepository();
-  const hasher = new BunPasswordHasher();
 
   const useCases = {
     createVehicleType: new CreateVehicleType(vehicleTypes),
@@ -33,7 +29,7 @@ export function createFleetModule() {
     listVehicles: new ListVehicles(vehicles),
     updateVehicle: new UpdateVehicle(vehicles),
     deleteVehicle: new DeleteVehicle(vehicles),
-    createDriver: new CreateDriver(users, drivers, hasher),
+    createDriver: new CreateDriver(drivers),
     listDrivers: new ListDrivers(drivers),
     updateDriver: new UpdateDriver(drivers),
     deleteDriver: new DeleteDriver(drivers),

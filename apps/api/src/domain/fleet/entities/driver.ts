@@ -2,7 +2,9 @@ import type { PublicDriver } from "@sos/shared";
 
 export interface DriverProps {
   id: string;
-  username: string;
+  nombre: string;
+  apellido: string;
+  cedula: string;
   licencia: string;
   telefono: string;
   disponible: boolean;
@@ -14,7 +16,9 @@ export class Driver {
 
   static create(input: {
     id: string;
-    username: string;
+    nombre: string;
+    apellido: string;
+    cedula: string;
     licencia: string;
     telefono: string;
   }): Driver {
@@ -26,13 +30,23 @@ export class Driver {
   }
 
   get id(): string { return this.props.id; }
-  get username(): string { return this.props.username; }
+  get nombre(): string { return this.props.nombre; }
+  get apellido(): string { return this.props.apellido; }
+  get cedula(): string { return this.props.cedula; }
   get licencia(): string { return this.props.licencia; }
   get telefono(): string { return this.props.telefono; }
   get disponible(): boolean { return this.props.disponible; }
   get createdAt(): Date { return this.props.createdAt; }
 
-  update(data: { licencia?: string; telefono?: string; disponible?: boolean }): void {
+  update(data: {
+    nombre?: string;
+    apellido?: string;
+    licencia?: string;
+    telefono?: string;
+    disponible?: boolean;
+  }): void {
+    if (data.nombre !== undefined) this.props.nombre = data.nombre;
+    if (data.apellido !== undefined) this.props.apellido = data.apellido;
     if (data.licencia !== undefined) this.props.licencia = data.licencia;
     if (data.telefono !== undefined) this.props.telefono = data.telefono;
     if (data.disponible !== undefined) this.props.disponible = data.disponible;
@@ -41,7 +55,9 @@ export class Driver {
   toPublic(): PublicDriver {
     return {
       id: this.props.id,
-      username: this.props.username,
+      nombre: this.props.nombre,
+      apellido: this.props.apellido,
+      cedula: this.props.cedula,
       licencia: this.props.licencia,
       telefono: this.props.telefono,
       disponible: this.props.disponible,

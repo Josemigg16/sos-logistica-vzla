@@ -1,5 +1,6 @@
 import { AuthenticateUser } from "../application/identity/authenticate-user";
 import { RegisterUser } from "../application/identity/register-user";
+import { SelfRegisterCoordinator } from "../application/identity/self-register-coordinator";
 import { RefreshSession } from "../application/identity/refresh-session";
 import { RevokeSession } from "../application/identity/revoke-session";
 import { DrizzleUserRepository } from "./persistence/drizzle-user.repository";
@@ -9,10 +10,6 @@ import { JwtTokenService } from "./auth/jwt-token-service";
 import { createAuthRoutes } from "./http/auth.routes";
 import { config } from "../config";
 
-/**
- * Composition root del bounded context `identity`: acá se cablean las
- * implementaciones concretas a los puertos. Único lugar que conoce a todos.
- */
 export function createIdentityModule() {
   const users = new DrizzleUserRepository();
   const sessions = new DrizzleSessionRepository();
@@ -21,6 +18,7 @@ export function createIdentityModule() {
 
   const useCases = {
     registerUser: new RegisterUser(users, hasher),
+    selfRegisterCoordinator: new SelfRegisterCoordinator(users, hasher),
     authenticateUser: new AuthenticateUser(
       users,
       sessions,
