@@ -30,7 +30,7 @@ async function withVehicles(rows: ConvoyRow[]): Promise<Convoy[]> {
     .from(convoyVehicles)
     .where(
       ids.length === 1
-        ? eq(convoyVehicles.convoyId, ids[0])
+        ? eq(convoyVehicles.convoyId, ids[0] as string)
         : inArray(convoyVehicles.convoyId, ids),
     );
 

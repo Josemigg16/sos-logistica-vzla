@@ -7,6 +7,7 @@ import type { UpsertHub } from "../../application/resources/upsert-hub";
 import type { ReplaceHubInventory } from "../../application/resources/replace-hub-inventory";
 import type { DeleteHub } from "../../application/resources/delete-hub";
 import { ResourceError } from "../../domain/resources/errors";
+import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
 /**
  * Anti-Corruption Layer: translates the legacy Spanish `Centro` contract
@@ -78,8 +79,8 @@ async function buildCentroFromHub(
 
 // ---------- factory ----------
 
-export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono {
-  const router = new Hono();
+export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
+  const router = new Hono<AuthEnv>();
 
   /**
    * GET /centros
@@ -101,9 +102,9 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono {
    * POST /centros
    * Upsert hub + replace inventory atomically.
    * Returns { success: true, centro }.
-   * Bug fix: legacy DELETE used centros.json; this endpoint now uses Postgres.
+   * REQ-15: requires authentication + ZODI_DESTINATION, ADMIN, or MANAGER role.
    */
-  router.post("/", async (c) => {
+  router.post("/", authentication, requireRole("ZODI_DESTINATION", "ADMIN", "MANAGER"), async (c) => {
     const parsed = centroSchema.safeParse(
       await c.req.json().catch(() => null),
     );
@@ -147,10 +148,9 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono {
 
   /**
    * DELETE /centros/:id
-   * Fixes the bug in the legacy handler that deleted from centros.json
-   * while GET/POST used Postgres. Now deletes from Postgres (+ cascade).
+   * REQ-15: requires authentication + ZODI_DESTINATION, ADMIN, or MANAGER role.
    */
-  router.delete("/:id", async (c) => {
+  router.delete("/:id", authentication, requireRole("ZODI_DESTINATION", "ADMIN", "MANAGER"), async (c) => {
     const id = c.req.param("id");
     try {
       await deps.deleteHub.execute(id);

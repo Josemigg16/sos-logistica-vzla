@@ -287,4 +287,101 @@ describe("convoys routes", () => {
     expect(res.status).toBe(409);
     expect(await res.json()).toMatchObject({ code: "DUPLICATE_VEHICLE" });
   });
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // REQ-14 missing scenarios: S14.5, S14.11, S14.12, S14.14
+  // ──────────────────────────────────────────────────────────────────────────
+
+  test("S14.5 — POST /convoys with origenId pointing to non-DISPATCH Hub returns 400", async () => {
+    await ctx.hubs.save(
+      Hub.register({
+        id: ORIGIN_ID,
+        name: "Centro de Acopio",
+        address: "Av. Principal",
+        contact: "0212-555",
+        type: "COLLECTION", // NOT DISPATCH
+        latitude: 10.5,
+        longitude: -66.9,
+      }),
+    );
+    await ctx.hubs.save(
+      Hub.register({
+        id: DESTINATION_ID,
+        name: "Destino",
+        address: "Av. Final",
+        contact: "0212-777",
+        type: "DESTINATION",
+        latitude: 10.6,
+        longitude: -67.0,
+      }),
+    );
+    await ctx.users.save(
+      User.register({
+        id: ESCORT_ID,
+        username: "zodi-sender",
+        credential: Credential.fromHash("hash"),
+        role: Role.create("ZODI_SENDER"),
+        email: "zodi@example.com",
+      }),
+    );
+
+    const res = await ctx.app.request("/convoys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader()) },
+      body: JSON.stringify({
+        origenId: ORIGIN_ID,
+        destinoId: DESTINATION_ID,
+        escoltaId: ESCORT_ID,
+        vehicleIds: [VEHICLE_ID],
+      }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toMatchObject({ code: "ORIGIN_NOT_DISPATCH" });
+  });
+
+  test("S14.11 — POST /convoys/:id/dispatch on EN_RUTA convoy returns 409", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    convoy.dispatch(); // Put it in EN_RUTA state
+    await ctx.convoys.save(convoy);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/dispatch`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "INVALID_TRANSITION" });
+  });
+
+  test("S14.12 — POST /convoys/:id/complete on EN_RUTA convoy returns 200 ENTREGADO", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    convoy.dispatch(); // PLANIFICADO → EN_RUTA
+    await ctx.convoys.save(convoy);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/complete`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      convoy: { id: convoy.id, status: "ENTREGADO" },
+    });
+  });
+
+  test("S14.14 — POST /convoys/:id/cancel on ENTREGADO convoy returns 409", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    convoy.dispatch();
+    convoy.deliver(); // PLANIFICADO → EN_RUTA → ENTREGADO (terminal)
+    await ctx.convoys.save(convoy);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/cancel`, {
+      method: "POST",
+      headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "INVALID_TRANSITION" });
+  });
 });

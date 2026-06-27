@@ -182,12 +182,47 @@ describe("Convoy FSM invalid transitions — REQ-03", () => {
     expect(() => makeCancelado().cancel()).toThrow(InvalidConvoyTransitionError);
   });
 
-  test("S03.9 — FSM exhaustiveness: all 12 cells (4×3) are covered by tests above", () => {
-    // This test validates the transition table is complete:
-    // dispatch: PLANIFICADO→EN_RUTA ✓, EN_RUTA→throws ✓, ENTREGADO→throws ✓, CANCELADO→throws ✓
-    // deliver:  EN_RUTA→ENTREGADO ✓, PLANIFICADO→throws ✓, ENTREGADO→throws ✓, CANCELADO→throws ✓
-    // cancel:   PLANIFICADO→CANCELADO ✓, EN_RUTA→CANCELADO ✓, ENTREGADO→throws ✓, CANCELADO→throws ✓
-    expect(true).toBe(true);
+  test("S03.9 — FSM exhaustiveness: full 4×3 status×method matrix asserted programmatically", () => {
+    // For each (status, method) cell we declare the expected outcome:
+    // "valid" → method must NOT throw (transition succeeds)
+    // "throws" → method MUST throw InvalidConvoyTransitionError
+
+    type MethodName = "dispatch" | "deliver" | "cancel";
+
+    const matrix: Array<{
+      factory: () => Convoy;
+      method: MethodName;
+      expected: "valid" | "throws";
+      label: string;
+    }> = [
+      // dispatch()
+      { factory: makePlanificado, method: "dispatch", expected: "valid",  label: "dispatch(PLANIFICADO) → EN_RUTA" },
+      { factory: makeEnRuta,      method: "dispatch", expected: "throws", label: "dispatch(EN_RUTA) → throws" },
+      { factory: makeEntregado,   method: "dispatch", expected: "throws", label: "dispatch(ENTREGADO) → throws" },
+      { factory: makeCancelado,   method: "dispatch", expected: "throws", label: "dispatch(CANCELADO) → throws" },
+      // deliver()
+      { factory: makeEnRuta,      method: "deliver", expected: "valid",  label: "deliver(EN_RUTA) → ENTREGADO" },
+      { factory: makePlanificado, method: "deliver", expected: "throws", label: "deliver(PLANIFICADO) → throws" },
+      { factory: makeEntregado,   method: "deliver", expected: "throws", label: "deliver(ENTREGADO) → throws" },
+      { factory: makeCancelado,   method: "deliver", expected: "throws", label: "deliver(CANCELADO) → throws" },
+      // cancel()
+      { factory: makePlanificado, method: "cancel", expected: "valid",  label: "cancel(PLANIFICADO) → CANCELADO" },
+      { factory: makeEnRuta,      method: "cancel", expected: "valid",  label: "cancel(EN_RUTA) → CANCELADO" },
+      { factory: makeEntregado,   method: "cancel", expected: "throws", label: "cancel(ENTREGADO) → throws" },
+      { factory: makeCancelado,   method: "cancel", expected: "throws", label: "cancel(CANCELADO) → throws" },
+    ];
+
+    // Exactly 12 cells — every status × every method
+    expect(matrix).toHaveLength(12);
+
+    for (const { factory, method, expected, label } of matrix) {
+      const convoy = factory();
+      if (expected === "valid") {
+        expect(() => convoy[method](), label).not.toThrow();
+      } else {
+        expect(() => convoy[method](), label).toThrow(InvalidConvoyTransitionError);
+      }
+    }
   });
 });
 
@@ -205,7 +240,7 @@ describe("Convoy.addVehicle", () => {
 
   test("throws DUPLICATE_VEHICLE if vehicleId already exists", () => {
     const c = makePlanificado();
-    const existing = VALID_INPUT.vehicleIds[0];
+    const existing = VALID_INPUT.vehicleIds[0]!;
     expect(() => c.addVehicle(existing)).toThrow(ConvoyDomainError);
     try {
       c.addVehicle(existing);
