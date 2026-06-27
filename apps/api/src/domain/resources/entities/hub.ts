@@ -11,6 +11,7 @@ export interface HubProps {
   longitude: number;
   coordinatorId: string | null;
   createdAt: Date;
+  isInformal: boolean;
 }
 
 /**
@@ -34,12 +35,14 @@ export class Hub {
     latitude: number;
     longitude: number;
     coordinatorId?: string | null;
+    isInformal?: boolean;
   }): Hub {
     return new Hub({
       ...input,
       status: input.status ?? "ACTIVO",
       coordinatorId: input.coordinatorId ?? null,
       createdAt: new Date(),
+      isInformal: input.isInformal ?? false,
     });
   }
 
@@ -57,6 +60,9 @@ export class Hub {
   }
   get isActive(): boolean {
     return this.props.status === "ACTIVO";
+  }
+  get isInformal(): boolean {
+    return this.props.isInformal;
   }
 
   activate(): void {
@@ -79,6 +85,7 @@ export class Hub {
       longitude: this.props.longitude,
       coordinatorId: this.props.coordinatorId,
       createdAt: this.props.createdAt.toISOString(),
+      isInformal: this.props.isInformal,
     };
   }
 }

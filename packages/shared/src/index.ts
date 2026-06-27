@@ -31,6 +31,7 @@ export const centroSchema = z.object({
   coordenadas: z.tuple([z.number(), z.number()]),
   tipo: tipoCentroSchema,
   estado: z.enum(HUB_STATUSES).optional(),
+  isInformal: z.boolean().optional().default(false),
   inventario: z.record(z.string(), z.number()),
   metadata: z.record(z.unknown()).optional(),
   verificacion: verificacionSchema.optional(),

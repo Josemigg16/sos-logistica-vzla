@@ -7,6 +7,7 @@ import {
   uuid,
   varchar,
   text,
+  boolean,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { HUB_STATUSES, HUB_TYPES, INVENTORY_CATEGORIES, LOTE_STATUSES, NEED_STATUSES } from "@sos/shared";
@@ -71,6 +72,7 @@ export const hubs = pgTable("hubs", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  isInformal: boolean("is_informal").notNull().default(false),
 });
 
 /**

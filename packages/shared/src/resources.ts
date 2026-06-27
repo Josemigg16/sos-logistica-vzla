@@ -54,6 +54,7 @@ export const createHubSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   status: hubStatusSchema.optional(),
+  isInformal: z.boolean().optional().default(false),
 });
 export type CreateHubRequest = z.infer<typeof createHubSchema>;
 
@@ -75,6 +76,7 @@ export interface PublicHub {
   longitude: number;
   coordinatorId: string | null;
   createdAt: string;
+  isInformal: boolean;
 }
 
 export interface PublicResource {

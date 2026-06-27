@@ -11,6 +11,7 @@ export interface UpsertHubCommand {
   status?: HubStatus;
   latitude: number;
   longitude: number;
+  isInformal?: boolean;
 }
 
 /**

@@ -532,6 +532,135 @@ function NecesidadesPage() {
             {/* CTA stack — Normas de embalaje (mobile) */}
             <div className="flex flex-col gap-4 w-full lg:w-[320px]">
 
+            {/* Big CTA block — real MapLibre map preview as background */}
+            <Link
+              to="/map"
+              className="group relative flex flex-col justify-between gap-5 p-6 lg:p-7 rounded-2xl overflow-hidden
+                         shadow-[0_8px_40px_rgba(15,35,55,0.6)]
+                         hover:shadow-[0_16px_60px_rgba(74,137,192,0.4)]
+                         active:scale-[0.98] transition-[transform,box-shadow] duration-300
+                         w-full min-h-[240px]
+                         border border-[#4A89C0]/30 bg-[#0F2337]"
+            >
+              {/* Real interactive map preview — disabled pointer events so the whole card is the link */}
+              <div className="pointer-events-none absolute inset-0 z-0">
+                <Map
+                  center={[-69.7, 9.05]}
+                  zoom={6.3}
+                  theme="dark"
+                  className="w-full h-full"
+                >
+                  {(centrosData as unknown as Array<{ id: string; coordenadas: [number, number]; tipo: string; isInformal?: boolean }>).map((c) => (
+                    <MapMarker
+                      key={c.id}
+                      coordinates={c.coordenadas}
+                      color={
+                        c.isInformal ? '#f59e0b' :
+                        c.tipo === 'acopio' ? '#3b82f6' :
+                        c.tipo === 'salida' ? '#ef4444' :
+                        c.tipo === 'destino' ? '#22c55e' :
+                        '#3b82f6'
+                      }
+                    />
+                  ))}
+                </Map>
+              </div>
+
+              {/* Brand-tinted overlay for text legibility */}
+              <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-[#0F2337]/85 via-[#0F2337]/55 to-[#2B5F8E]/70" />
+
+              {/* Top decorative stripe */}
+              <div className="pointer-events-none absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#4A89C0] via-[#C8DCF0] to-[#4A89C0] z-[2]" />
+
+              {/* Shimmer on hover */}
+              <span className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br from-transparent via-white/15 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+
+              {/* Top row: icon + tag */}
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white text-[#0F2337] shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
+                  <HandHeart className="w-6 h-6" strokeWidth={2.4} />
+                </div>
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-md border border-white/20">
+                  <MapPin className="w-3 h-3 text-[#C8DCF0]" />
+                  <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-[0.1em]">
+                    Explora
+                  </span>
+                </div>
+              </div>
+
+              {/* Big headline */}
+              <div className="relative z-10">
+                <span
+                  className="block text-white leading-[0.95] tracking-tight"
+                  style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontStyle: 'italic',
+                    fontWeight: 800,
+                    fontSize: 'clamp(1.7rem, 2.6vw, 2.2rem)',
+                    textShadow: '0 2px 16px rgba(15,35,55,0.85)',
+                  }}
+                >
+                  QUIERO<br />AYUDAR
+                </span>
+                <span
+                  className="block text-[12px] text-white/85 mt-2 font-medium leading-snug"
+                  style={{ textShadow: '0 1px 8px rgba(15,35,55,0.85)' }}
+                >
+                  Ver los centros de acopio cercanos y cómo donar
+                </span>
+              </div>
+
+              {/* Bottom row */}
+              <div className="relative z-10 flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
+                  <span className="text-[10px] font-semibold text-[#C8DCF0]/90" style={{ textShadow: '0 1px 6px rgba(15,35,55,0.8)' }}>
+                    {(centrosData as unknown[]).length} centros activos
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 text-[11px] font-bold text-white uppercase tracking-wider" style={{ textShadow: '0 1px 6px rgba(15,35,55,0.8)' }}>
+                  <span>Ir al mapa</span>
+                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={3} />
+                </div>
+              </div>
+            </Link>
+
+            {/* Secondary CTA — "Tengo un centro de acopio" → /register (desktop only; mobile shows it above stats) */}
+            <Link
+              to="/register"
+              className="hidden lg:flex group relative items-center gap-4 p-5 rounded-2xl overflow-hidden
+                         border border-[#4A89C0]/30 bg-gradient-to-br from-[#152D46] to-[#0F2337]
+                         shadow-[0_4px_24px_rgba(15,35,55,0.5)]
+                         hover:border-[#4A89C0]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
+                         active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
+            >
+              {/* Shimmer on hover */}
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+
+              <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
+                <Warehouse className="w-6 h-6" strokeWidth={2.2} />
+              </div>
+
+              <div className="relative flex-1 min-w-0">
+                <span
+                  className="block text-white leading-[0.95] tracking-tight"
+                  style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontStyle: 'italic',
+                    fontWeight: 800,
+                    fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)',
+                  }}
+                >
+                  TENGO UN CENTRO<br />DE ACOPIO
+                </span>
+                <span className="block text-[11px] text-white/55 mt-1 font-medium leading-snug">
+                  Regístralo y publica tus necesidades
+                </span>
+              </div>
+
+              <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
+            </Link>
+
             {/* Tertiary CTA — "Normas de embalaje" → PDF (only on mobile here; desktop renders as full-width band below) */}
             <a
               href="/NORMAS DE EMBALAJE .pdf"
