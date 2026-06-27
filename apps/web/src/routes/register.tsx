@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { Eye, EyeOff, Loader2, Lock, User, Phone, CreditCard, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, User, Phone, CreditCard, CheckCircle2 } from "lucide-react";
 import { signupSchema } from "@sos/shared";
 import { useAuth } from "@/lib/auth/auth-context";
 import { API_URL } from "@/lib/auth/config";
@@ -110,6 +110,14 @@ function RegisterPage() {
       <div className="pointer-events-none fixed top-0 left-1/2 z-0 h-64 w-[800px] -translate-x-1/2 rounded-full bg-[#2B5F8E]/20 blur-[80px]" />
 
       <div className="relative z-10 w-full max-w-md">
+        <Link
+          to="/"
+          className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-white/50 transition-colors duration-150 hover:text-white/80"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span>Volver al inicio</span>
+        </Link>
+
         <div className="mb-8 flex flex-col items-center text-center">
           <img
             src={logotipo}

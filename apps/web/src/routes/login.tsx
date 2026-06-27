@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { loginSchema } from "@sos/shared";
-import { Eye, EyeOff, Loader2, Lock, LogIn, User } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, LogIn, User } from "lucide-react";
 import { AuthError } from "@/lib/auth/auth-client";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -92,6 +92,14 @@ function LoginPage() {
           transition: `opacity 320ms ${EASE_OUT}, transform 320ms ${EASE_OUT}`,
         }}
       >
+        <Link
+          to="/"
+          className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-white/50 transition-colors duration-150 hover:text-white/80"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span>Volver al inicio</span>
+        </Link>
+
         {/* Brand */}
         <div className="mb-8 flex flex-col items-center text-center">
           <img
