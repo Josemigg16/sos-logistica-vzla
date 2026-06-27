@@ -1,0 +1,18 @@
+meta {
+  name: Logout
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/logout
+  body: none
+  auth: none
+}
+
+docs {
+  Revoca la sesión y borra la cookie `refresh_token`.
+  Usa la cookie actual (no requiere body). Es idempotente.
+
+  Respuesta 200: `{ ok: true }`.
+}

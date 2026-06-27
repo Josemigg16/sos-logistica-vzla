@@ -1,0 +1,23 @@
+meta {
+  name: Me
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/auth/me
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+docs {
+  Devuelve el actor autenticado a partir del access token.
+  Requiere header `Authorization: Bearer <accessToken>` (lo toma de la variable seteada por Login).
+
+  Respuesta 200: `{ actor }`.
+  Error: 401 si el token falta o es inválido.
+}

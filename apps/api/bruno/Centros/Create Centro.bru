@@ -1,0 +1,40 @@
+meta {
+  name: Create Centro
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/centros
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": "centro-001",
+    "nombre": "Centro de Acopio Guanare",
+    "direccion": "Av. Principal, Guanare, Portuguesa",
+    "contacto": "+58 412 0000000",
+    "responsable": "María Pérez",
+    "coordenadas": [9.0419, -69.7421],
+    "tipo": "acopio",
+    "inventario": {
+      "Agua potable": 1200,
+      "Arroz blanco": 800
+    }
+  }
+}
+
+docs {
+  Crea o actualiza un centro (upsert por `id`). Valida contra `centroSchema`:
+  - `id`, `nombre`, `direccion`, `contacto`, `responsable`: string
+  - `coordenadas`: tupla [lat, lng] de números
+  - `tipo`: acopio | salida | destino
+  - `inventario`: objeto `{ [categoria: string]: number }`
+  - `metadata`: objeto opcional
+  - `verificacion`: opcional `{ imagenes: string[], fecha, operario, novedades? }`
+
+  Respuesta 200: `{ success: true, centro }`.
+  Errores: 400 datos inválidos (incluye `details`) · 500 error al guardar.
+}
