@@ -46,7 +46,7 @@ function buildContext(): TestContext {
     listConvoys: new ListConvoys(convoys),
     listEscorts: new ListEscorts(users),
     getConvoy: new GetConvoy(convoys),
-    planConvoy: new PlanConvoy(convoys, hubs, users),
+    planConvoy: new PlanConvoy(convoys, hubs),
     startConvoy: new StartConvoy(convoys, lotes),
     completeConvoy: new CompleteConvoy(convoys),
     confirmConvoyArrival: new ConfirmConvoyArrival(convoys, lotes),
@@ -79,7 +79,8 @@ function makeConvoy(id = crypto.randomUUID()): Convoy {
     id,
     origenId: ORIGIN_ID,
     destinoId: DESTINATION_ID,
-    escoltaId: ESCORT_ID,
+    escoltaNombre: "Juan Perez",
+    escoltaCedula: "V-12345678",
     vehicleIds: [VEHICLE_ID],
   });
 }
@@ -245,7 +246,8 @@ describe("convoys routes", () => {
       body: JSON.stringify({
         origenId: ORIGIN_ID,
         destinoId: DESTINATION_ID,
-        escoltaId: ESCORT_ID,
+        escoltaNombre: "Juan Perez",
+        escoltaCedula: "V-12345678",
         vehicleIds: [VEHICLE_ID],
       }),
     });
@@ -255,7 +257,8 @@ describe("convoys routes", () => {
     expect(body.convoy).toMatchObject({
       origenId: ORIGIN_ID,
       destinoId: DESTINATION_ID,
-      escoltaId: ESCORT_ID,
+      escoltaNombre: "Juan Perez",
+      escoltaCedula: "V-12345678",
       vehicleIds: [VEHICLE_ID],
       status: "PLANIFICADO",
     });
@@ -270,7 +273,8 @@ describe("convoys routes", () => {
       body: JSON.stringify({
         origenId: ORIGIN_ID,
         destinoId: DESTINATION_ID,
-        escoltaId: ESCORT_ID,
+        escoltaNombre: "Juan Perez",
+        escoltaCedula: "V-12345678",
         vehicleIds: [VEHICLE_ID],
       }),
     });
@@ -414,7 +418,8 @@ describe("convoys routes", () => {
       body: JSON.stringify({
         origenId: ORIGIN_ID,
         destinoId: DESTINATION_ID,
-        escoltaId: ESCORT_ID,
+        escoltaNombre: "Juan Perez",
+        escoltaCedula: "V-12345678",
         vehicleIds: [VEHICLE_ID],
       }),
     });

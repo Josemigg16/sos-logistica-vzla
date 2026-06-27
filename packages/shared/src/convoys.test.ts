@@ -10,7 +10,8 @@ describe("createConvoySchema", () => {
   const validInput = {
     origenId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     destinoId: "b2c3d4e5-f6a7-8901-bcde-f01234567891",
-    escoltaId: "c3d4e5f6-a7b8-9012-cdef-012345678912",
+    escoltaNombre: "Juan Perez",
+    escoltaCedula: "V-12345678",
     vehicleIds: ["d4e5f6a7-b8c9-0123-defa-123456789013"],
   };
 
@@ -32,6 +33,22 @@ describe("createConvoySchema", () => {
 
   test("accepts valid input with one vehicle", () => {
     const result = createConvoySchema.safeParse(validInput);
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts valid input with missing escoltaCedula", () => {
+    const result = createConvoySchema.safeParse({
+      ...validInput,
+      escoltaCedula: undefined,
+    });
+    expect(result.success).toBe(true);
+  });
+
+  test("accepts valid input with null escoltaCedula", () => {
+    const result = createConvoySchema.safeParse({
+      ...validInput,
+      escoltaCedula: null,
+    });
     expect(result.success).toBe(true);
   });
 });

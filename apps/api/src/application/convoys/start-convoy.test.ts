@@ -13,7 +13,8 @@ const BASE_PROPS = {
   id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
   origenId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
   destinoId: "cccccccc-cccc-cccc-cccc-cccccccccccc",
-  escoltaId: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+  escoltaNombre: "Juan Perez",
+  escoltaCedula: "V-12345678",
   vehicleIds: ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"],
 };
 

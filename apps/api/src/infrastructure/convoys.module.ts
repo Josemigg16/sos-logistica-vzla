@@ -26,7 +26,7 @@ export function createConvoysModule() {
     listConvoys: new ListConvoys(convoys),
     listEscorts: new ListEscorts(users),
     getConvoy: new GetConvoy(convoys),
-    planConvoy: new PlanConvoy(convoys, hubs, users),
+    planConvoy: new PlanConvoy(convoys, hubs),
     startConvoy: new StartConvoy(convoys, lotes),
     completeConvoy: new CompleteConvoy(convoys),
     confirmConvoyArrival: new ConfirmConvoyArrival(convoys, lotes),

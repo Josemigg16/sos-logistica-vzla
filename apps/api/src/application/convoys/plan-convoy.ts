@@ -2,14 +2,12 @@ import type { CreateConvoyRequest, PublicConvoy } from "@sos/shared";
 import { Convoy } from "../../domain/convoys/entities/convoy";
 import { ConvoyError } from "../../domain/convoys/errors";
 import type { ConvoyRepository } from "../../domain/convoys/repositories/convoy.repository";
-import type { UserRepository } from "../../domain/identity/repositories/user.repository";
 import type { HubRepository } from "../../domain/resources/repositories/hub.repository";
 
 export class PlanConvoy {
   constructor(
     private readonly convoys: ConvoyRepository,
     private readonly hubs: HubRepository,
-    private readonly users: UserRepository,
   ) {}
 
   async execute(command: CreateConvoyRequest): Promise<PublicConvoy> {
@@ -37,15 +35,6 @@ export class PlanConvoy {
 
     if (!destination.isActive) {
       throw new ConvoyError("El hub de destino está inactivo", "DESTINATION_HUB_INACTIVE");
-    }
-
-    const escort = await this.users.findById(command.escoltaId);
-    if (!escort) {
-      throw new ConvoyError("No se encontró el escolta ZODI", "ESCORT_NOT_FOUND");
-    }
-
-    if (escort.role.value !== "ZODI_SENDER") {
-      throw new ConvoyError("El escolta debe tener rol ZODI_SENDER", "ESCORT_NOT_ZODI_SENDER");
     }
 
     const convoy = Convoy.create({ id: crypto.randomUUID(), ...command });

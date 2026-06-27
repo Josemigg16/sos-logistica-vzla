@@ -7,7 +7,8 @@ const makeConvoy = (status: "PLANIFICADO" | "EN_RUTA" = "PLANIFICADO") => {
     id: crypto.randomUUID(),
     origenId: crypto.randomUUID(),
     destinoId: crypto.randomUUID(),
-    escoltaId: crypto.randomUUID(),
+    escoltaNombre: "Juan Perez",
+    escoltaCedula: "V-12345678",
     vehicleIds: [crypto.randomUUID()],
   });
 
@@ -28,7 +29,8 @@ describe("InMemoryConvoyRepository", () => {
     expect(found?.vehicleIds).toEqual(convoy.vehicleIds);
     expect(found?.origenId).toBe(convoy.origenId);
     expect(found?.destinoId).toBe(convoy.destinoId);
-    expect(found?.escoltaId).toBe(convoy.escoltaId);
+    expect(found?.escoltaNombre).toBe(convoy.escoltaNombre);
+    expect(found?.escoltaCedula).toBe(convoy.escoltaCedula);
   });
 
   test("filters convoys by status", async () => {

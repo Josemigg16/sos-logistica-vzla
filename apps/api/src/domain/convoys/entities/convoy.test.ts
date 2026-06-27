@@ -13,7 +13,8 @@ const VALID_INPUT = {
   id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
   origenId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
   destinoId: "cccccccc-cccc-cccc-cccc-cccccccccccc",
-  escoltaId: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+  escoltaNombre: "Juan Perez",
+  escoltaCedula: "V-12345678",
   vehicleIds: ["eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"],
 };
 
@@ -59,7 +60,8 @@ describe("Convoy.create — REQ-01", () => {
     expect(c.id).toBe(VALID_INPUT.id);
     expect(c.origenId).toBe(VALID_INPUT.origenId);
     expect(c.destinoId).toBe(VALID_INPUT.destinoId);
-    expect(c.escoltaId).toBe(VALID_INPUT.escoltaId);
+    expect(c.escoltaNombre).toBe(VALID_INPUT.escoltaNombre);
+    expect(c.escoltaCedula).toBe(VALID_INPUT.escoltaCedula);
     expect(c.vehicleIds).toEqual(VALID_INPUT.vehicleIds);
     expect(c.createdAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
     expect(c.createdAt.getTime()).toBeLessThanOrEqual(after.getTime());
@@ -110,6 +112,14 @@ describe("Convoy.create — REQ-01", () => {
     // After FSM method, status changes
     c.dispatch();
     expect(c.status).toBe("EN_RUTA");
+  });
+
+  test("creates with optional/null escoltaCedula", () => {
+    const c = Convoy.create({
+      ...VALID_INPUT,
+      escoltaCedula: undefined,
+    });
+    expect(c.escoltaCedula).toBeNull();
   });
 });
 

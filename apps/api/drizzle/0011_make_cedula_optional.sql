@@ -1,0 +1,1 @@
+ALTER TABLE "convoys" ALTER COLUMN "escolta_cedula" DROP NOT NULL;

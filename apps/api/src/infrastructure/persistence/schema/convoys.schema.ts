@@ -5,11 +5,11 @@ import {
   primaryKey,
   timestamp,
   uuid,
+  varchar,
 } from "drizzle-orm/pg-core";
 import { CONVOY_STATUSES } from "@sos/shared";
 import { vehiculos } from "./operations.schema";
 import { hubs } from "./resources.schema";
-import { users } from "./users.schema";
 
 export const convoyStatusEnum = pgEnum("convoy_status", CONVOY_STATUSES);
 
@@ -21,9 +21,8 @@ export const convoys = pgTable("convoys", {
   destinoId: uuid("destino_id")
     .notNull()
     .references(() => hubs.id, { onDelete: "restrict" }),
-  escoltaId: uuid("escolta_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "restrict" }),
+  escoltaNombre: varchar("escolta_nombre", { length: 100 }).notNull(),
+  escoltaCedula: varchar("escolta_cedula", { length: 20 }),
   status: convoyStatusEnum("status").notNull().default("PLANIFICADO"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -47,7 +46,6 @@ export const convoyVehicles = pgTable(
 export const convoysRelations = relations(convoys, ({ one, many }) => ({
   origen: one(hubs, { fields: [convoys.origenId], references: [hubs.id] }),
   destino: one(hubs, { fields: [convoys.destinoId], references: [hubs.id] }),
-  escolta: one(users, { fields: [convoys.escoltaId], references: [users.id] }),
   vehicles: many(convoyVehicles),
 }));
 

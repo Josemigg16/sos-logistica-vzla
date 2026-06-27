@@ -8,7 +8,8 @@ export interface ConvoyProps {
   id: string;
   origenId: string;
   destinoId: string;
-  escoltaId: string;
+  escoltaNombre: string;
+  escoltaCedula: string | null;
   vehicleIds: string[];
   status: ConvoyStatus;
   createdAt: Date;
@@ -38,7 +39,8 @@ export class Convoy {
     id: string;
     origenId: string;
     destinoId: string;
-    escoltaId: string;
+    escoltaNombre: string;
+    escoltaCedula?: string | null;
     vehicleIds: string[];
   }): Convoy {
     if (input.origenId === input.destinoId) {
@@ -68,7 +70,8 @@ export class Convoy {
       id: input.id,
       origenId: input.origenId,
       destinoId: input.destinoId,
-      escoltaId: input.escoltaId,
+      escoltaNombre: input.escoltaNombre,
+      escoltaCedula: input.escoltaCedula ?? null,
       vehicleIds: [...input.vehicleIds],
       status: "PLANIFICADO",
       createdAt: now,
@@ -87,8 +90,11 @@ export class Convoy {
   get destinoId(): string {
     return this.props.destinoId;
   }
-  get escoltaId(): string {
-    return this.props.escoltaId;
+  get escoltaNombre(): string {
+    return this.props.escoltaNombre;
+  }
+  get escoltaCedula(): string | null {
+    return this.props.escoltaCedula;
   }
   get vehicleIds(): string[] {
     return [...this.props.vehicleIds];
@@ -164,7 +170,8 @@ export class Convoy {
       id: this.props.id,
       origenId: this.props.origenId,
       destinoId: this.props.destinoId,
-      escoltaId: this.props.escoltaId,
+      escoltaNombre: this.props.escoltaNombre,
+      escoltaCedula: this.props.escoltaCedula,
       vehicleIds: [...this.props.vehicleIds],
       status: this.props.status,
       createdAt: this.props.createdAt.toISOString(),

@@ -81,11 +81,7 @@ async function fetchVehicles(): Promise<PublicVehicle[]> {
   if (!res.ok) throw new Error('No se pudieron cargar los vehículos')
   return (await res.json()).vehicles
 }
-async function fetchEscorts(): Promise<PublicEscort[]> {
-  const res = await fetch(`${API_URL}/convoys/escorts`, { headers: authHeaders() })
-  if (!res.ok) throw new Error('No se pudieron cargar los escoltas')
-  return (await res.json()).escorts
-}
+
 async function planConvoy(d: CreateConvoyRequest): Promise<PublicConvoy> {
   const res = await fetch(`${API_URL}/convoys`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) })
   if (!res.ok) throw new Error(await readError(res, 'No se pudo planificar la caravana'))
@@ -123,11 +119,8 @@ function AdminConvoysPage() {
   const { data: convoys = [], isLoading } = useQuery({ queryKey: ['convoys', filter], queryFn: () => fetchConvoys(filter) })
   const { data: hubs = [] } = useQuery({ queryKey: ['convoy-hubs'], queryFn: fetchHubs })
   const { data: vehicles = [] } = useQuery({ queryKey: ['convoy-vehicles'], queryFn: fetchVehicles })
-  const { data: escorts = [] } = useQuery({ queryKey: ['convoy-escorts'], queryFn: fetchEscorts })
-
   const hubsMap = useMemo(() => Object.fromEntries(hubs.map((h) => [h.id, h.name])), [hubs])
   const vehiclesMap = useMemo(() => Object.fromEntries(vehicles.map((v) => [v.id, v.placa])), [vehicles])
-  const escortsMap = useMemo(() => Object.fromEntries(escorts.map((e) => [e.id, e.username])), [escorts])
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ['convoys'] })
   const onError = (e: Error) => setErrorMsg(e.message)
@@ -232,7 +225,14 @@ function AdminConvoysPage() {
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-2 text-white/80 whitespace-nowrap">
                       <ShieldUser className="w-3.5 h-3.5 text-[#C8DCF0]/50 shrink-0" />
-                      {escortsMap[c.escoltaId] ?? '—'}
+                      <span>
+                        {c.escoltaNombre}
+                        {c.escoltaCedula && (
+                          <span className="text-[#C8DCF0]/40 text-xs font-mono ml-1.5">
+                            ({c.escoltaCedula})
+                          </span>
+                        )}
+                      </span>
                     </div>
                   </td>
                   <td className="px-5 py-3">
@@ -270,7 +270,6 @@ function AdminConvoysPage() {
         <PlanConvoyModal
           dispatchHubs={hubs.filter((h) => h.type === 'DISPATCH' && h.status === 'ACTIVO')}
           destinationHubs={hubs.filter((h) => h.type === 'DESTINATION' && h.status === 'ACTIVO')}
-          escorts={escorts}
           vehicles={vehicles}
           onClose={() => setPlanning(false)}
           onSubmit={(d) => planMut.mutate(d)}
@@ -414,10 +413,9 @@ function ModalActions({ onCancel, isSubmitting, label, disabled }: { onCancel: (
 
 // ─── Modal: Planificar caravana ───────────────────────────────────────────────
 
-function PlanConvoyModal({ dispatchHubs, destinationHubs, escorts, vehicles, onClose, onSubmit, isSubmitting, errorMsg, onDismissError }: {
+function PlanConvoyModal({ dispatchHubs, destinationHubs, vehicles, onClose, onSubmit, isSubmitting, errorMsg, onDismissError }: {
   dispatchHubs: PublicHub[]
   destinationHubs: PublicHub[]
-  escorts: PublicEscort[]
   vehicles: PublicVehicle[]
   onClose: () => void
   onSubmit: (d: CreateConvoyRequest) => void
@@ -427,14 +425,15 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, escorts, vehicles, onC
 }) {
   const [origenId, setOrigenId] = useState('')
   const [destinoId, setDestinoId] = useState('')
-  const [escoltaId, setEscoltaId] = useState('')
+  const [escoltaNombre, setEscoltaNombre] = useState('')
+  const [escoltaCedula, setEscoltaCedula] = useState('')
   const [vehicleIds, setVehicleIds] = useState<string[]>([])
 
   const toggleVehicle = (id: string) =>
     setVehicleIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]))
 
-  const canSubmit = origenId && destinoId && escoltaId && vehicleIds.length > 0
-  const isDirty = Boolean(origenId || destinoId || escoltaId || vehicleIds.length)
+  const canSubmit = origenId && destinoId && escoltaNombre && vehicleIds.length > 0
+  const isDirty = Boolean(origenId || destinoId || escoltaNombre || escoltaCedula || vehicleIds.length)
 
   return (
     <FormSheet
@@ -442,7 +441,18 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, escorts, vehicles, onC
       isDirty={isDirty}
       isSubmitting={isSubmitting}
       onClose={onClose}
-      onSubmit={(e) => { e.preventDefault(); if (canSubmit) onSubmit({ origenId, destinoId, escoltaId, vehicleIds }) }}
+      onSubmit={(e) => {
+        e.preventDefault()
+        if (canSubmit) {
+          onSubmit({
+            origenId,
+            destinoId,
+            escoltaNombre,
+            escoltaCedula: escoltaCedula.trim() || null,
+            vehicleIds,
+          })
+        }
+      }}
       size="md"
       footer={(requestClose) => (
         <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} disabled={!canSubmit} label="PLANIFICAR" />
@@ -465,11 +475,25 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, escorts, vehicles, onC
           </select>
         </Field>
 
-        <Field label="Escolta ZODI">
-          <select required className="convoy-input" value={escoltaId} onChange={(e) => setEscoltaId(e.target.value)}>
-            <option value="">Seleccionar escolta</option>
-            {escorts.map((e) => <option key={e.id} value={e.id}>{e.username}</option>)}
-          </select>
+        <Field label="Nombre del escolta">
+          <input
+            required
+            type="text"
+            className="convoy-input"
+            placeholder="Ej. Juan Pérez"
+            value={escoltaNombre}
+            onChange={(e) => setEscoltaNombre(e.target.value)}
+          />
+        </Field>
+
+        <Field label="Cédula del escolta" hint="Opcional">
+          <input
+            type="text"
+            className="convoy-input"
+            placeholder="Ej. V-12345678"
+            value={escoltaCedula}
+            onChange={(e) => setEscoltaCedula(e.target.value)}
+          />
         </Field>
 
         <Field label="Vehículos" hint={`${vehicleIds.length} seleccionado${vehicleIds.length === 1 ? '' : 's'} · mínimo 1`}>

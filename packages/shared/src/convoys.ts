@@ -23,7 +23,8 @@ export type ConvoyStatus = z.infer<typeof convoyStatusSchema>;
 export const createConvoySchema = z.object({
   origenId: z.string().uuid(),
   destinoId: z.string().uuid(),
-  escoltaId: z.string().uuid(),
+  escoltaNombre: z.string().min(1, "El nombre del escolta es obligatorio"),
+  escoltaCedula: z.string().nullable().optional(),
   vehicleIds: z.array(z.string().uuid()).min(1),
 });
 export type CreateConvoyRequest = z.infer<typeof createConvoySchema>;
@@ -37,7 +38,8 @@ export interface PublicConvoy {
   id: string;
   origenId: string;
   destinoId: string;
-  escoltaId: string;
+  escoltaNombre: string;
+  escoltaCedula: string | null;
   vehicleIds: string[];
   status: ConvoyStatus;
   createdAt: string;

@@ -8,7 +8,8 @@ function makeConvoy(id: string): Convoy {
     id,
     origenId: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
     destinoId: "cccccccc-cccc-cccc-cccc-cccccccccccc",
-    escoltaId: "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    escoltaNombre: "Juan Perez",
+    escoltaCedula: "V-12345678",
     vehicleIds: [crypto.randomUUID()],
   });
 }

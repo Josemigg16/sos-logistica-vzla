@@ -71,6 +71,20 @@
       "when": 1782556265546,
       "tag": "0009_bent_trauma",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1782557185035,
+      "tag": "0010_update_escort_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1782557320794,
+      "tag": "0011_make_cedula_optional",
+      "breakpoints": true
     }
   ]
 }

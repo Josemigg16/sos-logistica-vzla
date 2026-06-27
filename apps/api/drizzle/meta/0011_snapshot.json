@@ -1,6 +1,6 @@
 {
-  "id": "996343e2-6a91-4608-affc-18022265300b",
-  "prevId": "7b8d1b6c-282e-4594-8e9b-030a12bf08b0",
+  "id": "06341c5b-1613-459c-9230-e7913af6026b",
+  "prevId": "a62b3223-96b0-4a87-a02c-383794627d7f",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -74,17 +74,17 @@
       "uniqueConstraints": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "username"
-          ]
+          ],
+          "nullsNotDistinct": false
         },
         "users_cedula_unique": {
           "name": "users_cedula_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "cedula"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -139,25 +139,25 @@
         "sessions_user_id_users_id_fk": {
           "name": "sessions_user_id_users_id_fk",
           "tableFrom": "sessions",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "sessions_refresh_token_hash_unique": {
           "name": "sessions_refresh_token_hash_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "refresh_token_hash"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -317,41 +317,41 @@
         "historial_carga_centro_id_hubs_id_fk": {
           "name": "historial_carga_centro_id_hubs_id_fk",
           "tableFrom": "historial_carga",
-          "tableTo": "hubs",
           "columnsFrom": [
             "centro_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "historial_carga_lote_carga_id_lotes_carga_id_fk": {
           "name": "historial_carga_lote_carga_id_lotes_carga_id_fk",
           "tableFrom": "historial_carga",
-          "tableTo": "lotes_carga",
           "columnsFrom": [
             "lote_carga_id"
           ],
+          "tableTo": "lotes_carga",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "historial_carga_realizado_por_id_users_id_fk": {
           "name": "historial_carga_realizado_por_id_users_id_fk",
           "tableFrom": "historial_carga",
-          "tableTo": "users",
           "columnsFrom": [
             "realizado_por_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -435,15 +435,15 @@
         "hubs_coordinator_id_users_id_fk": {
           "name": "hubs_coordinator_id_users_id_fk",
           "tableFrom": "hubs",
-          "tableTo": "users",
           "columnsFrom": [
             "coordinator_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -500,41 +500,41 @@
         "inventory_batches_hub_id_hubs_id_fk": {
           "name": "inventory_batches_hub_id_hubs_id_fk",
           "tableFrom": "inventory_batches",
-          "tableTo": "hubs",
           "columnsFrom": [
             "hub_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "inventory_batches_product_id_products_id_fk": {
           "name": "inventory_batches_product_id_products_id_fk",
           "tableFrom": "inventory_batches",
-          "tableTo": "products",
           "columnsFrom": [
             "product_id"
           ],
+          "tableTo": "products",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "inventory_batches_source_hub_id_hubs_id_fk": {
           "name": "inventory_batches_source_hub_id_hubs_id_fk",
           "tableFrom": "inventory_batches",
-          "tableTo": "hubs",
           "columnsFrom": [
             "source_hub_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -600,15 +600,15 @@
         "lotes_carga_viaje_id_viajes_id_fk": {
           "name": "lotes_carga_viaje_id_viajes_id_fk",
           "tableFrom": "lotes_carga",
-          "tableTo": "viajes",
           "columnsFrom": [
             "viaje_id"
           ],
+          "tableTo": "viajes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -694,28 +694,28 @@
         "needs_hub_id_hubs_id_fk": {
           "name": "needs_hub_id_hubs_id_fk",
           "tableFrom": "needs",
-          "tableTo": "hubs",
           "columnsFrom": [
             "hub_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "needs_product_id_products_id_fk": {
           "name": "needs_product_id_products_id_fk",
           "tableFrom": "needs",
-          "tableTo": "products",
           "columnsFrom": [
             "product_id"
           ],
+          "tableTo": "products",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -774,10 +774,10 @@
       "uniqueConstraints": {
         "products_name_unique": {
           "name": "products_name_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "name"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -840,28 +840,28 @@
         "resources_hub_id_hubs_id_fk": {
           "name": "resources_hub_id_hubs_id_fk",
           "tableFrom": "resources",
-          "tableTo": "hubs",
           "columnsFrom": [
             "hub_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "resources_product_id_products_id_fk": {
           "name": "resources_product_id_products_id_fk",
           "tableFrom": "resources",
-          "tableTo": "products",
           "columnsFrom": [
             "product_id"
           ],
+          "tableTo": "products",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -924,54 +924,54 @@
         "traspasos_carga_lote_carga_id_lotes_carga_id_fk": {
           "name": "traspasos_carga_lote_carga_id_lotes_carga_id_fk",
           "tableFrom": "traspasos_carga",
-          "tableTo": "lotes_carga",
           "columnsFrom": [
             "lote_carga_id"
           ],
+          "tableTo": "lotes_carga",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "traspasos_carga_viaje_origen_id_viajes_id_fk": {
           "name": "traspasos_carga_viaje_origen_id_viajes_id_fk",
           "tableFrom": "traspasos_carga",
-          "tableTo": "viajes",
           "columnsFrom": [
             "viaje_origen_id"
           ],
+          "tableTo": "viajes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "traspasos_carga_viaje_destino_id_viajes_id_fk": {
           "name": "traspasos_carga_viaje_destino_id_viajes_id_fk",
           "tableFrom": "traspasos_carga",
-          "tableTo": "viajes",
           "columnsFrom": [
             "viaje_destino_id"
           ],
+          "tableTo": "viajes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "traspasos_carga_autorizado_por_id_users_id_fk": {
           "name": "traspasos_carga_autorizado_por_id_users_id_fk",
           "tableFrom": "traspasos_carga",
-          "tableTo": "users",
           "columnsFrom": [
             "autorizado_por_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1022,28 +1022,28 @@
         "assignments_operation_id_operations_id_fk": {
           "name": "assignments_operation_id_operations_id_fk",
           "tableFrom": "assignments",
-          "tableTo": "operations",
           "columnsFrom": [
             "operation_id"
           ],
+          "tableTo": "operations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "assignments_resource_id_resources_id_fk": {
           "name": "assignments_resource_id_resources_id_fk",
           "tableFrom": "assignments",
-          "tableTo": "resources",
           "columnsFrom": [
             "resource_id"
           ],
+          "tableTo": "resources",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1121,10 +1121,10 @@
       "uniqueConstraints": {
         "choferes_cedula_unique": {
           "name": "choferes_cedula_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "cedula"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1188,15 +1188,15 @@
         "operations_incident_id_incidents_id_fk": {
           "name": "operations_incident_id_incidents_id_fk",
           "tableFrom": "operations",
-          "tableTo": "incidents",
           "columnsFrom": [
             "incident_id"
           ],
+          "tableTo": "incidents",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -1280,51 +1280,51 @@
         "vehiculos_chofer_id_choferes_id_fk": {
           "name": "vehiculos_chofer_id_choferes_id_fk",
           "tableFrom": "vehiculos",
-          "tableTo": "choferes",
           "columnsFrom": [
             "chofer_id"
           ],
+          "tableTo": "choferes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "vehiculos_centro_origen_id_hubs_id_fk": {
           "name": "vehiculos_centro_origen_id_hubs_id_fk",
           "tableFrom": "vehiculos",
-          "tableTo": "hubs",
           "columnsFrom": [
             "centro_origen_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "vehiculos_tipo_vehiculo_id_tipos_vehiculo_id_fk": {
           "name": "vehiculos_tipo_vehiculo_id_tipos_vehiculo_id_fk",
           "tableFrom": "vehiculos",
-          "tableTo": "tipos_vehiculo",
           "columnsFrom": [
             "tipo_vehiculo_id"
           ],
+          "tableTo": "tipos_vehiculo",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "vehiculos_placa_unique": {
           "name": "vehiculos_placa_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "placa"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1400,41 +1400,41 @@
         "viajes_operation_id_operations_id_fk": {
           "name": "viajes_operation_id_operations_id_fk",
           "tableFrom": "viajes",
-          "tableTo": "operations",
           "columnsFrom": [
             "operation_id"
           ],
+          "tableTo": "operations",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "viajes_vehiculo_id_vehiculos_id_fk": {
           "name": "viajes_vehiculo_id_vehiculos_id_fk",
           "tableFrom": "viajes",
-          "tableTo": "vehiculos",
           "columnsFrom": [
             "vehiculo_id"
           ],
+          "tableTo": "vehiculos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "viajes_destino_id_hubs_id_fk": {
           "name": "viajes_destino_id_hubs_id_fk",
           "tableFrom": "viajes",
-          "tableTo": "hubs",
           "columnsFrom": [
             "destino_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1481,10 +1481,10 @@
       "uniqueConstraints": {
         "tipos_vehiculo_nombre_unique": {
           "name": "tipos_vehiculo_nombre_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "nombre"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -1539,28 +1539,28 @@
         "lote_items_lote_id_lotes_id_fk": {
           "name": "lote_items_lote_id_lotes_id_fk",
           "tableFrom": "lote_items",
-          "tableTo": "lotes",
           "columnsFrom": [
             "lote_id"
           ],
+          "tableTo": "lotes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "lote_items_product_id_products_id_fk": {
           "name": "lote_items_product_id_products_id_fk",
           "tableFrom": "lote_items",
-          "tableTo": "products",
           "columnsFrom": [
             "product_id"
           ],
+          "tableTo": "products",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -1624,54 +1624,54 @@
         "lote_traspasos_lote_id_lotes_id_fk": {
           "name": "lote_traspasos_lote_id_lotes_id_fk",
           "tableFrom": "lote_traspasos",
-          "tableTo": "lotes",
           "columnsFrom": [
             "lote_id"
           ],
+          "tableTo": "lotes",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "lote_traspasos_vehiculo_origen_id_vehiculos_id_fk": {
           "name": "lote_traspasos_vehiculo_origen_id_vehiculos_id_fk",
           "tableFrom": "lote_traspasos",
-          "tableTo": "vehiculos",
           "columnsFrom": [
             "vehiculo_origen_id"
           ],
+          "tableTo": "vehiculos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "lote_traspasos_vehiculo_destino_id_vehiculos_id_fk": {
           "name": "lote_traspasos_vehiculo_destino_id_vehiculos_id_fk",
           "tableFrom": "lote_traspasos",
-          "tableTo": "vehiculos",
           "columnsFrom": [
             "vehiculo_destino_id"
           ],
+          "tableTo": "vehiculos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "lote_traspasos_autorizado_por_id_users_id_fk": {
           "name": "lote_traspasos_autorizado_por_id_users_id_fk",
           "tableFrom": "lote_traspasos",
-          "tableTo": "users",
           "columnsFrom": [
             "autorizado_por_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1774,67 +1774,67 @@
         "lotes_hub_origen_id_hubs_id_fk": {
           "name": "lotes_hub_origen_id_hubs_id_fk",
           "tableFrom": "lotes",
-          "tableTo": "hubs",
           "columnsFrom": [
             "hub_origen_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "lotes_hub_destino_id_hubs_id_fk": {
           "name": "lotes_hub_destino_id_hubs_id_fk",
           "tableFrom": "lotes",
-          "tableTo": "hubs",
           "columnsFrom": [
             "hub_destino_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "lotes_vehiculo_id_vehiculos_id_fk": {
           "name": "lotes_vehiculo_id_vehiculos_id_fk",
           "tableFrom": "lotes",
-          "tableTo": "vehiculos",
           "columnsFrom": [
             "vehiculo_id"
           ],
+          "tableTo": "vehiculos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "lotes_creado_por_id_users_id_fk": {
           "name": "lotes_creado_por_id_users_id_fk",
           "tableFrom": "lotes",
-          "tableTo": "users",
           "columnsFrom": [
             "creado_por_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         },
         "lotes_confirmado_por_id_users_id_fk": {
           "name": "lotes_confirmado_por_id_users_id_fk",
           "tableFrom": "lotes",
-          "tableTo": "users",
           "columnsFrom": [
             "confirmado_por_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "set null"
         }
       },
       "compositePrimaryKeys": {},
@@ -1865,28 +1865,28 @@
         "convoy_vehicles_convoy_id_convoys_id_fk": {
           "name": "convoy_vehicles_convoy_id_convoys_id_fk",
           "tableFrom": "convoy_vehicles",
-          "tableTo": "convoys",
           "columnsFrom": [
             "convoy_id"
           ],
+          "tableTo": "convoys",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "convoy_vehicles_vehicle_id_vehiculos_id_fk": {
           "name": "convoy_vehicles_vehicle_id_vehiculos_id_fk",
           "tableFrom": "convoy_vehicles",
-          "tableTo": "vehiculos",
           "columnsFrom": [
             "vehicle_id"
           ],
+          "tableTo": "vehiculos",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {
@@ -1966,28 +1966,28 @@
         "convoys_origen_id_hubs_id_fk": {
           "name": "convoys_origen_id_hubs_id_fk",
           "tableFrom": "convoys",
-          "tableTo": "hubs",
           "columnsFrom": [
             "origen_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         },
         "convoys_destino_id_hubs_id_fk": {
           "name": "convoys_destino_id_hubs_id_fk",
           "tableFrom": "convoys",
-          "tableTo": "hubs",
           "columnsFrom": [
             "destino_id"
           ],
+          "tableTo": "hubs",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "restrict"
         }
       },
       "compositePrimaryKeys": {},
@@ -2131,10 +2131,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

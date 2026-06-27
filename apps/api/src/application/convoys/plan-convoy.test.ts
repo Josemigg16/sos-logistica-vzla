@@ -13,17 +13,15 @@ import { InMemoryUserRepository } from "../../infrastructure/persistence/in-memo
 describe("PlanConvoy", () => {
   let convoys: InMemoryConvoyRepository;
   let hubs: InMemoryHubRepository;
-  let users: InMemoryUserRepository;
   let plan: PlanConvoy;
 
   beforeEach(() => {
     convoys = new InMemoryConvoyRepository();
     hubs = new InMemoryHubRepository();
-    users = new InMemoryUserRepository();
-    plan = new PlanConvoy(convoys, hubs, users);
+    plan = new PlanConvoy(convoys, hubs);
   });
 
-  test("planifica un convoy cuando origen, destino y escolta son válidos", async () => {
+  test("planifica un convoy cuando origen y destino son válidos", async () => {
     const command = await seedValidPlanningContext();
 
     const convoy = await plan.execute(command);
@@ -31,7 +29,8 @@ describe("PlanConvoy", () => {
     expect(convoy.id).toBeTruthy();
     expect(convoy.origenId).toBe(command.origenId);
     expect(convoy.destinoId).toBe(command.destinoId);
-    expect(convoy.escoltaId).toBe(command.escoltaId);
+    expect(convoy.escoltaNombre).toBe(command.escoltaNombre);
+    expect(convoy.escoltaCedula).toBe(command.escoltaCedula);
     expect(convoy.vehicleIds).toEqual(command.vehicleIds);
     expect(convoy.status).toBe("PLANIFICADO");
     expect(await convoys.findById(convoy.id)).not.toBeNull();
@@ -75,25 +74,11 @@ describe("PlanConvoy", () => {
     await expectConvoyError(plan.execute(command), "DESTINATION_HUB_INACTIVE");
   });
 
-  test("rechaza planificar si no existe el escolta", async () => {
-    const command = await seedValidPlanningContext();
-    await users.delete(command.escoltaId);
-
-    await expectConvoyError(plan.execute(command), "ESCORT_NOT_FOUND");
-  });
-
-  test("rechaza planificar si el escolta no tiene rol ZODI_SENDER", async () => {
-    const command = await seedValidPlanningContext({ escortRole: "ZODI_DESTINATION" });
-
-    await expectConvoyError(plan.execute(command), "ESCORT_NOT_ZODI_SENDER");
-  });
-
   async function seedValidPlanningContext(overrides: {
     originType?: HubType;
     destinationType?: HubType;
     originStatus?: HubStatus;
     destinationStatus?: HubStatus;
-    escortRole?: RoleName;
   } = {}): Promise<CreateConvoyRequest> {
     const origin = buildHub({
       type: overrides.originType ?? "DISPATCH",
@@ -103,16 +88,15 @@ describe("PlanConvoy", () => {
       type: overrides.destinationType ?? "DESTINATION",
       status: overrides.destinationStatus,
     });
-    const escort = buildUser({ role: overrides.escortRole ?? "ZODI_SENDER" });
 
     await hubs.save(origin);
     await hubs.save(destination);
-    await users.save(escort);
 
     return {
       origenId: origin.id,
       destinoId: destination.id,
-      escoltaId: escort.id,
+      escoltaNombre: "Juan Perez",
+      escoltaCedula: "V-12345678",
       vehicleIds: [crypto.randomUUID()],
     };
   }
