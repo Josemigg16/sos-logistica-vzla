@@ -12,7 +12,10 @@ import {
   Moon,
   Layers,
   HeartHandshake,
-  ArrowLeft
+  ArrowLeft,
+  X,
+  Plus,
+  Loader2
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
@@ -61,6 +64,8 @@ export default function App() {
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Estados para la ruta personalizada entre dos puntos
   const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
@@ -252,6 +257,14 @@ export default function App() {
             title="Cambiar tema"
           >
             {theme === "dark" ? <Sun className="w-4 h-4 text-blue-300" /> : <Moon className="w-4 h-4 text-blue-700" />}
+          </button>
+          <button
+            onClick={() => setIsRegistering(true)}
+            className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
+            title="Proponer nuevo centro de acopio"
+          >
+            <Plus className="w-3.5 h-3.5 stroke-[3]" /> Proponer
           </button>
           <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
@@ -613,6 +626,214 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {isRegistering && (
+        <PublicHubModal
+          onClose={() => setIsRegistering(false)}
+          isSubmitting={isSaving}
+          onSubmit={async (data) => {
+            setIsSaving(true);
+            try {
+              const res = await fetch(`${API_URL}/api/centros`, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  ...data,
+                  inventario: {}, // Se registra sin inventario inicial
+                }),
+              });
+              if (!res.ok) throw new Error("Fallo al guardar");
+              // Volver a cargar la lista
+              const listRes = await fetch(`${API_URL}/api/centros`);
+              if (listRes.ok) {
+                const listData = await listRes.json();
+                setCentros(listData);
+              }
+              setIsRegistering(false);
+            } catch (err) {
+              console.error(err);
+              alert("Error al registrar el centro de acopio.");
+            } finally {
+              setIsSaving(false);
+            }
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+interface PublicHubModalProps {
+  onClose: () => void;
+  onSubmit: (data: Omit<Centro, "inventario" | "verificacion" | "metadata">) => Promise<void>;
+  isSubmitting: boolean;
+}
+
+function PublicHubModal({ onClose, onSubmit, isSubmitting }: PublicHubModalProps) {
+  const [nombre, setNombre] = useState("");
+  const [direccion, setDireccion] = useState("");
+  const [responsable, setResponsable] = useState("");
+  const [contacto, setContacto] = useState("");
+  const [latitud, setLatitud] = useState("9.5832");
+  const [longitud, setLongitud] = useState("-69.2216");
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nombre.trim() || !direccion.trim() || !contacto.trim() || !responsable.trim()) return;
+
+    const lat = parseFloat(latitud);
+    const lng = parseFloat(longitud);
+    if (isNaN(lat) || isNaN(lng)) return;
+
+    onSubmit({
+      id: crypto.randomUUID(),
+      nombre,
+      direccion,
+      contacto,
+      responsable,
+      tipo: "acopio", // Solo se permite registrar centros de acopio
+      coordenadas: [lng, lat],
+    });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/70 backdrop-blur-sm select-text" onClick={onClose}>
+      <div
+        className="relative w-full md:max-w-lg md:rounded-2xl bg-card border-t md:border border-border shadow-2xl flex flex-col max-h-[92vh] md:max-h-[85vh] animate-in slide-in-from-bottom duration-300 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Cabecera */}
+        <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/30">
+          <div>
+            <h3
+              className="text-base font-black text-foreground uppercase tracking-wide leading-none"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+            >
+              Proponer Centro de Acopio
+            </h3>
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              Completa los datos del nuevo centro de acopio. Será visible de inmediato.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nombre del Centro *</label>
+            <input
+              type="text"
+              required
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              placeholder="ej. Centro de Acopio Comunitario"
+              className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dirección Física *</label>
+            <input
+              type="text"
+              required
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              placeholder="ej. Av. Páez, frente a la Plaza Bolívar"
+              className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Coordinador/a *</label>
+              <input
+                type="text"
+                required
+                value={responsable}
+                onChange={(e) => setResponsable(e.target.value)}
+                placeholder="Nombre completo"
+                className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Contacto (WhatsApp) *</label>
+              <input
+                type="text"
+                required
+                value={contacto}
+                onChange={(e) => setContacto(e.target.value)}
+                placeholder="+58 ..."
+                className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+              />
+            </div>
+          </div>
+
+          <div className="border-t border-border/50 pt-3">
+            <div className="flex justify-between items-center mb-2">
+              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Coordenadas Geográficas *</label>
+              <div className="text-[9px] font-mono text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 select-all">
+                Lat: {parseFloat(latitud).toFixed(5)} • Lng: {parseFloat(longitud).toFixed(5)}
+              </div>
+            </div>
+
+            {/* Mapa de selección */}
+            <div className="w-full h-40 rounded-lg overflow-hidden border border-border relative">
+              <Map
+                center={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
+                zoom={8}
+                onClick={(lngLat) => {
+                  setLongitud(lngLat[0].toFixed(5));
+                  setLatitud(lngLat[1].toFixed(5));
+                }}
+                className="w-full h-full animate-in fade-in duration-300"
+              >
+                <MapControls />
+                <MapMarker
+                  coordinates={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
+                  color="#3b82f6"
+                  active={true}
+                />
+              </Map>
+              <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/80 text-[8px] text-white/70 pointer-events-none">
+                Hacé clic en el mapa para marcar la ubicación
+              </div>
+            </div>
+          </div>
+
+          <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg text-[10px] text-blue-400 flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+            <span>Por motivos de seguridad, los ciudadanos no logueados solo pueden registrar centros de acopio y no centros de despacho ni destinos finales.</span>
+          </div>
+
+          {/* Botones de acción */}
+          <div className="flex gap-2 pt-2 border-t border-border/50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 rounded-lg bg-secondary border border-border text-foreground font-bold text-xs hover:bg-secondary/80 active:scale-98 transition-[transform,background-color] duration-200 cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-blue-500 text-zinc-950 font-black text-xs hover:bg-blue-600 active:scale-98 transition-[transform,background-color] duration-200 disabled:opacity-50 cursor-pointer"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+            >
+              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              REGISTRAR CENTRO
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }

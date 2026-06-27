@@ -10,6 +10,10 @@ post {
   auth: none
 }
 
+vars:pre-request {
+  baseUrl: localhost:8081
+}
+
 script:post-response {
   if (res.status === 200 && res.body.accessToken) {
     bru.setVar("accessToken", res.body.accessToken);
