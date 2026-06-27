@@ -12,7 +12,6 @@ import {
   Shield,
   ShieldOff,
   UserCircle,
-  Mail,
 } from 'lucide-react'
 import type { AdminUserView, RoleName, UserStatus } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
