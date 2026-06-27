@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun --filter '*' dev",
     "dev:api": "bun --filter @sos/api dev",
     "dev:web": "bun --filter @sos/web dev",
     "build": "bun --filter '*' build",
