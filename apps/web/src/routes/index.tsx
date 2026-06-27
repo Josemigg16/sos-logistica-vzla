@@ -525,7 +525,7 @@ function NecesidadesPage() {
                     QUIERO AYUDAR
                   </span>
                   <span className="block text-[11px] text-[#0F2337]/55 mt-1 font-medium leading-snug">
-                    Encuentra dónde y cómo donar cerca de ti <br/> Registra puntos de acopio sin crearte una cuenta
+                    Encuentra dónde y cómo donar cerca de ti
                   </span>
                 </div>
                 <ChevronRight className="relative w-5 h-5 text-[#0F2337] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />

@@ -84,11 +84,14 @@ async function createHub(hub: Centro): Promise<Centro> {
     headers: authHeaders(),
     body: JSON.stringify(hub),
   })
-  if (res?.ok) {
-    const data = await res.json()
-    if (data.success && data.centro) return data.centro
+  if (!res) throw new Error('No se pudo conectar con el servidor')
+  if (!res.ok) {
+    const body = await res.json().catch(() => null) as { error?: string } | null
+    throw new Error(body?.error ?? 'No se pudo registrar el centro')
   }
-  return hub
+  const data = await res.json()
+  if (!data.success || !data.centro) throw new Error('Respuesta inválida del servidor')
+  return data.centro
 }
 
 async function deleteHub(id: string): Promise<string> {
