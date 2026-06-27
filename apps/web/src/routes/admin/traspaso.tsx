@@ -12,7 +12,6 @@ import {
   ShieldCheck,
   ClipboardList,
   RefreshCw,
-  X,
   FileText
 } from 'lucide-react'
 import type { PublicVehicle, PublicLote } from '@sos/shared'
@@ -20,7 +19,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_COORDINATE_HUB } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
-import { createPortal } from 'react-dom'
+import { FormSheet } from '@/components/ui/form-sheet'
 
 export const Route = createFileRoute('/admin/traspaso')({ component: TraspasoGate })
 
@@ -399,67 +398,61 @@ function TraspasoCargaPage() {
 
 
       {/* ─── Modal de Motivo de Traspaso ─── */}
-      {loteToTransfer &&
-        createPortal(
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0A1A2A]/80 backdrop-blur-md p-4 animate-modal-overlay">
-            <div className="relative flex flex-col w-full max-w-md bg-[#152D46] border border-[#2B5F8E]/50 rounded-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4 border-b border-[#2B5F8E]/30 shrink-0">
-                <h3 className="font-bold text-white text-base">Motivo de Traspaso</h3>
-                <button
-                  onClick={() => setLoteToTransfer(null)}
-                  className="flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <form onSubmit={handleExecuteTransfer} className="p-5 flex flex-col gap-4">
-                <div className="p-3 bg-[#0F2337]/60 border border-[#2B5F8E]/30 rounded-xl text-xs text-white/70">
-                  <p className="font-semibold text-white/90">Traspaso de Lote:</p>
-                  <p className="font-mono mt-1 text-white/55">{loteToTransfer.id}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-white/60">{origenVehicle?.placa}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-white/40" />
-                    <span className="text-emerald-400 font-semibold">{destinoVehicle?.placa}</span>
-                  </div>
-                </div>
-
-                <label className="flex flex-col gap-1.5">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-1">
-                    <FileText className="w-3.5 h-3.5" /> Motivo del Traspaso
-                  </span>
-                  <textarea
-                    required
-                    className="coord-input min-h-[90px] resize-y"
-                    maxLength={500}
-                    placeholder="Describe el motivo del traspaso (ej. falla mecánica, optimización de ruta, etc.)"
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                  />
-                </label>
-
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => setLoteToTransfer(null)}
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/10 transition"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={transferMut.isPending}
-                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#0F2337] text-sm font-bold hover:bg-[#C8DCF0] active:scale-[0.98] transition disabled:opacity-70"
-                  >
-                    {transferMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                    Confirmar
-                  </button>
-                </div>
-              </form>
+      {loteToTransfer && (
+        <FormSheet
+          title="Motivo de Traspaso"
+          size="md"
+          isDirty={Boolean(motivo.trim())}
+          isSubmitting={transferMut.isPending}
+          onClose={() => setLoteToTransfer(null)}
+          onSubmit={handleExecuteTransfer}
+          footer={(requestClose) => (
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={requestClose}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/10 active:scale-[0.97] transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={transferMut.isPending}
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#0F2337] text-sm font-bold hover:bg-[#C8DCF0] active:scale-[0.97] transition disabled:opacity-70 cursor-pointer"
+              >
+                {transferMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                Confirmar
+              </button>
             </div>
-          </div>,
-          document.body
-        )}
+          )}
+        >
+          <div className="flex flex-col gap-4">
+            <div className="p-3 bg-[#0F2337]/60 border border-[#2B5F8E]/30 rounded-xl text-xs text-white/70">
+              <p className="font-semibold text-white/90">Traspaso de Lote:</p>
+              <p className="font-mono mt-1 text-white/55">{loteToTransfer.id}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-white/60">{origenVehicle?.placa}</span>
+                <ArrowRight className="w-3.5 h-3.5 text-white/40" />
+                <span className="text-emerald-400 font-semibold">{destinoVehicle?.placa}</span>
+              </div>
+            </div>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-white/50 flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5" /> Motivo del Traspaso
+              </span>
+              <textarea
+                required
+                className="coord-input min-h-[90px] resize-y"
+                maxLength={500}
+                placeholder="Describe el motivo del traspaso (ej. falla mecánica, optimización de ruta, etc.)"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+              />
+            </label>
+          </div>
+        </FormSheet>
+      )}
 
       <style>{`
         .coord-input {
@@ -479,13 +472,6 @@ function TraspasoCargaPage() {
         .coord-input option {
           background-color: #0F2337;
           color: white;
-        }
-        @keyframes modal-overlay-in {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        .animate-modal-overlay {
-          animation: modal-overlay-in 160ms ease-out;
         }
       `}</style>
     </div>

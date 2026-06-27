@@ -691,9 +691,22 @@ function DriverCreateModal({ onClose, onSubmit, isSubmitting, errorMsg, onDismis
   const [cedula, setCedula] = useState('')
   const [licencia, setLicencia] = useState('')
   const [telefono, setTelefono] = useState('')
+
+  const isDirty = Boolean(nombre || apellido || cedula || licencia || telefono)
+
   return (
-    <ModalShell title="Nuevo chofer" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, cedula, licencia, telefono }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Nuevo chofer"
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, cedula, licencia, telefono }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} label="CREAR CHOFER" />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre"><input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="ej: Juan" /></Field>
@@ -702,9 +715,8 @@ function DriverCreateModal({ onClose, onSubmit, isSubmitting, errorMsg, onDismis
         <Field label="Cédula"><input required className="fleet-input" value={cedula} onChange={(e) => setCedula(e.target.value)} placeholder="ej: V-12345678" /></Field>
         <Field label="Nro. de licencia"><input required className="fleet-input" value={licencia} onChange={(e) => setLicencia(e.target.value)} placeholder="ej: Grado 5 - 12345678" /></Field>
         <Field label="Teléfono"><input required className="fleet-input" value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="ej: 0414-1234567" /></Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} label="CREAR CHOFER" />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -718,9 +730,25 @@ function DriverEditModal({ driver, onClose, onSubmit, isSubmitting, errorMsg, on
   const [licencia, setLicencia] = useState(driver.licencia)
   const [telefono, setTelefono] = useState(driver.telefono)
   const [disponible, setDisponible] = useState(driver.disponible)
+
+  const snapshot = JSON.stringify({ nombre, apellido, licencia, telefono, disponible })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
   return (
-    <ModalShell title="Editar chofer" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, licencia, telefono, disponible }) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Editar chofer"
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); onSubmit({ nombre, apellido, licencia, telefono, disponible }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={onDismissError} />}
         <div className="grid grid-cols-2 gap-3">
           <Field label="Nombre"><input required className="fleet-input" value={nombre} onChange={(e) => setNombre(e.target.value)} /></Field>
@@ -734,8 +762,7 @@ function DriverEditModal({ driver, onClose, onSubmit, isSubmitting, errorMsg, on
             <option value="false">No disponible</option>
           </select>
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
