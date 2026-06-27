@@ -17,11 +17,11 @@ export default defineConfig({
   },
   // En dev no hay nginx: el dev server reenvía /api/* al backend, igual que el
   // proxy inverso en el VPS. Así `API_URL = /api` funciona idéntico en todos lados.
-  // El backend escucha en :3000 (PORT=3000); ajustá el target si usás otro.
+  // El backend escucha en :8081 (PORT ?? 8081 en apps/api/index.ts); ajustá el target si usás otro.
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://localhost:8081',
         changeOrigin: true,
       },
     },

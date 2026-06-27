@@ -35,7 +35,7 @@ function AdminCatalogPage() {
   const { data: products = [], isLoading } = useQuery<ProductMaster[]>({
     queryKey: ['productos'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/productos`)
+      const res = await fetch(`${API_URL}/productos`)
       if (!res.ok) throw new Error('Error al cargar productos')
       return res.json()
     },

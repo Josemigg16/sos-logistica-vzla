@@ -473,7 +473,7 @@ function NeedFormModal({
   const { data: centers = [] } = useQuery<any[]>({
     queryKey: ['centros'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/centros`)
+      const res = await fetch(`${API_URL}/centros`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },
@@ -482,7 +482,7 @@ function NeedFormModal({
   const { data: products = [] } = useQuery<ProductMaster[]>({
     queryKey: ['productos'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/productos`)
+      const res = await fetch(`${API_URL}/productos`)
       if (!res.ok) throw new Error('Error al cargar productos')
       return res.json()
     },
