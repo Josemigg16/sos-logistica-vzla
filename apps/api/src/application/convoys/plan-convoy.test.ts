@@ -30,7 +30,7 @@ describe("PlanConvoy", () => {
     expect(convoy.origenId).toBe(command.origenId);
     expect(convoy.destinoId).toBe(command.destinoId);
     expect(convoy.escoltaNombre).toBe(command.escoltaNombre);
-    expect(convoy.escoltaCedula).toBe(command.escoltaCedula);
+    expect(convoy.escoltaCedula).toBe(command.escoltaCedula ?? null);
     expect(convoy.vehicleIds).toEqual(command.vehicleIds);
     expect(convoy.status).toBe("PLANIFICADO");
     expect(await convoys.findById(convoy.id)).not.toBeNull();

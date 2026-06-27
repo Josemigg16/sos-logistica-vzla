@@ -5,6 +5,8 @@ import {
   InvalidConvoyTransitionError,
 } from "../../domain/convoys/errors";
 import { InMemoryConvoyRepository } from "../../infrastructure/persistence/in-memory-convoy.repository";
+import { InMemoryLoteRepository } from "../../infrastructure/persistence/in-memory-lote.repository";
+import { Lote } from "../../domain/cargo/entities/lote";
 import { CompleteConvoy } from "./complete-convoy";
 
 const BASE_PROPS = {
@@ -33,11 +35,13 @@ function makeConvoy(status: "PLANIFICADO" | "EN_RUTA"): Convoy {
 
 describe("CompleteConvoy", () => {
   let convoys: CountingConvoyRepository;
+  let lotes: InMemoryLoteRepository;
   let completeConvoy: CompleteConvoy;
 
   beforeEach(() => {
     convoys = new CountingConvoyRepository();
-    completeConvoy = new CompleteConvoy(convoys);
+    lotes = new InMemoryLoteRepository();
+    completeConvoy = new CompleteConvoy(convoys, lotes);
   });
 
   test("delivers an in-transit convoy and persists the updated convoy", async () => {
@@ -51,6 +55,39 @@ describe("CompleteConvoy", () => {
     expect(result.id).toBe(convoy.id);
     expect(convoys.saveCount).toBe(1);
     expect((await convoys.findById(convoy.id))?.status).toBe("ENTREGADO");
+  });
+
+  test("automatically marks lots assigned to the convoy as ENTREGADO when convoy completes", async () => {
+    const convoy = makeConvoy("EN_RUTA");
+    await convoys.save(convoy);
+
+    // Create a lot assigned to the vehicle/convoy in transit
+    const lote = Lote.create({
+      id: "lote-12345-67890",
+      hubOrigenId: convoy.origenId,
+      hubOrigenNombre: "Centro de Despacho",
+      hubDestinoId: convoy.destinoId,
+      hubDestinoNombre: "Centro de Acopio",
+      items: [
+        {
+          id: "item-1",
+          loteId: "lote-12345-67890",
+          productId: "prod-1",
+          productName: "Arroz",
+          cantidad: 100,
+          pesoKg: 50,
+        },
+      ],
+    });
+    lote.assignVehicle(convoy.vehicleIds[0]!, "ABC-123");
+    lote.assignToConvoy(convoy.id);
+    await lotes.save(lote);
+
+    const result = await completeConvoy.execute({ id: convoy.id });
+
+    expect(result.status).toBe("ENTREGADO");
+    const updatedLote = await lotes.findById(lote.id);
+    expect(updatedLote?.estado).toBe("ENTREGADO");
   });
 
   test("throws ConvoyNotFoundError when the convoy does not exist", async () => {

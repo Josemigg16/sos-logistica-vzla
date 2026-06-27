@@ -83,6 +83,11 @@ async function fetchVehicles(): Promise<PublicVehicle[]> {
   if (!res.ok) throw new Error('No se pudieron cargar los vehículos')
   return (await res.json()).vehicles
 }
+async function fetchEscorts(): Promise<PublicEscort[]> {
+  const res = await fetch(`${API_URL}/convoys/escorts`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('No se pudieron cargar los escoltas')
+  return (await res.json()).escorts
+}
 
 async function planConvoy(d: CreateConvoyRequest): Promise<PublicConvoy> {
   const res = await fetch(`${API_URL}/convoys`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) })
@@ -121,6 +126,7 @@ function AdminConvoysPage() {
   const { data: convoys = [], isLoading } = useQuery({ queryKey: ['convoys', filter], queryFn: () => fetchConvoys(filter) })
   const { data: hubs = [] } = useQuery({ queryKey: ['convoy-hubs'], queryFn: fetchHubs })
   const { data: vehicles = [] } = useQuery({ queryKey: ['convoy-vehicles'], queryFn: fetchVehicles })
+  const { data: escorts = [] } = useQuery({ queryKey: ['convoy-escorts'], queryFn: fetchEscorts })
   const hubsMap = useMemo(() => Object.fromEntries(hubs.map((h) => [h.id, h.name])), [hubs])
   const vehiclesMap = useMemo(() => Object.fromEntries(vehicles.map((v) => [v.id, v.placa])), [vehicles])
 
@@ -273,6 +279,7 @@ function AdminConvoysPage() {
           dispatchHubs={hubs.filter((h) => h.type === 'DISPATCH' && h.status === 'ACTIVO')}
           destinationHubs={hubs.filter((h) => h.type === 'DESTINATION' && h.status === 'ACTIVO')}
           vehicles={vehicles}
+          escorts={escorts}
           onClose={() => setPlanning(false)}
           onSubmit={(d) => planMut.mutate(d)}
           isSubmitting={planMut.isPending}
@@ -415,10 +422,11 @@ function ModalActions({ onCancel, isSubmitting, label, disabled }: { onCancel: (
 
 // ─── Modal: Planificar caravana ───────────────────────────────────────────────
 
-function PlanConvoyModal({ dispatchHubs, destinationHubs, vehicles, onClose, onSubmit, isSubmitting, errorMsg, onDismissError }: {
+function PlanConvoyModal({ dispatchHubs, destinationHubs, vehicles, escorts, onClose, onSubmit, isSubmitting, errorMsg, onDismissError }: {
   dispatchHubs: PublicHub[]
   destinationHubs: PublicHub[]
   vehicles: PublicVehicle[]
+  escorts: PublicEscort[]
   onClose: () => void
   onSubmit: (d: CreateConvoyRequest) => void
   isSubmitting: boolean
@@ -431,8 +439,27 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, vehicles, onClose, onS
   const [escoltaCedula, setEscoltaCedula] = useState('')
   const [vehicleIds, setVehicleIds] = useState<string[]>([])
 
+  const [vehicleSearch, setVehicleSearch] = useState('')
+  const [showEscortSuggestions, setShowEscortSuggestions] = useState(false)
+
   const toggleVehicle = (id: string) =>
     setVehicleIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]))
+
+  const filteredVehicles = useMemo(() => {
+    if (!vehicleSearch.trim()) return vehicles
+    const q = vehicleSearch.toLowerCase()
+    return vehicles.filter(
+      (v) =>
+        v.placa.toLowerCase().includes(q) ||
+        (v.modelo && v.modelo.toLowerCase().includes(q))
+    )
+  }, [vehicles, vehicleSearch])
+
+  const filteredEscorts = useMemo(() => {
+    if (!escoltaNombre.trim()) return escorts
+    const q = escoltaNombre.toLowerCase()
+    return escorts.filter((e) => e.username.toLowerCase().includes(q))
+  }, [escorts, escoltaNombre])
 
   const canSubmit = origenId && destinoId && escoltaNombre && vehicleIds.length > 0
   const isDirty = Boolean(origenId || destinoId || escoltaNombre || escoltaCedula || vehicleIds.length)
@@ -477,15 +504,42 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, vehicles, onClose, onS
           </select>
         </Field>
 
-        <Field label="Nombre del escolta">
-          <input
-            required
-            type="text"
-            className="convoy-input"
-            placeholder="Ej. Juan Pérez"
-            value={escoltaNombre}
-            onChange={(e) => setEscoltaNombre(e.target.value)}
-          />
+        <Field label="Nombre del escolta" hint="Escribe o selecciona un escolta registrado">
+          <div className="relative">
+            <input
+              required
+              type="text"
+              className="convoy-input"
+              placeholder="Ej. Juan Pérez"
+              value={escoltaNombre}
+              onChange={(e) => {
+                setEscoltaNombre(e.target.value)
+                setShowEscortSuggestions(true)
+              }}
+              onFocus={() => setShowEscortSuggestions(true)}
+              onBlur={() => {
+                // Pequeño delay para permitir que el click en la sugerencia se registre antes de ocultar
+                setTimeout(() => setShowEscortSuggestions(false), 200)
+              }}
+            />
+            {showEscortSuggestions && filteredEscorts.length > 0 && (
+              <div className="absolute left-0 right-0 z-20 mt-1 max-h-40 overflow-y-auto rounded-lg border border-[#2B5F8E]/80 bg-[#0F2337] shadow-xl divide-y divide-[#2B5F8E]/20">
+                {filteredEscorts.map((escort) => (
+                  <button
+                    key={escort.id}
+                    type="button"
+                    className="w-full text-left px-3.5 py-2 text-sm text-white hover:bg-[#2B5F8E]/30 transition-colors"
+                    onClick={() => {
+                      setEscoltaNombre(escort.username)
+                      setShowEscortSuggestions(false)
+                    }}
+                  >
+                    {escort.username}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </Field>
 
         <Field label="Cédula del escolta" hint="Opcional">
@@ -502,20 +556,33 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, vehicles, onClose, onS
           {vehicles.length === 0 ? (
             <p className="text-sm text-white/40 py-2">No hay vehículos registrados en la flota.</p>
           ) : (
-            <div className="max-h-44 overflow-y-auto rounded-lg border border-[#2B5F8E]/40 divide-y divide-[#2B5F8E]/20">
-              {vehicles.map((v) => {
-                const checked = vehicleIds.includes(v.id)
-                return (
-                  <label
-                    key={v.id}
-                    className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${checked ? 'bg-[#2B5F8E]/20' : 'hover:bg-white/5'}`}
-                  >
-                    <input type="checkbox" className="convoy-check" checked={checked} onChange={() => toggleVehicle(v.id)} />
-                    <span className="font-mono font-bold text-white text-sm">{v.placa}</span>
-                    <span className="text-white/50 text-xs truncate">{v.modelo}</span>
-                  </label>
-                )
-              })}
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                className="convoy-input text-xs"
+                placeholder="Buscar vehículo por placa o modelo..."
+                value={vehicleSearch}
+                onChange={(e) => setVehicleSearch(e.target.value)}
+              />
+              <div className="max-h-44 overflow-y-auto rounded-lg border border-[#2B5F8E]/40 divide-y divide-[#2B5F8E]/20">
+                {filteredVehicles.length === 0 ? (
+                  <p className="text-xs text-white/40 p-3 text-center">Ningún vehículo coincide con la búsqueda.</p>
+                ) : (
+                  filteredVehicles.map((v) => {
+                    const checked = vehicleIds.includes(v.id)
+                    return (
+                      <label
+                        key={v.id}
+                        className={`flex items-center gap-3 px-3 py-2.5 cursor-pointer transition-colors ${checked ? 'bg-[#2B5F8E]/20' : 'hover:bg-white/5'}`}
+                      >
+                        <input type="checkbox" className="convoy-check" checked={checked} onChange={() => toggleVehicle(v.id)} />
+                        <span className="font-mono font-bold text-white text-sm">{v.placa}</span>
+                        <span className="text-white/50 text-xs truncate">{v.modelo}</span>
+                      </label>
+                    )
+                  })
+                )}
+              </div>
             </div>
           )}
         </Field>
@@ -537,10 +604,22 @@ function AddVehicleModal({ convoy, vehicles, onClose, onSubmit, isSubmitting, er
   onDismissError: () => void
 }) {
   const [vehicleId, setVehicleId] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredVehicles = useMemo(() => {
+    if (!searchQuery.trim()) return vehicles
+    const q = searchQuery.toLowerCase()
+    return vehicles.filter(
+      (v) =>
+        v.placa.toLowerCase().includes(q) ||
+        (v.modelo && v.modelo.toLowerCase().includes(q))
+    )
+  }, [vehicles, searchQuery])
+
   return (
     <FormSheet
       title="Agregar vehículo"
-      isDirty={Boolean(vehicleId)}
+      isDirty={Boolean(vehicleId || searchQuery)}
       isSubmitting={isSubmitting}
       onClose={onClose}
       onSubmit={(e) => { e.preventDefault(); if (vehicleId) onSubmit(vehicleId) }}
@@ -559,10 +638,19 @@ function AddVehicleModal({ convoy, vehicles, onClose, onSubmit, isSubmitting, er
           {vehicles.length === 0 ? (
             <p className="text-sm text-white/40 py-2">No quedan vehículos disponibles para sumar.</p>
           ) : (
-            <select required className="convoy-input" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
-              <option value="">Seleccionar vehículo</option>
-              {vehicles.map((v) => <option key={v.id} value={v.id}>{v.placa} — {v.modelo}</option>)}
-            </select>
+            <div className="flex flex-col gap-2">
+              <input
+                type="text"
+                className="convoy-input text-xs"
+                placeholder="Buscar vehículo por placa o modelo..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <select required className="convoy-input" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
+                <option value="">Seleccionar vehículo</option>
+                {filteredVehicles.map((v) => <option key={v.id} value={v.id}>{v.placa} — {v.modelo}</option>)}
+              </select>
+            </div>
           )}
         </Field>
       </div>

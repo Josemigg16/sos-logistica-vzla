@@ -49,7 +49,7 @@ function buildContext(): TestContext {
     getConvoy: new GetConvoy(convoys),
     planConvoy: new PlanConvoy(convoys, hubs),
     startConvoy: new StartConvoy(convoys, lotes),
-    completeConvoy: new CompleteConvoy(convoys),
+    completeConvoy: new CompleteConvoy(convoys, lotes),
     confirmConvoyArrival: new ConfirmConvoyArrival(convoys, lotes),
     cancelConvoy: new CancelConvoy(convoys),
     addVehicleToConvoy: new AddVehicleToConvoy(convoys),
@@ -708,11 +708,7 @@ describe("convoy-cargo lifecycle", () => {
     const loteDespatchado = await ctx.lotes.findById("lote-001");
     expect(loteDespatchado?.convoyId).toBe(convoy.id);
 
-    // Paso 2: el ZODI_SENDER marca el lote como entregado (EN_TRANSITO → ENTREGADO)
-    loteDespatchado!.markDelivered();
-    await ctx.lotes.save(loteDespatchado!);
-
-    // Paso 3: complete → convoy ENTREGADO
+    // Paso 2: complete → convoy ENTREGADO (esto automáticamente marca el lote como ENTREGADO)
     const completeRes = await ctx.app.request(`/convoys/${convoy.id}/complete`, {
       method: "POST",
       headers: await authHeader(),
@@ -720,7 +716,10 @@ describe("convoy-cargo lifecycle", () => {
     expect(completeRes.status).toBe(200);
     expect(await completeRes.json()).toMatchObject({ convoy: { status: "ENTREGADO" } });
 
-    // Paso 4: confirm-arrival → RECIBIDO, lote cascadea a RECIBIDO
+    const loteCompletado = await ctx.lotes.findById("lote-001");
+    expect(loteCompletado?.estado).toBe("ENTREGADO");
+
+    // Paso 3: confirm-arrival → RECIBIDO, lote cascadea a RECIBIDO
     const confirmRes = await ctx.app.request(`/convoys/${convoy.id}/confirm-arrival`, {
       method: "POST",
       headers: await authHeader("ZODI_DESTINATION"),
