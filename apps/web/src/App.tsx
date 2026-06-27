@@ -401,7 +401,7 @@ export default function App() {
           {isRegistering && clickedCoordinates && (
             <MapMarker
               coordinates={clickedCoordinates}
-              color="#8b5cf6"
+              color="#3b82f6"
               active={true}
             />
           )}
@@ -884,7 +884,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
           <div className="px-5 pt-4 pb-3.5 md:pt-5 border-b border-border/60 flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2.5 mb-1.5">
-                <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-violet-500/15 border border-violet-500/20 text-violet-400 shrink-0">
+                <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-blue-500/15 border border-blue-500/20 text-blue-400 shrink-0">
                   <MapPin className="w-3.5 h-3.5" />
                 </div>
                 <h3
@@ -898,8 +898,8 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
               {/* Pill de coordenadas — contexto de dónde se hizo clic */}
               {initialCoordinates && (
                 <div className="flex items-center gap-1.5 ml-9">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400">
-                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse shrink-0" />
                     <span className="text-[9.5px] font-mono font-medium tracking-tight">
                       {initialCoordinates[1].toFixed(4)}°, {initialCoordinates[0].toFixed(4)}°
                     </span>
@@ -934,7 +934,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="ej. Centro de Acopio Comunitario El Pinar"
-                className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
+                className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 transition-all duration-200"
               />
             </div>
 
@@ -948,7 +948,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 value={direccion}
                 onChange={(e) => setDireccion(e.target.value)}
                 placeholder="ej. Av. Páez, frente a la Plaza Bolívar"
-                className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
+                className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 transition-all duration-200"
               />
             </div>
 
@@ -963,7 +963,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                   value={responsable}
                   onChange={(e) => setResponsable(e.target.value)}
                   placeholder="Nombre completo"
-                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
+                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 transition-all duration-200"
                 />
               </div>
               <div className="space-y-1.5">
@@ -976,7 +976,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                   value={contacto}
                   onChange={(e) => setContacto(e.target.value)}
                   placeholder="+58 4XX XXX XXXX"
-                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
+                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 transition-all duration-200"
                 />
               </div>
             </div>
@@ -1004,7 +1004,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 >
                   <MapMarker
                     coordinates={[lng, lat]}
-                    color="#8b5cf6"
+                    color="#3b82f6"
                     active={true}
                     draggable={true}
                     onDragEnd={(lngLat) => {
@@ -1019,8 +1019,8 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
               </div> */}
             </div>
 
-            <div className="flex items-start gap-2 p-3 bg-violet-500/5 border border-violet-500/10 rounded-xl text-[9.5px] text-violet-400/80">
-              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-400" />
+            <div className="flex items-start gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl text-[9.5px] text-blue-400/80">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-400" />
               <span>Solo podés proponer centros de acopio. Los puntos de despacho y destinos son gestionados por coordinadores autorizados.</span>
             </div>
 
@@ -1036,7 +1036,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="flex-[1.6] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-violet-600 text-white font-black text-xs hover:bg-violet-500 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer shadow-lg shadow-violet-600/20"
+                className="flex-[1.6] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 text-white font-black text-xs hover:bg-blue-500 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer shadow-lg shadow-blue-600/20"
                 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
               >
                 {isSubmitting
