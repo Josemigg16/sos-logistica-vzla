@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { loginSchema } from "@sos/shared";
-import { Eye, EyeOff, Loader2, Lock, LogIn, ShieldCheck, User } from "lucide-react";
+import { Eye, EyeOff, Loader2, Lock, LogIn, User } from "lucide-react";
 import { AuthError } from "@/lib/auth/auth-client";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -60,7 +60,7 @@ function LoginPage() {
       navigate({ to: "/portal" });
     } catch (err) {
       setFormError(
-        err instanceof AuthError ? err.message : "Ocurrió un error. Intentá de nuevo.",
+        err instanceof AuthError ? err.message : "Ocurrió un error. Intenta de nuevo.",
       );
       setSubmitting(false);
     }
@@ -97,31 +97,9 @@ function LoginPage() {
           <img
             src={logotipo}
             alt="Portuguesa Unida"
-            className="mb-5 h-14 w-auto object-contain"
+            className="h-16 w-auto object-contain"
             style={{ filter: "drop-shadow(0 2px 12px rgba(43,95,142,0.5))" }}
           />
-          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full border border-[#4A89C0]/30 bg-[#2B5F8E]/40 px-3 py-1.5">
-            <ShieldCheck className="h-3 w-3 text-[#C8DCF0]" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#C8DCF0]">
-              Acceso restringido
-            </span>
-          </div>
-          <h1
-            className="leading-[0.95] tracking-tight text-white"
-            style={{
-              fontFamily: "'Barlow Condensed', sans-serif",
-              fontStyle: "italic",
-              fontWeight: 800,
-              fontSize: "clamp(2rem, 6vw, 2.7rem)",
-            }}
-          >
-            PORTAL DE
-            <br />
-            <span style={{ color: "#C8DCF0" }}>COORDINACIÓN</span>
-          </h1>
-          <p className="mt-3 max-w-xs text-sm leading-relaxed text-white/50">
-            Ingresá con tus credenciales para gestionar centros, recursos y operaciones.
-          </p>
         </div>
 
         {/* Card */}
@@ -205,9 +183,8 @@ function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-6 text-center text-[11px] text-white/25">
-          Las cuentas las crea un administrador. ¿Problemas para entrar? Contactá a tu
-          coordinación.
+        <p className="mt-6 text-center text-[11px] leading-relaxed text-white/30">
+          Solo personal autorizado. Si no tienes cuenta, contacta a tu coordinación.
         </p>
       </div>
 
