@@ -1,6 +1,6 @@
 export interface NeedProps {
   id: string;
-  hubId: string;
+  hubId?: string;
   productId: string;
   meta: number;
   recibido: number;
@@ -24,7 +24,7 @@ export class Need {
 
   static create(input: {
     id: string;
-    hubId: string;
+    hubId?: string;
     productId: string;
     meta: number;
     recibido?: number;
@@ -48,7 +48,7 @@ export class Need {
   }
 
   get id(): string { return this.props.id; }
-  get hubId(): string { return this.props.hubId; }
+  get hubId(): string | undefined { return this.props.hubId; }
   get productId(): string { return this.props.productId; }
   get meta(): number { return this.props.meta; }
   get recibido(): number { return this.props.recibido; }

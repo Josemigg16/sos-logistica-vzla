@@ -20,6 +20,7 @@ import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminNeedsRouteImport } from './routes/admin/needs'
 import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 import { Route as AdminFleetRouteImport } from './routes/admin/fleet'
+import { Route as AdminCoordinatorRouteImport } from './routes/admin/coordinator'
 import { Route as AdminCatalogRouteImport } from './routes/admin/catalog'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -77,6 +78,11 @@ const AdminFleetRoute = AdminFleetRouteImport.update({
   path: '/fleet',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminCoordinatorRoute = AdminCoordinatorRouteImport.update({
+  id: '/coordinator',
+  path: '/coordinator',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminCatalogRoute = AdminCatalogRouteImport.update({
   id: '/catalog',
   path: '/catalog',
@@ -91,6 +97,7 @@ export interface FileRoutesByFullPath {
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
   '/admin/catalog': typeof AdminCatalogRoute
+  '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
@@ -104,6 +111,7 @@ export interface FileRoutesByTo {
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
   '/admin/catalog': typeof AdminCatalogRoute
+  '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
@@ -119,6 +127,7 @@ export interface FileRoutesById {
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
   '/admin/catalog': typeof AdminCatalogRoute
+  '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
@@ -135,6 +144,7 @@ export interface FileRouteTypes {
     | '/needs-register'
     | '/register'
     | '/admin/catalog'
+    | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
@@ -148,6 +158,7 @@ export interface FileRouteTypes {
     | '/needs-register'
     | '/register'
     | '/admin/catalog'
+    | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
@@ -162,6 +173,7 @@ export interface FileRouteTypes {
     | '/needs-register'
     | '/register'
     | '/admin/catalog'
+    | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
@@ -257,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFleetRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/coordinator': {
+      id: '/admin/coordinator'
+      path: '/coordinator'
+      fullPath: '/admin/coordinator'
+      preLoaderRoute: typeof AdminCoordinatorRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/catalog': {
       id: '/admin/catalog'
       path: '/catalog'
@@ -269,6 +288,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminCatalogRoute: typeof AdminCatalogRoute
+  AdminCoordinatorRoute: typeof AdminCoordinatorRoute
   AdminFleetRoute: typeof AdminFleetRoute
   AdminHubsRoute: typeof AdminHubsRoute
   AdminNeedsRoute: typeof AdminNeedsRoute
@@ -278,6 +298,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCatalogRoute: AdminCatalogRoute,
+  AdminCoordinatorRoute: AdminCoordinatorRoute,
   AdminFleetRoute: AdminFleetRoute,
   AdminHubsRoute: AdminHubsRoute,
   AdminNeedsRoute: AdminNeedsRoute,

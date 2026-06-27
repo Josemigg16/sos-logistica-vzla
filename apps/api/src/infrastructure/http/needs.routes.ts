@@ -5,6 +5,11 @@ import type { ListNeeds } from "../../application/needs/list-needs";
 import type { UpdateNeed } from "../../application/needs/update-need";
 import type { DeleteNeed } from "../../application/needs/delete-need";
 import { NeedNotFoundError } from "../../domain/resources/errors";
+import {
+  authentication,
+  requireRole,
+  type AuthEnv,
+} from "./middleware/authentication";
 
 export interface NeedsRoutesDeps {
   createNeed: CreateNeed;
@@ -21,8 +26,8 @@ export interface NeedsRoutesDeps {
  * Registra AMBOS alias /needs y /necesidades para mantener el contrato legacy
  * sin modificar index.ts ni el cliente del frontend.
  */
-export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
-  const router = new Hono();
+export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
+  const router = new Hono<AuthEnv>();
 
   // ── GET ─────────────────────────────────────────────────────────────────────
 
@@ -40,13 +45,13 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
   router.get("/needs", getHandler);
   router.get("/necesidades", getHandler);
 
-  // ── POST ─────────────────────────────────────────────────────────────────────
+  // ── POST — requiere ADMIN o ZODI_DESTINATION ─────────────────────────────────
 
   const postHandler = async (c: Context) => {
     try {
       const body = await c.req.json();
 
-      if (!body.hubId || !body.nombre || !body.categoria || !body.meta || !body.prioridad) {
+      if (!body.nombre || !body.categoria || !body.meta || !body.prioridad) {
         return c.json({ error: "Faltan campos requeridos" }, 400);
       }
 
@@ -84,10 +89,10 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
     }
   };
 
-  router.post("/needs", postHandler);
-  router.post("/necesidades", postHandler);
+  router.post("/needs", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), postHandler);
+  router.post("/necesidades", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), postHandler);
 
-  // ── PUT ──────────────────────────────────────────────────────────────────────
+  // ── PUT — requiere ADMIN o ZODI_DESTINATION ──────────────────────────────────
 
   const putHandler = async (c: Context) => {
     try {
@@ -126,10 +131,10 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
     }
   };
 
-  router.put("/needs/:id", putHandler);
-  router.put("/necesidades/:id", putHandler);
+  router.put("/needs/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), putHandler);
+  router.put("/necesidades/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), putHandler);
 
-  // ── DELETE ───────────────────────────────────────────────────────────────────
+  // ── DELETE — requiere ADMIN o ZODI_DESTINATION ───────────────────────────────
 
   const deleteHandler = async (c: Context) => {
     try {
@@ -145,8 +150,8 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
     }
   };
 
-  router.delete("/needs/:id", deleteHandler);
-  router.delete("/necesidades/:id", deleteHandler);
+  router.delete("/needs/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), deleteHandler);
+  router.delete("/necesidades/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), deleteHandler);
 
   return router;
 }

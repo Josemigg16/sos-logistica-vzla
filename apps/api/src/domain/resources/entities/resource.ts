@@ -5,6 +5,8 @@ import { InsufficientStockError, InvalidStockAmountError } from "../errors";
 export interface ResourceProps {
   id: string;
   hubId: string;
+  productId: string | null;
+  productName: string;
   category: InventoryCategory;
   quantity: number;
   unit: string;
@@ -25,12 +27,19 @@ export class Resource {
   static create(input: {
     id: string;
     hubId: string;
+    productId?: string | null;
+    productName?: string;
     category: InventoryCategory;
     quantity: number;
     unit: string;
   }): Resource {
     if (input.quantity < 0) throw new InvalidStockAmountError();
-    return new Resource({ ...input, updatedAt: new Date() });
+    return new Resource({
+      ...input,
+      productId: input.productId ?? null,
+      productName: input.productName ?? "",
+      updatedAt: new Date(),
+    });
   }
 
   get id(): string {
@@ -38,6 +47,9 @@ export class Resource {
   }
   get hubId(): string {
     return this.props.hubId;
+  }
+  get productId(): string | null {
+    return this.props.productId;
   }
   get category(): InventoryCategory {
     return this.props.category;
@@ -65,6 +77,8 @@ export class Resource {
     return {
       id: this.props.id,
       hubId: this.props.hubId,
+      productId: this.props.productId,
+      productName: this.props.productName,
       category: this.props.category.value,
       quantity: this.props.quantity,
       unit: this.props.unit,

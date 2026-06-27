@@ -6,7 +6,7 @@ import { z } from "zod";
  * Las categorías de inventario son labels de UI (en español, por diseño).
  */
 
-export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION"] as const;
+export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION", "ZODI_BASE"] as const;
 export const hubTypeSchema = z.enum(HUB_TYPES);
 export type HubType = z.infer<typeof hubTypeSchema>;
 
@@ -51,9 +51,8 @@ export type CreateHubRequest = z.infer<typeof createHubSchema>;
 
 export const stockResourceSchema = z.object({
   hubId: z.string().uuid(),
-  category: inventoryCategorySchema,
+  productId: z.string().uuid(),
   quantity: z.number().int().min(0),
-  unit: z.string().trim().min(1).max(40),
 });
 export type StockResourceRequest = z.infer<typeof stockResourceSchema>;
 
@@ -72,6 +71,8 @@ export interface PublicHub {
 export interface PublicResource {
   id: string;
   hubId: string;
+  productId: string | null;
+  productName: string;
   category: InventoryCategoryName;
   quantity: number;
   unit: string;

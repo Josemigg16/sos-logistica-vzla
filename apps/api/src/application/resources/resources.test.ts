@@ -1,10 +1,13 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { RegisterHub } from "./register-hub";
 import { ListHubs } from "./list-hubs";
+import { GetHubByCoordinator } from "./get-hub-by-coordinator";
 import { StockResource } from "./stock-resource";
 import { ListResourcesByHub } from "./list-resources-by-hub";
 import { InMemoryHubRepository } from "../../infrastructure/persistence/in-memory-hub.repository";
 import { InMemoryResourceRepository } from "../../infrastructure/persistence/in-memory-resource.repository";
+import { InMemoryProductRepository } from "../../infrastructure/persistence/in-memory-product.repository";
+import { Product } from "../../domain/resources/entities/product";
 
 describe("RegisterHub / ListHubs", () => {
   let hubs: InMemoryHubRepository;
@@ -27,22 +30,67 @@ describe("RegisterHub / ListHubs", () => {
     });
 
     expect(hub.type).toBe("COLLECTION");
+    expect(hub.coordinatorId).toBeNull();
     const all = await list.execute();
     expect(all).toHaveLength(1);
     expect(all[0]!.name).toBe("Centro Catia");
   });
 });
 
-describe("StockResource / ListResourcesByHub", () => {
+describe("GetHubByCoordinator", () => {
   let hubs: InMemoryHubRepository;
-  let resources: InMemoryResourceRepository;
 
   beforeEach(() => {
     hubs = new InMemoryHubRepository();
-    resources = new InMemoryResourceRepository();
   });
 
-  test("suma stock a un hub existente y lo acumula por categoría", async () => {
+  test("devuelve el hub asociado a un coordinador", async () => {
+    const register = new RegisterHub(hubs);
+    const getMine = new GetHubByCoordinator(hubs);
+
+    const created = await register.execute({
+      name: "Centro Coordinador",
+      address: "Calle 2",
+      contact: "x",
+      type: "COLLECTION",
+      latitude: 9,
+      longitude: -67,
+      coordinatorId: "coord-1",
+    });
+
+    expect(created.coordinatorId).toBe("coord-1");
+    const mine = await getMine.execute("coord-1");
+    expect(mine?.id).toBe(created.id);
+  });
+
+  test("devuelve null cuando el coordinador no tiene hub", async () => {
+    const getMine = new GetHubByCoordinator(hubs);
+    expect(await getMine.execute("sin-hub")).toBeNull();
+  });
+});
+
+describe("StockResource / ListResourcesByHub", () => {
+  let hubs: InMemoryHubRepository;
+  let resources: InMemoryResourceRepository;
+  let products: InMemoryProductRepository;
+  let arroz: { id: string };
+
+  beforeEach(async () => {
+    hubs = new InMemoryHubRepository();
+    resources = new InMemoryResourceRepository();
+    products = new InMemoryProductRepository();
+    const product = Product.create({
+      id: crypto.randomUUID(),
+      name: "Arroz blanco",
+      category: "Víveres",
+      unit: "kg",
+      description: "",
+    });
+    await products.save(product);
+    arroz = { id: product.id };
+  });
+
+  test("suma stock de un producto y lo acumula", async () => {
     const hub = await new RegisterHub(hubs).execute({
       name: "Centro Sur",
       address: "Calle 1",
@@ -51,10 +99,14 @@ describe("StockResource / ListResourcesByHub", () => {
       latitude: 10,
       longitude: -66,
     });
-    const stock = new StockResource(hubs, resources);
+    const stock = new StockResource(hubs, resources, products);
 
-    await stock.execute({ hubId: hub.id, category: "Víveres", quantity: 10, unit: "kg" });
-    await stock.execute({ hubId: hub.id, category: "Víveres", quantity: 5, unit: "kg" });
+    await stock.execute({ hubId: hub.id, productId: arroz.id, quantity: 10 });
+    const second = await stock.execute({ hubId: hub.id, productId: arroz.id, quantity: 5 });
+
+    expect(second.productName).toBe("Arroz blanco");
+    expect(second.category).toBe("Víveres");
+    expect(second.unit).toBe("kg");
 
     const list = await new ListResourcesByHub(resources).execute(hub.id);
     expect(list).toHaveLength(1);
@@ -62,9 +114,24 @@ describe("StockResource / ListResourcesByHub", () => {
   });
 
   test("rechaza stockear en un hub inexistente", async () => {
-    const stock = new StockResource(hubs, resources);
+    const stock = new StockResource(hubs, resources, products);
     await expect(
-      stock.execute({ hubId: crypto.randomUUID(), category: "Víveres", quantity: 1, unit: "kg" }),
+      stock.execute({ hubId: crypto.randomUUID(), productId: arroz.id, quantity: 1 }),
+    ).rejects.toThrow();
+  });
+
+  test("rechaza stockear un producto inexistente", async () => {
+    const hub = await new RegisterHub(hubs).execute({
+      name: "Centro Norte",
+      address: "Calle 2",
+      contact: "x",
+      type: "COLLECTION",
+      latitude: 11,
+      longitude: -67,
+    });
+    const stock = new StockResource(hubs, resources, products);
+    await expect(
+      stock.execute({ hubId: hub.id, productId: crypto.randomUUID(), quantity: 1 }),
     ).rejects.toThrow();
   });
 });

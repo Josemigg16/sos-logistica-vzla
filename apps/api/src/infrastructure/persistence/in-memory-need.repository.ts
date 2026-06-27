@@ -53,19 +53,19 @@ export class InMemoryNeedRepository implements NeedRepository {
 
   async listWithDetails(hubId?: string): Promise<NeedRow[]> {
     let needs = [...this.byId.values()];
-    if (hubId) needs = needs.filter((n) => n.hubId === hubId);
+    if (hubId) needs = needs.filter((n) => n.hubId != null && n.hubId === hubId);
 
     const rows = await Promise.all(needs.map((n) => this.toRow(n)));
     return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
   private async toRow(need: Need): Promise<NeedRow> {
-    const hub = await this.hubLookup.findById(need.hubId);
+    const hub = need.hubId ? await this.hubLookup.findById(need.hubId) : null;
     const product = await this.productLookup.findById(need.productId);
     return {
       id: need.id,
-      hubId: need.hubId,
-      hubName: hub?.name ?? "",
+      hubId: need.hubId ?? undefined,
+      hubName: hub?.name ?? undefined,
       productId: need.productId,
       nombre: product?.name ?? "",
       categoria: product?.category ?? "",

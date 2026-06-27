@@ -1,5 +1,4 @@
 import type { Resource } from "../entities/resource";
-import type { InventoryCategory } from "../value-objects/inventory-category";
 
 /**
  * Puerto del repositorio de recursos. La implementación vive en infra.
@@ -7,9 +6,9 @@ import type { InventoryCategory } from "../value-objects/inventory-category";
 export interface ResourceRepository {
   findById(id: string): Promise<Resource | null>;
   findByHub(hubId: string): Promise<Resource[]>;
-  findByHubAndCategory(
+  findByHubAndProduct(
     hubId: string,
-    category: InventoryCategory,
+    productId: string,
   ): Promise<Resource | null>;
   save(resource: Resource): Promise<void>;
   deleteByHub(hubId: string): Promise<void>;

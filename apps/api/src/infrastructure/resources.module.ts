@@ -1,12 +1,19 @@
 import { RegisterHub } from "../application/resources/register-hub";
 import { ListHubs } from "../application/resources/list-hubs";
+import { GetHubByCoordinator } from "../application/resources/get-hub-by-coordinator";
 import { StockResource } from "../application/resources/stock-resource";
 import { ListResourcesByHub } from "../application/resources/list-resources-by-hub";
 import { UpsertHub } from "../application/resources/upsert-hub";
 import { ReplaceHubInventory } from "../application/resources/replace-hub-inventory";
 import { DeleteHub } from "../application/resources/delete-hub";
+import { RegisterInventoryBatch } from "../application/resources/register-inventory-batch";
+import { ListInventoryBatchesByHub } from "../application/resources/list-inventory-batches-by-hub";
+import { GetHubStockSummary } from "../application/resources/get-hub-stock-summary";
+import { DeleteInventoryBatch } from "../application/resources/delete-inventory-batch";
 import { DrizzleHubRepository } from "./persistence/drizzle-hub.repository";
 import { DrizzleResourceRepository } from "./persistence/drizzle-resource.repository";
+import { DrizzleProductRepository } from "./persistence/drizzle-product.repository";
+import { DrizzleInventoryBatchRepository } from "./persistence/drizzle-inventory-batch.repository";
 import { createResourceRoutes } from "./http/resources.routes";
 import { createCentrosRoutes } from "./http/centros.routes";
 
@@ -16,12 +23,19 @@ import { createCentrosRoutes } from "./http/centros.routes";
 export function createResourcesModule() {
   const hubs = new DrizzleHubRepository();
   const resources = new DrizzleResourceRepository();
+  const products = new DrizzleProductRepository();
+  const batches = new DrizzleInventoryBatchRepository();
 
   const useCases = {
     registerHub: new RegisterHub(hubs),
     listHubs: new ListHubs(hubs),
-    stockResource: new StockResource(hubs, resources),
+    getHubByCoordinator: new GetHubByCoordinator(hubs),
+    stockResource: new StockResource(hubs, resources, products),
     listResourcesByHub: new ListResourcesByHub(resources),
+    registerInventoryBatch: new RegisterInventoryBatch(hubs, products, batches),
+    listInventoryBatchesByHub: new ListInventoryBatchesByHub(batches),
+    getHubStockSummary: new GetHubStockSummary(hubs, products, batches),
+    deleteInventoryBatch: new DeleteInventoryBatch(batches),
   };
 
   return {

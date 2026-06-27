@@ -64,7 +64,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.post("/vehicle-types", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.post("/vehicle-types", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     const parsed = createVehicleTypeSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     try {
@@ -72,7 +72,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.put("/vehicle-types/:id", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.put("/vehicle-types/:id", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     const parsed = updateVehicleTypeSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     try {
@@ -80,7 +80,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.delete("/vehicle-types/:id", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.delete("/vehicle-types/:id", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     try {
       await deps.deleteVehicleType.execute(c.req.param("id"));
       return c.json({ ok: true });
@@ -94,7 +94,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.post("/vehicles", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.post("/vehicles", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     const parsed = createVehicleSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     try {
@@ -102,7 +102,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.put("/vehicles/:id", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.put("/vehicles/:id", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     const parsed = updateVehicleSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     try {
@@ -110,7 +110,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.delete("/vehicles/:id", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.delete("/vehicles/:id", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     try {
       await deps.deleteVehicle.execute(c.req.param("id"));
       return c.json({ ok: true });
@@ -124,7 +124,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.post("/drivers", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.post("/drivers", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     const parsed = createDriverSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     try {
@@ -132,7 +132,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.put("/drivers/:id", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.put("/drivers/:id", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     const parsed = updateDriverSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     try {
@@ -140,7 +140,7 @@ export function createFleetRoutes(deps: FleetRoutesDeps): Hono<AuthEnv> {
     } catch (error) { return mapError(c, error); }
   });
 
-  router.delete("/drivers/:id", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  router.delete("/drivers/:id", authentication, requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"), async (c) => {
     try {
       await deps.deleteDriver.execute(c.req.param("id"));
       return c.json({ ok: true });

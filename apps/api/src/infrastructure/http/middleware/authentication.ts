@@ -47,3 +47,12 @@ export function requireRole(...roles: RoleName[]): MiddlewareHandler<AuthEnv> {
     await next();
   };
 }
+
+export const isAdmin = requireRole("ADMIN");
+export const isManager = requireRole("MANAGER");
+export const isZodiSender = requireRole("ZODI_SENDER");
+export const isZodiDestination = requireRole("ZODI_DESTINATION");
+export const isHubCoordinator = requireRole("HUB_COORDINATOR");
+export const isDriver = requireRole("DRIVER");
+export const isVolunteer = requireRole("VOLUNTEER");
+

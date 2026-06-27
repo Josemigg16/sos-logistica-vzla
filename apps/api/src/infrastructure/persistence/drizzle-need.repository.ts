@@ -9,7 +9,7 @@ type NeedRecord = typeof needs.$inferSelect;
 function toDomain(row: NeedRecord): Need {
   return Need.rehydrate({
     id: row.id,
-    hubId: row.hubId,
+    hubId: row.hubId ?? undefined,
     productId: row.productId,
     meta: row.meta,
     recibido: row.recibido,
@@ -23,8 +23,8 @@ function toDomain(row: NeedRecord): Need {
 
 function toRow(joined: {
   id: string;
-  hubId: string;
-  hubName: string;
+  hubId: string | null;
+  hubName: string | null;
   productId: string;
   nombre: string;
   categoria: string;
@@ -39,8 +39,8 @@ function toRow(joined: {
 }): NeedRow {
   return {
     id: joined.id,
-    hubId: joined.hubId,
-    hubName: joined.hubName,
+    hubId: joined.hubId ?? undefined,
+    hubName: joined.hubName ?? undefined,
     productId: joined.productId,
     nombre: joined.nombre,
     categoria: joined.categoria,
@@ -88,7 +88,7 @@ export class DrizzleNeedRepository implements NeedRepository {
     const [row] = await db
       .select(SELECT_JOINED)
       .from(needs)
-      .innerJoin(hubs, eq(needs.hubId, hubs.id))
+      .leftJoin(hubs, eq(needs.hubId, hubs.id))
       .innerJoin(products, eq(needs.productId, products.id))
       .where(eq(needs.id, id))
       .limit(1);
@@ -133,7 +133,7 @@ export class DrizzleNeedRepository implements NeedRepository {
     let query = db
       .select(SELECT_JOINED)
       .from(needs)
-      .innerJoin(hubs, eq(needs.hubId, hubs.id))
+      .leftJoin(hubs, eq(needs.hubId, hubs.id))
       .innerJoin(products, eq(needs.productId, products.id));
 
     if (hubId) {

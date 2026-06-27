@@ -7,8 +7,8 @@ import type { Need } from "../entities/need";
  */
 export interface NeedRow {
   id: string;
-  hubId: string;
-  hubName: string;
+  hubId?: string;
+  hubName?: string;
   productId: string;
   nombre: string;
   categoria: string;
