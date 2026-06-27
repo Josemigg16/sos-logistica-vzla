@@ -1,0 +1,26 @@
+meta {
+  name: Post Assignment
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/operations/:operationId/assignments
+  body: json
+  auth: bearer
+}
+
+params:path {
+  operationId: f83a8b41-e94c-4735-8ea1-60a61474ea47
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "resourceId": "48b67123-5e92-411a-85d1-678cb2678124",
+    "quantity": 300
+  }
+}

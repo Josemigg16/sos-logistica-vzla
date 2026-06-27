@@ -1,0 +1,27 @@
+meta {
+  name: Post Centro (Mapa)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/centros
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "id": "11a2b33c-44d5-55e6-66f7-777777777777",
+    "nombre": "Centro de Acopio Guanare",
+    "direccion": "Av. Unda con Carrera 5, Galpón PC, Guanare",
+    "contacto": "Protección Civil Portuguesa (+58-412-1234567)",
+    "coordenadas": [-69.7421, 9.0421],
+    "tipo": "acopio",
+    "inventario": {
+      "Víveres": 450,
+      "Medicamentos": 120,
+      "Herramientas": 35
+    }
+  }
+}

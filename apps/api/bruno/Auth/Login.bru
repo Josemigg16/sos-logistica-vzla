@@ -18,19 +18,7 @@ body:json {
 }
 
 script:post-response {
-  // El refresh token llega en cookie httpOnly; el access token en el body.
-  if (res.getStatus() === 200 && res.getBody().accessToken) {
-    bru.setEnvVar("accessToken", res.getBody().accessToken);
+  if (res.status === 200 && res.body.accessToken) {
+    bru.setVar("accessToken", res.body.accessToken);
   }
-}
-
-docs {
-  Autentica al usuario. Valida contra `loginSchema`:
-  - `username`: string, 3-64 chars (se normaliza a minúsculas)
-  - `password`: string, 8-128 chars
-
-  Respuesta 200: `{ accessToken, user }` y setea la cookie httpOnly `refresh_token` (path `/auth`).
-  El script post-response guarda el `accessToken` en la variable de entorno para las requests protegidas.
-
-  Errores: 400 datos inválidos · 401 INVALID_CREDENTIALS · 403 USER_SUSPENDED.
 }

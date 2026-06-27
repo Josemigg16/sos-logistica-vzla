@@ -1,0 +1,24 @@
+meta {
+  name: Post Resource Stock
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/resources/resources
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "hubId": "11a2b33c-44d5-55e6-66f7-777777777777",
+    "category": "Medicamentos",
+    "quantity": 250,
+    "unit": "unidades"
+  }
+}

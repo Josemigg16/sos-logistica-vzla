@@ -1,0 +1,26 @@
+meta {
+  name: Post Hub
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/resources/hubs
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Hub PC La Guaira",
+    "address": "Terminal de Pasajeros de La Guaira",
+    "contact": "Tlf: 0212-3312345",
+    "type": "DISPATCH",
+    "latitude": 10.6021,
+    "longitude": -66.9328
+  }
+}

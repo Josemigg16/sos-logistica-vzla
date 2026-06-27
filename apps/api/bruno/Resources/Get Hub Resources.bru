@@ -1,0 +1,19 @@
+meta {
+  name: Get Hub Resources
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/resources/hubs/:hubId/resources
+  body: none
+  auth: bearer
+}
+
+params:path {
+  hubId: 11a2b33c-44d5-55e6-66f7-777777777777
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

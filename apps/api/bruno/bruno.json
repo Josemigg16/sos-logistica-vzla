@@ -1,6 +1,9 @@
 {
   "version": "1",
-  "name": "SOS Logística API",
+  "name": "SOS Logistica API",
   "type": "collection",
-  "ignore": ["node_modules", ".git"]
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
 }
