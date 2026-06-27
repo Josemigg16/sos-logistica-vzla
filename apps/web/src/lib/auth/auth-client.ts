@@ -27,13 +27,13 @@ export class AuthError extends Error {
 /** Mensajes en español por código de error del backend. UI en español. */
 const ERROR_MESSAGES: Record<string, string> = {
   INVALID_CREDENTIALS: "Usuario o contraseña incorrectos.",
-  INVALID_REFRESH_TOKEN: "Tu sesión expiró. Iniciá sesión de nuevo.",
-  USER_SUSPENDED: "Tu cuenta está suspendida. Contactá a un administrador.",
-  NETWORK: "No se pudo conectar con el servidor. Revisá tu conexión.",
+  INVALID_REFRESH_TOKEN: "Tu sesión expiró. Inicia sesión de nuevo.",
+  USER_SUSPENDED: "Tu cuenta está suspendida. Contacta a un administrador.",
+  NETWORK: "No se pudo conectar con el servidor. Revisa tu conexión.",
 };
 
 function messageFor(code: string, fallback?: string): string {
-  return ERROR_MESSAGES[code] ?? fallback ?? "Ocurrió un error. Intentá de nuevo.";
+  return ERROR_MESSAGES[code] ?? fallback ?? "Ocurrió un error. Intenta de nuevo.";
 }
 
 async function toAuthError(res: Response): Promise<AuthError> {
