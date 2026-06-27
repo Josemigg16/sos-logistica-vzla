@@ -21,10 +21,10 @@ import {
   CalendarClock,
   HandHeart,
   Warehouse,
-  LogIn,
 } from 'lucide-react'
 
 import { SupportContactBlock } from '@/components/hub-pending-verification'
+import { useAuth } from '@/lib/auth/auth-context'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/')({
@@ -406,6 +406,9 @@ function RotatingMessage({ hasCovered }: { hasCovered: boolean }) {
 // --- Main page ---
 function NecesidadesPage() {
   const apiUrl = import.meta.env.VITE_API_URL ?? '/api'
+  const { status: authStatus } = useAuth()
+  const isAuthenticated = authStatus === 'authenticated'
+  const hubCtaTo = isAuthenticated ? '/admin' : '/map'
   const [filter, setFilter] = useState<'TODAS' | 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'>('TODAS')
   const [mounted, setMounted] = useState(false)
 
@@ -465,8 +468,8 @@ function NecesidadesPage() {
 
         {/* ── HEADER ── */}
         <header className="mb-10">
-          {/* Top bar: brand + "En vivo" badge */}
-          <div className="flex items-center justify-between mb-10">
+          {/* Top bar: brand */}
+          <div className="flex items-center mb-10">
             <div className="flex items-center gap-3">
               <img
                 src={logotipo}
@@ -478,18 +481,6 @@ function NecesidadesPage() {
               <span className="hidden sm:block text-[11px] text-white/35 font-medium leading-tight max-w-[90px]">
                 Ayuda humanitaria · Portuguesa
               </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Link
-                to="/login"
-                className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-[0.97] transition-[transform,background-color,border-color] duration-200"
-              >
-                <LogIn className="w-3 h-3 text-white/60 group-hover:text-white/90 transition-colors" strokeWidth={2.5} />
-                <span className="text-[10px] font-bold text-white/60 group-hover:text-white/90 uppercase tracking-wider transition-colors">
-                  Iniciar sesión
-                </span>
-              </Link>
             </div>
           </div>
 
@@ -532,7 +523,7 @@ function NecesidadesPage() {
               </Link>
 
               <Link
-                to="/register"
+                to={hubCtaTo}
                 className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
               >
                 <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-black/5 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
@@ -542,7 +533,9 @@ function NecesidadesPage() {
                     TENGO UN CENTRO DE ACOPIO
                   </span>
                   <span className="block text-[11px] text-[#0F2337]/55 mt-1 font-medium leading-snug">
-                    Regístralo y publica tus necesidades
+                    {isAuthenticated
+                      ? 'Ir al panel de gestión'
+                      : 'Encuentra el tuyo en el mapa o regístralo'}
                   </span>
                 </div>
                 <ChevronRight className="relative w-5 h-5 text-[#0F2337] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
@@ -762,6 +755,17 @@ function NecesidadesPage() {
             <span>·</span>
             <span>Ayuda humanitaria · Portuguesa</span>
           </div>
+
+          {!isAuthenticated && (
+            <div className="mt-6 flex justify-center">
+              <Link
+                to="/login"
+                className="text-[10px] font-medium text-white/25 hover:text-white/50 underline decoration-white/15 hover:decoration-white/30 underline-offset-4 transition-colors duration-200"
+              >
+                Acceso para coordinadores
+              </Link>
+            </div>
+          )}
         </footer>
       </div>
     </div>

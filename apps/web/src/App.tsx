@@ -756,10 +756,18 @@ export default function App() {
       )}
 
       {showWelcomeModal && (
-        <WelcomeModal onClose={() => {
-          localStorage.setItem("map_welcome_seen", "1");
-          setShowWelcomeModal(false);
-        }} />
+        <WelcomeModal
+          onClose={() => {
+            localStorage.setItem("map_welcome_seen", "1");
+            setShowWelcomeModal(false);
+          }}
+          onRegisterHub={() => {
+            localStorage.setItem("map_welcome_seen", "1");
+            setShowWelcomeModal(false);
+            setClickedCoordinates(null);
+            setIsRegistering(true);
+          }}
+        />
       )}
 
       {isRegistering && (
@@ -821,7 +829,7 @@ export default function App() {
   );
 }
 
-function WelcomeModal({ onClose }: { onClose: () => void }) {
+function WelcomeModal({ onClose, onRegisterHub }: { onClose: () => void; onRegisterHub: () => void }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -963,13 +971,20 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
         </div>
 
         {/* CTA */}
-        <div className="p-4 pt-0">
+        <div className="p-4 pt-0 flex flex-col gap-2">
           <button
-            onClick={onClose}
-            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wide transition-colors duration-200 active:scale-[0.98] transition-transform cursor-pointer shadow-lg shadow-blue-600/20"
+            onClick={onRegisterHub}
+            className="group w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wide transition-colors duration-200 active:scale-[0.98] transition-transform cursor-pointer shadow-lg shadow-blue-600/20"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
           >
-            Explorar el mapa
+            <Plus className="w-4 h-4 stroke-[3]" />
+            Registrar mi centro de acopio
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full py-2 rounded-xl bg-transparent hover:bg-secondary/60 text-muted-foreground hover:text-foreground font-semibold text-xs uppercase tracking-wider transition-colors duration-200 active:scale-[0.98] transition-transform cursor-pointer"
+          >
+            Quiero donar — ver centros
           </button>
         </div>
       </div>
