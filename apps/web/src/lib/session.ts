@@ -20,6 +20,9 @@ export const ROLES_MANAGE_USERS: RoleName[] = ['ADMIN']
 /** Roles autorizados para gestionar centros de acopio (hubs). */
 export const ROLES_MANAGE_HUBS: RoleName[] = ['ADMIN', 'MANAGER']
 
+/** Roles autorizados para gestionar la flota (choferes, vehículos). */
+export const ROLES_MANAGE_FLEET: RoleName[] = ['ADMIN', 'MANAGER']
+
 /** Roles autorizados para entrar al panel admin (vista). */
 export const ROLES_VIEW_ADMIN: RoleName[] = [
   'ADMIN',
