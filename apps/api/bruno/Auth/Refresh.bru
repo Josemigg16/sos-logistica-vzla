@@ -1,0 +1,25 @@
+meta {
+  name: Refresh
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/auth/refresh
+  body: none
+  auth: none
+}
+
+script:post-response {
+  if (res.getStatus() === 200 && res.getBody().accessToken) {
+    bru.setEnvVar("accessToken", res.getBody().accessToken);
+  }
+}
+
+docs {
+  Rota la sesión usando la cookie `refresh_token` (no requiere body ni header).
+  Bruno reenvía la cookie automáticamente si hiciste Login antes.
+
+  Respuesta 200: `{ accessToken }` y renueva la cookie de refresh.
+  Errores: 401 si no hay cookie o el token es inválido (INVALID_REFRESH_TOKEN); borra la cookie.
+}

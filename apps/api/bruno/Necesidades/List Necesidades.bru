@@ -1,0 +1,32 @@
+meta {
+  name: List Necesidades
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/necesidades
+  body: none
+  auth: none
+}
+
+docs {
+  Lista las necesidades públicas actuales (panel principal).
+  Actualmente devuelve datos mock en memoria.
+
+  Respuesta 200: array de necesidades con forma:
+  ```json
+  {
+    "id": "nec-001",
+    "nombre": "Agua potable",
+    "categoria": "Víveres",
+    "unidad": "litros",
+    "meta": 10000,
+    "recibido": 3200,
+    "prioridad": "CRITICA",
+    "descripcion": "...",
+    "ultimaActualizacion": "ISO-8601",
+    "fechaNecesidad": "YYYY-MM-DD"
+  }
+  ```
+}

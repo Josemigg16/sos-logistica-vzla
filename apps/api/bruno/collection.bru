@@ -1,0 +1,22 @@
+docs {
+  # SOS Logística API
+
+  Colección Bruno de la API de respuesta a desastres. Backend Hono + Bun.
+
+  ## Uso
+
+  1. Levantá la API: `bun dev:api` (escucha en `:3000`).
+  2. Seleccioná el environment **Local** (variable `baseUrl`).
+  3. Corré **Auth > Login** con un usuario válido. El script guarda el `accessToken`
+     en la variable de entorno y setea la cookie `refresh_token`.
+  4. Las requests protegidas (**Me**, **Register**) usan ese token vía Bearer.
+
+  El primer ADMIN se crea con el seed: `bun run seed` (default `admin` / `changeme123`).
+
+  ## Carpetas
+
+  - **Health** — `GET /` y `GET /health`.
+  - **Auth** — bounded context `identity`: login, refresh, logout, register (solo ADMIN), me.
+  - **Centros** — listado y upsert de centros (acopio/salida/destino), persistido en `data/centros.json`.
+  - **Necesidades** — panel público de necesidades (datos mock por ahora).
+}

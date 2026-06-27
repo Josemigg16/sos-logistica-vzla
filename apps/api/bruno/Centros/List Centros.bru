@@ -1,0 +1,17 @@
+meta {
+  name: List Centros
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/centros
+  body: none
+  auth: none
+}
+
+docs {
+  Lista todos los centros (acopio, salida, destino) desde `data/centros.json`.
+
+  Respuesta 200: array de `Centro`. Devuelve `[]` si el archivo no existe.
+}
