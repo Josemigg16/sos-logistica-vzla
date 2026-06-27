@@ -5,6 +5,7 @@ import {
   Loader2, MapPin, Plus, Package, Boxes, X, AlertTriangle, Trash2,
   Warehouse, Send, ChevronRight, History, Truck,
 } from 'lucide-react'
+import { PackagingRulesButton } from '@/components/packaging-rules-button'
 import type {
   PublicHub, PublicLote, ProductMaster, HubType,
   LoteStatus,
@@ -14,6 +15,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { useToast } from '@/components/ui/toast'
+import { useScrollLock } from '@/lib/scroll-lock'
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -149,6 +151,7 @@ export function HubDashboard({ hub, canManageVehicles }: HubDashboardProps) {
         </div>
       </div>
 
+      <PackagingRulesButton />
       <InventorySection hub={hub} />
       <BatchesHistorySection hub={hub} />
       <LotesSection hub={hub} canManageVehicles={canManageVehicles} />
@@ -697,15 +700,12 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
 }
 
 function ModalShell({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
+  useScrollLock(true)
+
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
     window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
 
   return createPortal(

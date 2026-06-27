@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, Loader2, X } from 'lucide-react'
+import { useScrollLock } from '@/lib/scroll-lock'
 
 export type ConfirmDialogTone = 'danger' | 'warning' | 'default'
 
@@ -53,18 +54,15 @@ export function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  useScrollLock(open)
+
   useEffect(() => {
     if (!open) return
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !isPending) onCancel()
     }
     window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [open, onCancel, isPending])
 
   if (!open) return null

@@ -19,6 +19,7 @@ import { useToast } from '@/components/ui/toast'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { FormSheet } from '@/components/ui/form-sheet'
+import { readApiError } from '@/lib/api-errors'
 
 export const Route = createFileRoute('/admin/fleet')({ component: FleetGate })
 
@@ -36,10 +37,24 @@ function authHeaders(): HeadersInit {
   return token ? { ...base, Authorization: `Bearer ${token}` } : base
 }
 
-async function readError(res: Response, fallback: string): Promise<string> {
-  const body = await res.json().catch(() => null) as { error?: string } | null
-  return body?.error ?? fallback
+const FLEET_FIELD_LABELS: Record<string, string> = {
+  nombre: 'Nombre',
+  apellido: 'Apellido',
+  descripcion: 'Descripción',
+  placa: 'Placa',
+  modelo: 'Modelo',
+  capacidadCargaKg: 'Capacidad de carga',
+  tipoVehiculoId: 'Tipo de vehículo',
+  choferId: 'Chofer',
+  centroOrigenId: 'Centro de origen',
+  estado: 'Estado',
+  cedula: 'Cédula',
+  licencia: 'Licencia',
+  telefono: 'Teléfono',
+  disponible: 'Disponibilidad',
 }
+
+const readError = (res: Response, fallback: string) => readApiError(res, fallback, FLEET_FIELD_LABELS)
 
 const VEHICLE_STATUS_LABELS: Record<VehicleStatus, string> = {
   DISPONIBLE: 'Disponible',

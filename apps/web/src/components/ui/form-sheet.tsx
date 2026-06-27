@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { ConfirmDialog } from './confirm-dialog'
+import { useScrollLock } from '@/lib/scroll-lock'
 
 /**
  * Shell reutilizable para modales con formulario. Tres zonas fijas:
@@ -73,18 +74,15 @@ export function FormSheet({
     onClose()
   }, [isDirty, isSubmitting, onClose])
 
-  // Bloquea scroll del body + cierra con Escape (salvo que el confirm esté abierto).
+  useScrollLock(true)
+
+  // Cierra con Escape (salvo que el confirm esté abierto).
   useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && !confirmLeaveRef.current) requestClose()
     }
     window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
+    return () => window.removeEventListener('keydown', onKey)
   }, [requestClose])
 
   const panel = (
