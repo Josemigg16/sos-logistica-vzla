@@ -9,7 +9,7 @@ import {
 import type {
   PublicHub, PublicLote, ProductMaster, HubType,
   LoteStatus,
-  PublicInventoryBatch, PublicHubStockLine,
+  PublicInventoryBatch, PublicHubStockLine, PublicResource,
 } from '@sos/shared'
 import { HUB_TYPES } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -43,6 +43,7 @@ const HUB_TYPE_LABELS: Record<HubType, string> = {
   COLLECTION: 'Acopio (recolección)',
   DISPATCH: 'Despacho (salida)',
   DESTINATION: 'Destino (llegada)',
+  ZODI_BASE: 'Base ZODI (militar)',
 }
 
 const LOTE_STATUS_META: Record<LoteStatus, { label: string; color: string }> = {
@@ -69,6 +70,11 @@ async function fetchHubStock(hubId: string): Promise<PublicHubStockLine[]> {
   const res = await fetch(`${API_URL}/resources/hubs/${hubId}/stock`, { headers: authHeaders() })
   if (!res.ok) throw new Error('No se pudo cargar el inventario')
   return (await res.json()).stock
+}
+async function fetchHubResources(hubId: string): Promise<PublicResource[]> {
+  const res = await fetch(`${API_URL}/resources/hubs/${hubId}/resources`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('No se pudieron cargar los recursos del centro')
+  return (await res.json()).resources
 }
 async function fetchHubBatches(hubId: string): Promise<PublicInventoryBatch[]> {
   const res = await fetch(`${API_URL}/resources/hubs/${hubId}/batches`, { headers: authHeaders() })

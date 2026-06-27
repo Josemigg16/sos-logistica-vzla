@@ -15,7 +15,7 @@ import { Credential } from "../../domain/identity/value-objects/credential";
 import { Role } from "../../domain/identity/value-objects/role";
 import { IdentityError } from "../../domain/identity/errors";
 import { config } from "../../config";
-import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
+import { authentication, isAdmin, type AuthEnv } from "./middleware/authentication";
 
 export interface AuthRoutesDeps {
   authenticateUser: AuthenticateUser;
@@ -174,7 +174,7 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
   // ─── Gestión de usuarios (solo ADMIN) ───
 
   // Listar todos los usuarios — vista admin con role, status, email, fecha.
-  router.get("/users", authentication, requireRole("ADMIN"), async (c) => {
+  router.get("/users", authentication, isAdmin, async (c) => {
     try {
       const users = await deps.userRepo.findAll();
       return c.json({ users: users.map(toAdminView) });
@@ -185,7 +185,7 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
   });
 
   // Actualizar role / status / email / password de un usuario.
-  router.put("/users/:id", authentication, requireRole("ADMIN"), async (c) => {
+  router.put("/users/:id", authentication, isAdmin, async (c) => {
     const id = c.req.param("id");
     const parsed = updateUserSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
@@ -215,7 +215,7 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
   });
 
   // Eliminar usuario. El actor no puede eliminarse a sí mismo.
-  router.delete("/users/:id", authentication, requireRole("ADMIN"), async (c) => {
+  router.delete("/users/:id", authentication, isAdmin, async (c) => {
     const id = c.req.param("id");
     const actor = c.get("actor");
     if (actor.userId === id) {
