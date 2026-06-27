@@ -33,6 +33,12 @@ function makeEntregado(): Convoy {
   return c;
 }
 
+function makeRecibido(): Convoy {
+  const c = makeEntregado();
+  c.confirmArrival();
+  return c;
+}
+
 function makeCancelado(): Convoy {
   const c = makePlanificado();
   c.cancel();
@@ -143,6 +149,14 @@ describe("Convoy FSM valid transitions — REQ-02", () => {
     expect(c.status).toBe("CANCELADO");
     expect(c.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeUpdate.getTime());
   });
+
+  test("S02.5 — confirmArrival(): ENTREGADO → RECIBIDO, updatedAt refreshed", () => {
+    const c = makeEntregado();
+    const beforeUpdate = c.updatedAt;
+    c.confirmArrival();
+    expect(c.status).toBe("RECIBIDO");
+    expect(c.updatedAt.getTime()).toBeGreaterThanOrEqual(beforeUpdate.getTime());
+  });
 });
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -182,12 +196,12 @@ describe("Convoy FSM invalid transitions — REQ-03", () => {
     expect(() => makeCancelado().cancel()).toThrow(InvalidConvoyTransitionError);
   });
 
-  test("S03.9 — FSM exhaustiveness: full 4×3 status×method matrix asserted programmatically", () => {
+  test("S03.9 — FSM exhaustiveness: full 5×4 status×method matrix asserted programmatically", () => {
     // For each (status, method) cell we declare the expected outcome:
     // "valid" → method must NOT throw (transition succeeds)
     // "throws" → method MUST throw InvalidConvoyTransitionError
 
-    type MethodName = "dispatch" | "deliver" | "cancel";
+    type MethodName = "dispatch" | "deliver" | "confirmArrival" | "cancel";
 
     const matrix: Array<{
       factory: () => Convoy;
@@ -199,21 +213,30 @@ describe("Convoy FSM invalid transitions — REQ-03", () => {
       { factory: makePlanificado, method: "dispatch", expected: "valid",  label: "dispatch(PLANIFICADO) → EN_RUTA" },
       { factory: makeEnRuta,      method: "dispatch", expected: "throws", label: "dispatch(EN_RUTA) → throws" },
       { factory: makeEntregado,   method: "dispatch", expected: "throws", label: "dispatch(ENTREGADO) → throws" },
+      { factory: makeRecibido,    method: "dispatch", expected: "throws", label: "dispatch(RECIBIDO) → throws" },
       { factory: makeCancelado,   method: "dispatch", expected: "throws", label: "dispatch(CANCELADO) → throws" },
       // deliver()
       { factory: makeEnRuta,      method: "deliver", expected: "valid",  label: "deliver(EN_RUTA) → ENTREGADO" },
       { factory: makePlanificado, method: "deliver", expected: "throws", label: "deliver(PLANIFICADO) → throws" },
       { factory: makeEntregado,   method: "deliver", expected: "throws", label: "deliver(ENTREGADO) → throws" },
+      { factory: makeRecibido,    method: "deliver", expected: "throws", label: "deliver(RECIBIDO) → throws" },
       { factory: makeCancelado,   method: "deliver", expected: "throws", label: "deliver(CANCELADO) → throws" },
+      // confirmArrival()
+      { factory: makeEntregado,   method: "confirmArrival", expected: "valid",  label: "confirmArrival(ENTREGADO) → RECIBIDO" },
+      { factory: makePlanificado, method: "confirmArrival", expected: "throws", label: "confirmArrival(PLANIFICADO) → throws" },
+      { factory: makeEnRuta,      method: "confirmArrival", expected: "throws", label: "confirmArrival(EN_RUTA) → throws" },
+      { factory: makeRecibido,    method: "confirmArrival", expected: "throws", label: "confirmArrival(RECIBIDO) → throws" },
+      { factory: makeCancelado,   method: "confirmArrival", expected: "throws", label: "confirmArrival(CANCELADO) → throws" },
       // cancel()
       { factory: makePlanificado, method: "cancel", expected: "valid",  label: "cancel(PLANIFICADO) → CANCELADO" },
       { factory: makeEnRuta,      method: "cancel", expected: "valid",  label: "cancel(EN_RUTA) → CANCELADO" },
       { factory: makeEntregado,   method: "cancel", expected: "throws", label: "cancel(ENTREGADO) → throws" },
+      { factory: makeRecibido,    method: "cancel", expected: "throws", label: "cancel(RECIBIDO) → throws" },
       { factory: makeCancelado,   method: "cancel", expected: "throws", label: "cancel(CANCELADO) → throws" },
     ];
 
-    // Exactly 12 cells — every status × every method
-    expect(matrix).toHaveLength(12);
+    // Exactly 20 cells — every status × every method
+    expect(matrix).toHaveLength(20);
 
     for (const { factory, method, expected, label } of matrix) {
       const convoy = factory();

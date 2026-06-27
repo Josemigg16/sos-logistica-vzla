@@ -21,6 +21,7 @@ export const lotes = pgTable("lotes", {
     .references(() => hubs.id, { onDelete: "set null" }),
   vehiculoId: uuid("vehiculo_id")
     .references(() => vehiculos.id, { onDelete: "set null" }),
+  convoyId: uuid("convoy_id"),
   estado: estadoLoteEnum("estado").notNull().default("EMBALADO"),
   nota: text("nota"),
   pesoTotalKg: doublePrecision("peso_total_kg").notNull().default(0),

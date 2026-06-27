@@ -23,6 +23,7 @@ export interface LoteProps {
   hubDestinoNombre: string | null;
   vehiculoId: string | null;
   vehiculoPlaca: string | null;
+  convoyId: string | null;
   estado: LoteStatus;
   nota: string | null;
   pesoTotalKg: number;
@@ -46,6 +47,7 @@ export class Lote {
     nota?: string | null;
     items: LoteItemProps[];
     creadoPorId?: string | null;
+    convoyId?: string | null;
   }): Lote {
     const pesoTotal = input.items.reduce((acc, it) => acc + (it.pesoKg ?? 0), 0);
     return new Lote({
@@ -56,6 +58,7 @@ export class Lote {
       hubDestinoNombre: input.hubDestinoNombre ?? null,
       vehiculoId: null,
       vehiculoPlaca: null,
+      convoyId: input.convoyId ?? null,
       estado: "EMBALADO",
       nota: input.nota ?? null,
       pesoTotalKg: pesoTotal,
@@ -76,6 +79,7 @@ export class Lote {
   get hubOrigenId(): string { return this.props.hubOrigenId; }
   get hubDestinoId(): string | null { return this.props.hubDestinoId; }
   get vehiculoId(): string | null { return this.props.vehiculoId; }
+  get convoyId(): string | null { return this.props.convoyId; }
   get estado(): LoteStatus { return this.props.estado; }
   get nota(): string | null { return this.props.nota; }
   get pesoTotalKg(): number { return this.props.pesoTotalKg; }
@@ -127,6 +131,14 @@ export class Lote {
     this.props.updatedAt = new Date();
   }
 
+  assignToConvoy(convoyId: string): void {
+    if (this.props.estado !== "EN_TRANSITO") {
+      throw new LoteNotInTransitError(this.props.id);
+    }
+    this.props.convoyId = convoyId;
+    this.props.updatedAt = new Date();
+  }
+
   updateMeta(data: { hubDestinoId?: string | null; hubDestinoNombre?: string | null; nota?: string | null }): void {
     if (data.hubDestinoId !== undefined) this.props.hubDestinoId = data.hubDestinoId;
     if (data.hubDestinoNombre !== undefined) this.props.hubDestinoNombre = data.hubDestinoNombre;
@@ -143,6 +155,7 @@ export class Lote {
       hubDestinoNombre: this.props.hubDestinoNombre,
       vehiculoId: this.props.vehiculoId,
       vehiculoPlaca: this.props.vehiculoPlaca,
+      convoyId: this.props.convoyId,
       estado: this.props.estado,
       nota: this.props.nota,
       pesoTotalKg: this.props.pesoTotalKg,

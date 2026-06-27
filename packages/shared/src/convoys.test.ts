@@ -37,11 +37,12 @@ describe("createConvoySchema", () => {
 });
 
 describe("CONVOY_STATUSES", () => {
-  test("contains exactly the four FSM states", () => {
+  test("contains exactly the five FSM states", () => {
     expect(CONVOY_STATUSES).toEqual([
       "PLANIFICADO",
       "EN_RUTA",
       "ENTREGADO",
+      "RECIBIDO",
       "CANCELADO",
     ]);
   });

@@ -5,6 +5,7 @@ import type { RoleName } from "@sos/shared";
 import { AddVehicleToConvoy } from "../../application/convoys/add-vehicle-to-convoy";
 import { CancelConvoy } from "../../application/convoys/cancel-convoy";
 import { CompleteConvoy } from "../../application/convoys/complete-convoy";
+import { ConfirmConvoyArrival } from "../../application/convoys/confirm-convoy-arrival";
 import { GetConvoy } from "../../application/convoys/get-convoy";
 import { ListConvoys } from "../../application/convoys/list-convoys";
 import { ListEscorts } from "../../application/convoys/list-escorts";
@@ -19,6 +20,7 @@ import { Hub } from "../../domain/resources/entities/hub";
 import { InMemoryConvoyRepository } from "../persistence/in-memory-convoy.repository";
 import { InMemoryHubRepository } from "../persistence/in-memory-hub.repository";
 import { InMemoryUserRepository } from "../persistence/in-memory-user.repository";
+import { InMemoryLoteRepository } from "../persistence/in-memory-lote.repository";
 import { createConvoysRoutes } from "./convoys.routes";
 
 const ORIGIN_ID = "11111111-1111-1111-1111-111111111111";
@@ -32,25 +34,28 @@ interface TestContext {
   convoys: InMemoryConvoyRepository;
   hubs: InMemoryHubRepository;
   users: InMemoryUserRepository;
+  lotes: InMemoryLoteRepository;
 }
 
 function buildContext(): TestContext {
   const convoys = new InMemoryConvoyRepository();
   const hubs = new InMemoryHubRepository();
   const users = new InMemoryUserRepository();
+  const lotes = new InMemoryLoteRepository();
   const routes = createConvoysRoutes({
     listConvoys: new ListConvoys(convoys),
     listEscorts: new ListEscorts(users),
     getConvoy: new GetConvoy(convoys),
     planConvoy: new PlanConvoy(convoys, hubs, users),
-    startConvoy: new StartConvoy(convoys),
+    startConvoy: new StartConvoy(convoys, lotes),
     completeConvoy: new CompleteConvoy(convoys),
+    confirmConvoyArrival: new ConfirmConvoyArrival(convoys, lotes),
     cancelConvoy: new CancelConvoy(convoys),
     addVehicleToConvoy: new AddVehicleToConvoy(convoys),
   });
   const app = new Hono();
   app.route("/convoys", routes);
-  return { app, convoys, hubs, users };
+  return { app, convoys, hubs, users, lotes };
 }
 
 async function authHeader(role: RoleName = "ZODI_SENDER") {
@@ -457,6 +462,52 @@ describe("convoys routes", () => {
     const res = await ctx.app.request(`/convoys/${convoy.id}/cancel`, {
       method: "POST",
       headers: await authHeader(),
+    });
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toMatchObject({ code: "INVALID_TRANSITION" });
+  });
+
+  test("POST /convoys/:id/confirm-arrival requires authentication", async () => {
+    const res = await ctx.app.request("/convoys/some-id/confirm-arrival", {
+      method: "POST",
+    });
+    expect(res.status).toBe(401);
+  });
+
+  test("POST /convoys/:id/confirm-arrival requires ADMIN or ZODI_DESTINATION role", async () => {
+    const res = await ctx.app.request("/convoys/some-id/confirm-arrival", {
+      method: "POST",
+      headers: await authHeader("ZODI_SENDER"),
+    });
+    expect(res.status).toBe(403);
+  });
+
+  test("POST /convoys/:id/confirm-arrival transitions convoy to RECIBIDO", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    convoy.dispatch();
+    convoy.deliver();
+    await ctx.convoys.save(convoy);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/confirm-arrival`, {
+      method: "POST",
+      headers: await authHeader("ZODI_DESTINATION"),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({
+      convoy: { id: convoy.id, status: "RECIBIDO" },
+    });
+  });
+
+  test("POST /convoys/:id/confirm-arrival returns 409 for invalid transitions", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    // status is PLANIFICADO (not ENTREGADO)
+    await ctx.convoys.save(convoy);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/confirm-arrival`, {
+      method: "POST",
+      headers: await authHeader("ZODI_DESTINATION"),
     });
 
     expect(res.status).toBe(409);

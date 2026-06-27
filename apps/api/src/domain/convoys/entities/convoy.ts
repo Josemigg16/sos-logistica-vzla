@@ -21,7 +21,7 @@ export interface ConvoyProps {
  * (DESTINATION). Las referencias a hubs, usuarios y vehículos son solo IDs;
  * este módulo no importa entidades de otros contextos.
  *
- * FSM: PLANIFICADO → EN_RUTA → ENTREGADO
+ * FSM: PLANIFICADO → EN_RUTA → ENTREGADO → RECIBIDO
  *                  ↘           ↓
  *                   CANCELADO ←┘
  */
@@ -123,6 +123,11 @@ export class Convoy {
   /** EN_RUTA → ENTREGADO */
   deliver(): void {
     this.transition("ENTREGADO", ["EN_RUTA"]);
+  }
+
+  /** ENTREGADO → RECIBIDO */
+  confirmArrival(): void {
+    this.transition("RECIBIDO", ["ENTREGADO"]);
   }
 
   /** PLANIFICADO | EN_RUTA → CANCELADO */

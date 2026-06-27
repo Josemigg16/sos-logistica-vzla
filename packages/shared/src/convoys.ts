@@ -3,14 +3,17 @@ import { z } from "zod";
 /**
  * Convoys bounded context — escolta ZODI de convoys de recursos.
  * Un `Convoy` es un grupo de vehículos escoltados desde un hub de salida
- * hacia un hub de destino. El ciclo de vida: PLANIFICADO → EN_RUTA → ENTREGADO
- * (o CANCELADO desde PLANIFICADO o EN_RUTA).
+ * hacia un hub de destino. El ciclo de vida:
+ * PLANIFICADO → EN_RUTA → ENTREGADO → RECIBIDO
+ * (o CANCELADO desde PLANIFICADO o EN_RUTA). El escolta (ZODI_SENDER) cierra
+ * la entrega (ENTREGADO); el ZODI_DESTINATION confirma la llegada (RECIBIDO).
  */
 
 export const CONVOY_STATUSES = [
   "PLANIFICADO",
   "EN_RUTA",
   "ENTREGADO",
+  "RECIBIDO",
   "CANCELADO",
 ] as const;
 

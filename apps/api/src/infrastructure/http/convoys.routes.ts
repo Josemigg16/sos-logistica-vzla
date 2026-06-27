@@ -4,12 +4,14 @@ import { addVehicleSchema, convoyStatusSchema, createConvoySchema } from "@sos/s
 import type { AddVehicleToConvoy } from "../../application/convoys/add-vehicle-to-convoy";
 import type { CancelConvoy } from "../../application/convoys/cancel-convoy";
 import type { CompleteConvoy } from "../../application/convoys/complete-convoy";
+import type { ConfirmConvoyArrival } from "../../application/convoys/confirm-convoy-arrival";
 import type { GetConvoy } from "../../application/convoys/get-convoy";
 import type { ListConvoys } from "../../application/convoys/list-convoys";
 import type { ListEscorts } from "../../application/convoys/list-escorts";
 import type { PlanConvoy } from "../../application/convoys/plan-convoy";
 import type { StartConvoy } from "../../application/convoys/start-convoy";
 import { ConvoyDomainError, ConvoyError } from "../../domain/convoys/errors";
+import { CargoError } from "../../domain/cargo/errors";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
 export interface ConvoysRoutesDeps {
@@ -19,6 +21,7 @@ export interface ConvoysRoutesDeps {
   planConvoy: PlanConvoy;
   startConvoy: StartConvoy;
   completeConvoy: CompleteConvoy;
+  confirmConvoyArrival: ConfirmConvoyArrival;
   cancelConvoy: CancelConvoy;
   addVehicleToConvoy: AddVehicleToConvoy;
 }
@@ -28,10 +31,15 @@ const CONVOY_ERROR_STATUS: Record<string, 400 | 404 | 409> = {
   INVALID_TRANSITION: 409,
   DUPLICATE_VEHICLE: 409,
   CONVOY_NOT_PLANIFICADO: 409,
+  LOTE_NOT_DELIVERED: 400,
 };
 
 function mapError(c: Context, error: unknown) {
-  if (error instanceof ConvoyError || error instanceof ConvoyDomainError) {
+  if (
+    error instanceof ConvoyError ||
+    error instanceof ConvoyDomainError ||
+    error instanceof CargoError
+  ) {
     const status = CONVOY_ERROR_STATUS[error.code] ?? 400;
     return c.json({ error: error.message, code: error.code }, status);
   }
@@ -102,6 +110,17 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
   router.post("/:id/complete", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     try {
       const convoy = await deps.completeConvoy.execute({ id: c.req.param("id") });
+      return c.json({ convoy });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  router.post("/:id/confirm-arrival", authentication, requireRole("ZODI_DESTINATION", "ADMIN"), async (c) => {
+    const id = c.req.param("id");
+    const actor = c.get("actor");
+    try {
+      const convoy = await deps.confirmConvoyArrival.execute({ id, actorId: actor.userId });
       return c.json({ convoy });
     } catch (error) {
       return mapError(c, error);

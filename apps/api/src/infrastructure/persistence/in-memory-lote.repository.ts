@@ -22,6 +22,10 @@ export class InMemoryLoteRepository implements LoteRepository {
     return Array.from(this.store.values()).filter((l) => l.vehiculoId === vehiculoId);
   }
 
+  async findByConvoyId(convoyId: string): Promise<Lote[]> {
+    return Array.from(this.store.values()).filter((l) => l.convoyId === convoyId);
+  }
+
   async save(lote: Lote): Promise<void> {
     this.store.set(lote.id, lote);
   }

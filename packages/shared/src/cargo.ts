@@ -56,6 +56,7 @@ export interface PublicLote {
   hubDestinoNombre: string | null;
   vehiculoId: string | null;
   vehiculoPlaca: string | null;
+  convoyId: string | null;
   estado: LoteStatus;
   nota: string | null;
   pesoTotalKg: number;

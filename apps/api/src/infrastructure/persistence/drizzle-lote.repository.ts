@@ -50,6 +50,7 @@ async function withItems(loteQueryResultRows: LoteQueryResultRow[]): Promise<Lot
       hubDestinoNombre: r.hubDestinoNombre,
       vehiculoId: r.lote.vehiculoId,
       vehiculoPlaca: r.vehiculoPlaca,
+      convoyId: r.lote.convoyId,
       estado: r.lote.estado,
       nota: r.lote.nota,
       pesoTotalKg: r.lote.pesoTotalKg,
@@ -129,6 +130,22 @@ export class DrizzleLoteRepository implements LoteRepository {
     return withItems(rows);
   }
 
+  async findByConvoyId(convoyId: string): Promise<Lote[]> {
+    const rows = await db
+      .select({
+        lote: lotes,
+        hubOrigenNombre: hubsOrigen.name,
+        hubDestinoNombre: hubsDestino.name,
+        vehiculoPlaca: vehiculos.placa,
+      })
+      .from(lotes)
+      .leftJoin(hubsOrigen, eq(lotes.hubOrigenId, hubsOrigen.id))
+      .leftJoin(hubsDestino, eq(lotes.hubDestinoId, hubsDestino.id))
+      .leftJoin(vehiculos, eq(lotes.vehiculoId, vehiculos.id))
+      .where(eq(lotes.convoyId, convoyId));
+    return withItems(rows);
+  }
+
   async save(lote: Lote): Promise<void> {
     await db
       .insert(lotes)
@@ -137,6 +154,7 @@ export class DrizzleLoteRepository implements LoteRepository {
         hubOrigenId: lote.hubOrigenId,
         hubDestinoId: lote.hubDestinoId,
         vehiculoId: lote.vehiculoId,
+        convoyId: lote.convoyId,
         estado: lote.estado,
         nota: lote.nota,
         pesoTotalKg: lote.pesoTotalKg,
@@ -151,6 +169,7 @@ export class DrizzleLoteRepository implements LoteRepository {
         set: {
           hubDestinoId: lote.hubDestinoId,
           vehiculoId: lote.vehiculoId,
+          convoyId: lote.convoyId,
           estado: lote.estado,
           nota: lote.nota,
           pesoTotalKg: lote.pesoTotalKg,
