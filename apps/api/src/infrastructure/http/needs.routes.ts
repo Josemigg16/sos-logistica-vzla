@@ -89,8 +89,8 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
     }
   };
 
-  router.post("/needs", authentication, requireRole("ADMIN", "ZODI_SENDER"), postHandler);
-  router.post("/necesidades", authentication, requireRole("ADMIN", "ZODI_SENDER"), postHandler);
+  router.post("/needs", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), postHandler);
+  router.post("/necesidades", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), postHandler);
 
   // ── PUT — requiere ADMIN o ZODI_DESTINATION ──────────────────────────────────
 
@@ -131,8 +131,8 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
     }
   };
 
-  router.put("/needs/:id", authentication, requireRole("ADMIN", "ZODI_SENDER"), putHandler);
-  router.put("/necesidades/:id", authentication, requireRole("ADMIN", "ZODI_SENDER"), putHandler);
+  router.put("/needs/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), putHandler);
+  router.put("/necesidades/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), putHandler);
 
   // ── DELETE — requiere ADMIN o ZODI_DESTINATION ───────────────────────────────
 
@@ -150,8 +150,8 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
     }
   };
 
-  router.delete("/needs/:id", authentication, requireRole("ADMIN", "ZODI_SENDER"), deleteHandler);
-  router.delete("/necesidades/:id", authentication, requireRole("ADMIN", "ZODI_SENDER"), deleteHandler);
+  router.delete("/needs/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), deleteHandler);
+  router.delete("/necesidades/:id", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), deleteHandler);
 
   return router;
 }
