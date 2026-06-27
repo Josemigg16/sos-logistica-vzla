@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon } from 'lucide-react'
+import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
 
@@ -85,13 +85,22 @@ function AdminDashboard() {
           />
         )}
         {canManageUsers && (
-          <AdminSectionCard
-            to="/admin/users"
-            icon={<UsersIcon className="w-6 h-6" />}
-            title="Usuarios"
-            description="Crear cuentas, asignar roles, suspender o eliminar accesos."
-            stat="Gestionar accesos"
-          />
+          <>
+            <AdminSectionCard
+              to="/admin/users"
+              icon={<UsersIcon className="w-6 h-6" />}
+              title="Usuarios"
+              description="Crear cuentas, asignar roles, suspender o eliminar accesos."
+              stat="Gestionar accesos"
+            />
+            <AdminSectionCard
+              to="/admin/settings"
+              icon={<SettingsIcon className="w-6 h-6" />}
+              title="Ajustes"
+              description="Configurar el número de contacto de SOS Logística y otros datos globales."
+              stat="Configurar la app"
+            />
+          </>
         )}
       </div>
     </div>

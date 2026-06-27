@@ -49,4 +49,5 @@ export * from "./fleet";
 export * from "./cargo";
 export * from "./inventory-batches";
 export * from "./convoys";
+export * from "./settings";
 

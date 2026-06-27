@@ -64,6 +64,13 @@
       "when": 1751034000000,
       "tag": "0012_needs_draft_status",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1782800000000,
+      "tag": "0013_app_settings",
+      "breakpoints": true
     }
   ]
 }

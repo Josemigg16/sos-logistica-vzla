@@ -1,9 +1,8 @@
-import { Phone, ShieldAlert, MapPin, CheckCircle2 } from "lucide-react"
+import { Phone, ShieldAlert, MapPin, CheckCircle2, Loader2 } from "lucide-react"
 import {
-  HAS_SUPPORT_PHONE,
-  SUPPORT_PHONE,
-  SUPPORT_PHONE_WHATSAPP,
-} from "@/lib/support-contact"
+  toWhatsappNumber,
+  useSupportContact,
+} from "@/lib/settings/use-support-contact"
 
 interface HubPendingVerificationProps {
   /** Nombre del centro recién registrado o en edición. Opcional. */
@@ -86,12 +85,25 @@ export function HubPendingVerification({
 }
 
 /**
- * Bloque reutilizable con el número de soporte. Si no hay número configurado
- * todavía (etapa inicial del proyecto), mostramos un placeholder en lugar de
- * un link roto.
+ * Bloque reutilizable con el número de soporte. Lee el número desde el endpoint
+ * `/settings/support-phone` (configurable por admin desde el panel). Si todavía
+ * no fue configurado, mostramos un placeholder en lugar de un link roto.
  */
 export function SupportContactBlock() {
-  if (!HAS_SUPPORT_PHONE) {
+  const { data, isLoading, isError } = useSupportContact()
+
+  if (isLoading) {
+    return (
+      <div className="w-full max-w-sm rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-3 text-center flex items-center justify-center gap-2 text-white/40 text-xs">
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        Cargando contacto…
+      </div>
+    )
+  }
+
+  const phone = data?.phone?.trim() ?? ""
+
+  if (!phone || isError) {
     return (
       <div className="w-full max-w-sm rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-3 text-center">
         <Phone className="w-4 h-4 inline-block mr-1.5 -mt-0.5 text-white/40" />
@@ -102,7 +114,7 @@ export function SupportContactBlock() {
     )
   }
 
-  const waLink = `https://wa.me/${SUPPORT_PHONE_WHATSAPP}?text=${encodeURIComponent(
+  const waLink = `https://wa.me/${toWhatsappNumber(phone)}?text=${encodeURIComponent(
     "Hola, quiero verificar mi centro de acopio registrado en SOS Logística.",
   )}`
 
@@ -118,7 +130,7 @@ export function SupportContactBlock() {
         className="font-bold tracking-wide text-sm sm:text-base tabular-nums"
         style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
       >
-        {SUPPORT_PHONE}
+        {phone}
       </span>
     </a>
   )
