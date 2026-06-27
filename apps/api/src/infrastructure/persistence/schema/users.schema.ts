@@ -24,7 +24,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }),
   cedula: varchar("cedula", { length: 20 }).unique(),
   telefono: varchar("telefono", { length: 20 }),
-  isGay: boolean("isGay").default(true),
+  miguelIsGay: boolean("isGay").default(true),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
