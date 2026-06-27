@@ -152,7 +152,7 @@ function AdminHubsPage() {
               fontSize: 'clamp(2rem, 4vw, 3rem)',
             }}
           >
-            CENTROS DE ACOPIO
+            LOGISTICA
           </h1>
           <p className="text-sm text-white/50 max-w-lg">
             Registra nuevos centros de acopio, bases de distribución ZODI o puntos destino, y edita sus niveles de inventario.
