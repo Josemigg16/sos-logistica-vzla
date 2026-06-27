@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate } from '@tanstack/react-router'
+import { createFileRoute, Navigate, useNavigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState, useEffect } from 'react'
 import {
@@ -48,8 +48,7 @@ const INVENTORY_CATEGORIES = [
 
 const TIPOS_CENTRO: { value: TipoCentro; label: string; color: string }[] = [
   { value: 'acopio', label: 'Acopio Periférico', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
-  { value: 'salida', label: 'Despacho (Salida)', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  { value: 'base_zodi', label: 'Base ZODI', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
+  { value: 'salida', label: 'Base ZODI (Salida)', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
   { value: 'destino', label: 'Centro Destino (Llegada)', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
 ]
 
@@ -103,7 +102,7 @@ async function deleteHub(id: string): Promise<string> {
 function AdminHubsPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
-  const [editing, setEditing] = useState<Centro | null>(null)
+  const navigate = useNavigate()
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<Centro | null>(null)
 
@@ -207,7 +206,7 @@ function AdminHubsPage() {
                   <HubRow
                     key={hub.id}
                     hub={hub}
-                    onEdit={() => setEditing(hub)}
+                    onEdit={() => navigate({ to: '/admin/hubs/$hubId', params: { hubId: hub.id } })}
                     onDelete={() => setDeleting(hub)}
                   />
                 ))}
@@ -221,7 +220,7 @@ function AdminHubsPage() {
               <HubMobileCard
                 key={hub.id}
                 hub={hub}
-                onEdit={() => setEditing(hub)}
+                onEdit={() => navigate({ to: '/admin/hubs/$hubId', params: { hubId: hub.id } })}
                 onDelete={() => setDeleting(hub)}
               />
             ))}
@@ -236,16 +235,6 @@ function AdminHubsPage() {
           onSubmit={(newHub) => createMutation.mutate(newHub)}
           isSubmitting={createMutation.isPending}
           title="Nuevo centro de acopio"
-        />
-      )}
-
-      {editing && (
-        <HubFormModal
-          initial={editing}
-          onClose={() => setEditing(null)}
-          onSubmit={(updatedHub) => createMutation.mutate(updatedHub)}
-          isSubmitting={createMutation.isPending}
-          title="Editar centro de acopio"
         />
       )}
 
