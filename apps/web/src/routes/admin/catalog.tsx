@@ -47,7 +47,7 @@ function AdminCatalogPage() {
 
   // Form States (Shared for Create/Edit)
   const [name, setName] = useState('')
-  const [category, setCategory] = useState(INVENTORY_CATEGORIES[0])
+  const [category, setCategory] = useState<typeof INVENTORY_CATEGORIES[number]>(INVENTORY_CATEGORIES[0])
   const [unit, setUnit] = useState('')
   const [description, setDescription] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
