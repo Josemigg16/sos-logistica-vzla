@@ -3,15 +3,17 @@ import { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import {
   Loader2, MapPin, Plus, Package, Boxes, X, AlertTriangle, Trash2,
-  Warehouse, Send, ChevronRight, History, Truck,
+  Warehouse, Send, ChevronRight, History, Truck, ShieldCheck, ShieldOff,
 } from 'lucide-react'
 import { PackagingRulesButton } from '@/components/packaging-rules-button'
 import type {
   PublicHub, PublicLote, ProductMaster, HubType,
+  HubStatus,
   LoteStatus,
   PublicInventoryBatch, PublicResource, PublicVehicle,
 } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
+import { hasAnyRole, ROLES_VERIFY_HUBS } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { useToast } from '@/components/ui/toast'
@@ -44,6 +46,16 @@ const LOTE_STATUS_META: Record<LoteStatus, { label: string; color: string }> = {
 }
 
 // ─── API ──────────────────────────────────────────────────────────────────────
+
+async function changeHubStatus(d: { hubId: string; status: HubStatus }): Promise<PublicHub> {
+  const res = await fetch(`${API_URL}/resources/hubs/${d.hubId}/status`, {
+    method: 'PATCH',
+    headers: authHeaders(),
+    body: JSON.stringify({ status: d.status }),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'No se pudo cambiar el estado del centro'))
+  return (await res.json()).hub
+}
 
 export async function fetchHubById(hubId: string): Promise<PublicHub | null> {
   const res = await fetch(`${API_URL}/resources/hubs`, { headers: authHeaders() })
@@ -136,13 +148,19 @@ export interface HubDashboardProps {
 }
 
 export function HubDashboard({ hub, canManageVehicles }: HubDashboardProps) {
+  const { user } = useAuth()
+  const canToggleStatus = hasAnyRole(user, ...ROLES_VERIFY_HUBS)
+
   return (
     <div className="flex flex-col gap-6">
       {/* Tarjeta del centro */}
-      <div className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
         <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-white shrink-0"><Warehouse className="w-6 h-6" /></div>
         <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold text-white truncate">{hub.name}</h2>
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl font-bold text-white truncate">{hub.name}</h2>
+            <HubStatusBadge status={hub.status} />
+          </div>
           <p className="text-sm text-white/50 truncate">{hub.address}</p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1 text-[11px] text-white/40">
             <span className="inline-flex items-center gap-1"><MapPin className="w-3 h-3" />{hub.latitude.toFixed(4)}, {hub.longitude.toFixed(4)}</span>
@@ -150,6 +168,7 @@ export function HubDashboard({ hub, canManageVehicles }: HubDashboardProps) {
             <span>{hub.contact}</span>
           </div>
         </div>
+        {canToggleStatus && <HubStatusToggleButton hub={hub} />}
       </div>
 
       <PackagingRulesButton />
@@ -158,6 +177,69 @@ export function HubDashboard({ hub, canManageVehicles }: HubDashboardProps) {
       <LotesSection hub={hub} canManageVehicles={canManageVehicles} />
       <InputStyles />
     </div>
+  )
+}
+
+function HubStatusBadge({ status }: { status: HubStatus }) {
+  const active = status === 'ACTIVO'
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${
+        active
+          ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'
+          : 'text-amber-300 border-amber-400/30 bg-amber-400/10'
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+      {active ? 'Activo' : 'Pendiente'}
+    </span>
+  )
+}
+
+function HubStatusToggleButton({ hub }: { hub: PublicHub }) {
+  const qc = useQueryClient()
+  const toast = useToast()
+  const isActive = hub.status === 'ACTIVO'
+
+  const mut = useMutation({
+    mutationFn: changeHubStatus,
+    onSuccess: (updated) => {
+      qc.setQueryData<PublicHub | null>(['hub', updated.id], updated)
+      qc.invalidateQueries({ queryKey: ['hub', updated.id] })
+      qc.invalidateQueries({ queryKey: ['my-hub'] })
+      qc.invalidateQueries({ queryKey: ['centros'] })
+      qc.invalidateQueries({ queryKey: ['hubs-all'] })
+      toast.success(
+        updated.status === 'ACTIVO' ? 'Centro verificado' : 'Centro desactivado',
+        updated.status === 'ACTIVO'
+          ? `"${updated.name}" ya aparece en el mapa público.`
+          : `"${updated.name}" dejó de aparecer en el mapa público.`,
+      )
+    },
+    onError: (e: Error) => toast.error('No se pudo actualizar el estado', e.message),
+  })
+
+  return (
+    <button
+      type="button"
+      onClick={() => mut.mutate({ hubId: hub.id, status: isActive ? 'INACTIVO' : 'ACTIVO' })}
+      disabled={mut.isPending}
+      className={`shrink-0 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold border transition-colors active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed ${
+        isActive
+          ? 'bg-amber-400/10 border-amber-400/30 text-amber-200 hover:bg-amber-400/20'
+          : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-200 hover:bg-emerald-500/25'
+      }`}
+      title={isActive ? 'Desactivar centro' : 'Verificar y activar centro'}
+    >
+      {mut.isPending ? (
+        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+      ) : isActive ? (
+        <ShieldOff className="w-3.5 h-3.5" />
+      ) : (
+        <ShieldCheck className="w-3.5 h-3.5" />
+      )}
+      {isActive ? 'Desactivar' : 'Verificar y activar'}
+    </button>
   )
 }
 

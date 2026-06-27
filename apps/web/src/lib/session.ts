@@ -20,6 +20,19 @@ export const ROLES_MANAGE_USERS: RoleName[] = ['ADMIN']
 /** Roles autorizados para gestionar centros de acopio (hubs). */
 export const ROLES_MANAGE_HUBS: RoleName[] = ['ADMIN', 'MANAGER', 'ZODI_SENDER']
 
+/**
+ * Roles "internos" de SOS Logística que pueden verificar / activar / desactivar
+ * un centro de acopio. Cualquier otro rol (incluyendo HUB_COORDINATOR) que
+ * intente operar sobre un hub INACTIVO debe ver la pantalla de verificación
+ * pendiente en lugar de poder activarlo por su cuenta.
+ */
+export const ROLES_VERIFY_HUBS: RoleName[] = [
+  'ADMIN',
+  'MANAGER',
+  'ZODI_SENDER',
+  'ZODI_DESTINATION',
+]
+
 /** Roles autorizados para gestionar la flota (choferes, vehículos). */
 export const ROLES_MANAGE_FLEET: RoleName[] = ['ADMIN', 'MANAGER', 'HUB_COORDINATOR']
 

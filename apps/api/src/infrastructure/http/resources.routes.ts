@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import {
   createHubSchema,
+  hubStatusSchema,
   registerInventoryBatchSchema,
   stockResourceSchema,
 } from "@sos/shared";
@@ -14,6 +15,7 @@ import type { RegisterInventoryBatch } from "../../application/resources/registe
 import type { ListInventoryBatchesByHub } from "../../application/resources/list-inventory-batches-by-hub";
 import type { GetHubStockSummary } from "../../application/resources/get-hub-stock-summary";
 import type { DeleteInventoryBatch } from "../../application/resources/delete-inventory-batch";
+import type { ChangeHubStatus } from "../../application/resources/change-hub-status";
 import { ResourceError } from "../../domain/resources/errors";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
@@ -27,6 +29,15 @@ export interface ResourceRoutesDeps {
   listInventoryBatchesByHub: ListInventoryBatchesByHub;
   getHubStockSummary: GetHubStockSummary;
   deleteInventoryBatch: DeleteInventoryBatch;
+  changeHubStatus: ChangeHubStatus;
+}
+
+// Reusa el enum compartido directamente — no necesitamos un objeto wrapper.
+function parseStatusBody(body: unknown): { status: "ACTIVO" | "INACTIVO" } | null {
+  if (!body || typeof body !== "object") return null;
+  const value = (body as { status?: unknown }).status;
+  const parsed = hubStatusSchema.safeParse(value);
+  return parsed.success ? { status: parsed.data } : null;
 }
 
 const ERROR_STATUS: Record<string, 400 | 404 | 409> = {
@@ -90,8 +101,12 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
           409,
         );
       }
+      // Los centros auto-registrados por un coordinador arrancan INACTIVO
+      // hasta que un rol interno de SOS Logística (ADMIN/MANAGER/ZODI) los
+      // verifique y los active vía PATCH /resources/hubs/:id/status.
       const hub = await deps.registerHub.execute({
         ...parsed.data,
+        status: "INACTIVO",
         coordinatorId: actor.userId,
       });
       return c.json({ hub }, 201);
@@ -116,6 +131,30 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
       return mapError(c, error);
     }
   });
+
+  // Verificación / activación de un centro de acopio. Solo roles internos de
+  // SOS Logística pueden activar o desactivar un hub (los centros propuestos
+  // desde el mapa público o por un coordinador arrancan INACTIVO).
+  router.patch(
+    "/hubs/:hubId/status",
+    authentication,
+    requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"),
+    async (c) => {
+      const body = parseStatusBody(await c.req.json().catch(() => null));
+      if (!body) {
+        return c.json({ error: "Datos inválidos: status debe ser ACTIVO o INACTIVO" }, 400);
+      }
+      try {
+        const hub = await deps.changeHubStatus.execute({
+          hubId: c.req.param("hubId"),
+          status: body.status,
+        });
+        return c.json({ hub });
+      } catch (error) {
+        return mapError(c, error);
+      }
+    },
+  );
 
   router.get("/hubs/:hubId/resources", authentication, async (c) => {
     try {
