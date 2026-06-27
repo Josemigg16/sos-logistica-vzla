@@ -507,8 +507,12 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
   const [nota, setNota] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const { data: stock = [] } = useQuery({ queryKey: ['hub-resources', hub.id], queryFn: () => fetchHubResources(hub.id) })
   const { data: hubs = [] } = useQuery({ queryKey: ['hubs-all'], queryFn: fetchHubs })
+
+  // Solo productos efectivamente en stock del centro.
+  const stocked = stock.filter((r) => r.productId && r.quantity > 0)
+  const byProduct = Object.fromEntries(stocked.map((r) => [r.productId as string, r]))
 
   const mut = useMutation({ mutationFn: createLote, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
 
@@ -535,20 +539,31 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
 
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-2">Productos del lote</label>
-          <div className="flex flex-col gap-2">
-            {items.map((it, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <select className="coord-input flex-1" value={it.productId} onChange={(e) => setItem(i, { productId: e.target.value })}>
-                  <option value="">Seleccionar producto…</option>
-                  {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <input type="number" min="1" className="coord-input w-20" placeholder="Cant." value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
-                <input type="number" min="0" step="any" className="coord-input w-24" placeholder="Peso kg" value={it.pesoKg} onChange={(e) => setItem(i, { pesoKg: e.target.value })} />
-                <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition"><Trash2 className="w-4 h-4" /></button>
+          {stocked.length === 0 ? (
+            <p className="text-sm text-white/40 rounded-lg border border-dashed border-[#2B5F8E]/40 px-3 py-4 text-center">
+              No hay productos en tu inventario. Sumá stock antes de armar un lote.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                {items.map((it, i) => {
+                  const sel = it.productId ? byProduct[it.productId] : undefined
+                  return (
+                    <div key={i} className="grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto] gap-2 items-center">
+                      <select className="coord-input" style={{ minWidth: 0 }} value={it.productId} onChange={(e) => setItem(i, { productId: e.target.value })}>
+                        <option value="">Seleccionar producto…</option>
+                        {stocked.map((r) => <option key={r.id} value={r.productId as string}>{r.productName} ({r.quantity} {r.unit})</option>)}
+                      </select>
+                      <input type="number" min="1" max={sel?.quantity} className="coord-input" style={{ minWidth: 0 }} placeholder="Cant." value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
+                      <input type="number" min="0" step="any" className="coord-input" style={{ minWidth: 0 }} placeholder="Peso kg" value={it.pesoKg} onChange={(e) => setItem(i, { pesoKg: e.target.value })} />
+                      <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-          <button type="button" onClick={addItem} className="mt-2 flex items-center gap-1 text-xs text-[#4A89C0] hover:text-[#C8DCF0] transition"><Plus className="w-3.5 h-3.5" /> Agregar producto</button>
+              <button type="button" onClick={addItem} className="mt-2 flex items-center gap-1 text-xs text-[#4A89C0] hover:text-[#C8DCF0] transition"><Plus className="w-3.5 h-3.5" /> Agregar producto</button>
+            </>
+          )}
         </div>
 
         <Field label="Centro de destino (opcional)">

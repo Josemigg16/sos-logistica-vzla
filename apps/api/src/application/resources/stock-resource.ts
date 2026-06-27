@@ -1,28 +1,33 @@
 import type { PublicResource, StockResourceRequest } from "@sos/shared";
 import type { HubRepository } from "../../domain/resources/repositories/hub.repository";
 import type { ResourceRepository } from "../../domain/resources/repositories/resource.repository";
+import type { ProductRepository } from "../../domain/resources/repositories/product.repository";
 import { Resource } from "../../domain/resources/entities/resource";
 import { InventoryCategory } from "../../domain/resources/value-objects/inventory-category";
-import { HubNotFoundError } from "../../domain/resources/errors";
+import { HubNotFoundError, ProductNotFoundError } from "../../domain/resources/errors";
 
 /**
- * Use case: sumar stock de una categoría a un hub. Si ya existe un recurso de
- * esa categoría en el hub, acumula; si no, lo crea.
+ * Use case: sumar stock de un producto a un hub. La categoría y la unidad se
+ * derivan del producto del catálogo. Si ya existe stock de ese producto en el
+ * hub, acumula; si no, lo crea.
  */
 export class StockResource {
   constructor(
     private readonly hubs: HubRepository,
     private readonly resources: ResourceRepository,
+    private readonly products: ProductRepository,
   ) {}
 
   async execute(command: StockResourceRequest): Promise<PublicResource> {
     const hub = await this.hubs.findById(command.hubId);
     if (!hub) throw new HubNotFoundError(command.hubId);
 
-    const category = InventoryCategory.create(command.category);
-    const existing = await this.resources.findByHubAndCategory(
+    const product = await this.products.findById(command.productId);
+    if (!product) throw new ProductNotFoundError(command.productId);
+
+    const existing = await this.resources.findByHubAndProduct(
       command.hubId,
-      category,
+      command.productId,
     );
 
     const resource =
@@ -30,9 +35,11 @@ export class StockResource {
       Resource.create({
         id: crypto.randomUUID(),
         hubId: command.hubId,
-        category,
+        productId: product.id,
+        productName: product.name,
+        category: InventoryCategory.create(product.category),
         quantity: 0,
-        unit: command.unit,
+        unit: product.unit,
       });
 
     resource.addStock(command.quantity);

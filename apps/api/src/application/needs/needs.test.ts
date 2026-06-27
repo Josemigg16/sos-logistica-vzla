@@ -20,7 +20,7 @@ import { DeleteNeed } from "./delete-need";
 
 const TEST_SECRET = "dev-secret-change-me";
 
-async function makeAuthHeaders(): Promise<HeadersInit> {
+async function makeAuthHeaders(): Promise<Record<string, string>> {
   const token = await sign(
     { sub: "test-user-id", username: "test-zodi", role: "ZODI_DESTINATION" },
     TEST_SECRET,
@@ -49,7 +49,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   let needRepo: InMemoryNeedRepository;
   let hubId: string;
   let app: Hono;
-  let auth: HeadersInit;
+  let auth: Record<string, string>;
 
   beforeEach(async () => {
     hubRepo = new InMemoryHubRepository();

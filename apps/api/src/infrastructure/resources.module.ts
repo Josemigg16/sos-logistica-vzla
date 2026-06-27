@@ -30,7 +30,7 @@ export function createResourcesModule() {
     registerHub: new RegisterHub(hubs),
     listHubs: new ListHubs(hubs),
     getHubByCoordinator: new GetHubByCoordinator(hubs),
-    stockResource: new StockResource(hubs, resources),
+    stockResource: new StockResource(hubs, resources, products),
     listResourcesByHub: new ListResourcesByHub(resources),
     registerInventoryBatch: new RegisterInventoryBatch(hubs, products, batches),
     listInventoryBatchesByHub: new ListInventoryBatchesByHub(batches),

@@ -1,6 +1,5 @@
 import type { ResourceRepository } from "../../domain/resources/repositories/resource.repository";
 import type { Resource } from "../../domain/resources/entities/resource";
-import type { InventoryCategory } from "../../domain/resources/value-objects/inventory-category";
 
 /**
  * Adapter in-memory del puerto ResourceRepository.
@@ -16,12 +15,12 @@ export class InMemoryResourceRepository implements ResourceRepository {
     return [...this.byId.values()].filter((r) => r.hubId === hubId);
   }
 
-  async findByHubAndCategory(
+  async findByHubAndProduct(
     hubId: string,
-    category: InventoryCategory,
+    productId: string,
   ): Promise<Resource | null> {
     for (const resource of this.byId.values()) {
-      if (resource.hubId === hubId && resource.category.equals(category)) {
+      if (resource.hubId === hubId && resource.productId === productId) {
         return resource;
       }
     }
