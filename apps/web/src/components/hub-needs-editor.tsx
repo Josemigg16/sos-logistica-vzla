@@ -138,9 +138,9 @@ export function HubNeedsEditor({ hub }: HubNeedsEditorProps) {
           <AlertCircle className="w-5 h-5 text-amber-300" />
           <h3 className="font-bold text-white">Necesidades operativas</h3>
         </div>
-        {hub.needs.length > 0 && (
+        {(hub.needs?.length ?? 0) > 0 && (
           <span className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border border-amber-400/40 bg-amber-400/10 text-amber-300">
-            {hub.needs.length} activa{hub.needs.length === 1 ? '' : 's'}
+            {hub.needs?.length} activa{hub.needs?.length === 1 ? '' : 's'}
           </span>
         )}
       </div>
