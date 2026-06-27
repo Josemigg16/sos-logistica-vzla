@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { centroSchema, type Centro, type HubStatus, type HubType } from "@sos/shared";
+import { centroSchema, type Centro, type HubNeed, type HubStatus, type HubType } from "@sos/shared";
 import type { ListHubs } from "../../application/resources/list-hubs";
 import type { ListResourcesByHub } from "../../application/resources/list-resources-by-hub";
 import type { UpsertHub } from "../../application/resources/upsert-hub";
@@ -57,7 +57,7 @@ function mapError(c: Context, error: unknown) {
 // ---------- helpers ----------
 
 async function buildCentroFromHub(
-  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number; isInformal: boolean },
+  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number; isInformal: boolean; needs: HubNeed[] },
   listResourcesByHub: ListResourcesByHub,
 ): Promise<Centro> {
   const resources = await listResourcesByHub.execute(hub.id);
@@ -77,6 +77,7 @@ async function buildCentroFromHub(
     estado: hub.status,
     inventario,
     isInformal: hub.isInformal,
+    needs: hub.needs ?? [],
   };
 }
 
@@ -145,6 +146,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
         latitude: centro.coordenadas[1],
         longitude: centro.coordenadas[0],
         isInformal: centro.isInformal ?? false,
+        needs: centro.needs ?? [],
       });
 
       await deps.replaceHubInventory.execute({

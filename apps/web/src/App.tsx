@@ -24,13 +24,17 @@ import {
   EyeOff,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import type { PublicConvoy } from "@sos/shared";
+import type { HubNeed, HubNeedType, PublicConvoy } from "@sos/shared";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
 import { getToken } from "@/lib/auth/token-store";
 import { HubPendingVerification } from "@/components/hub-pending-verification";
+import {
+  toWhatsappNumber,
+  useSupportContact,
+} from "@/lib/settings/use-support-contact";
 import isotipo from "@/assets/branding/white-isotipo-blue-background.webp";
 
 
@@ -45,6 +49,7 @@ interface Centro {
   estado?: "ACTIVO" | "INACTIVO";
   inventario: Record<string, number>;
   isInformal?: boolean;
+  needs?: HubNeed[];
   verificacion?: {
     imagenes: string[];
     fecha: string;
@@ -52,6 +57,13 @@ interface Centro {
     novedades?: string;
   };
 }
+
+const NEED_LABELS: Record<HubNeedType, string> = {
+  TRANSPORT: "Transporte",
+  LABOR: "Mano de obra",
+  FUEL: "Combustible",
+  OTHER: "Otros",
+};
 
 export default function App() {
   const [theme, setTheme] = useState<"light" | "dark">(() => {
@@ -326,6 +338,7 @@ export default function App() {
           >
             <Layers className={`w-4 h-4 ${showSupplyRoute ? "animate-pulse" : ""}`} />
           </button>
+          <SupportPhoneHeaderButton />
           <button
             onClick={() => setShowWelcomeModal(true)}
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
@@ -406,6 +419,7 @@ export default function App() {
                 onClick={() => handleSelectCentro(c)}
                 color={getMarkerColor(c)}
                 active={selectedId === c.id}
+                hasNeeds={(c.needs?.length ?? 0) > 0}
               />
             );
           })}
@@ -663,6 +677,28 @@ export default function App() {
                   <span className="text-[9px] font-bold text-muted-foreground border border-border/80 px-1.5 py-0.5 rounded">PDF</span>
                 </a>
               </div>
+
+              {/* Necesidades operativas — sólo si el centro tiene algo marcado */}
+              {selectedCentro.needs && selectedCentro.needs.length > 0 && (
+                <div className="rounded-lg border border-amber-400/40 bg-amber-400/5 p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xs font-semibold text-amber-300 uppercase tracking-wider">
+                      Necesita ayuda con
+                    </h3>
+                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-amber-400/15 text-amber-300 border border-amber-400/30">
+                      {selectedCentro.needs.length}
+                    </span>
+                  </div>
+                  <ul className="flex flex-col gap-2">
+                    {selectedCentro.needs.map((n) => (
+                      <li key={n.type} className="text-xs">
+                        <div className="font-semibold text-foreground">{NEED_LABELS[n.type] ?? n.type}</div>
+                        {n.note && <div className="text-muted-foreground text-[11px] mt-0.5">{n.note}</div>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Inventario por Categorías */}
               <div>
@@ -1244,6 +1280,36 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
         </div>
       </div>
     </>
+  );
+}
+
+function SupportPhoneHeaderButton() {
+  const { data, isLoading } = useSupportContact();
+  const phone = data?.phone?.trim() ?? "";
+
+  if (isLoading || !phone) return null;
+
+  const waLink = `https://wa.me/${toWhatsappNumber(phone)}?text=${encodeURIComponent(
+    "Hola, escribo desde el mapa de SOS Logística y necesito ayuda.",
+  )}`;
+
+  return (
+    <a
+      href={waLink}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="flex items-center justify-center gap-1.5 w-8 h-8 sm:w-auto sm:h-8 sm:px-2.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-200 hover:text-emerald-100 transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
+      title={`Soporte SOS Logística — ${phone}`}
+      aria-label={`Soporte SOS Logística — ${phone}`}
+    >
+      <Phone className="w-3.5 h-3.5 shrink-0" />
+      <span
+        className="hidden sm:inline text-[11px] font-bold tabular-nums whitespace-nowrap"
+        style={{ fontFamily: "'DM Sans', system-ui, sans-serif" }}
+      >
+        {phone}
+      </span>
+    </a>
   );
 }
 

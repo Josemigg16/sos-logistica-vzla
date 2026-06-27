@@ -14,6 +14,7 @@ import type {
 } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_VERIFY_HUBS } from '@/lib/session'
+import { HubNeedsEditor } from '@/components/hub-needs-editor'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { useToast } from '@/components/ui/toast'
@@ -172,6 +173,7 @@ export function HubDashboard({ hub, canManageVehicles }: HubDashboardProps) {
       </div>
 
       <PackagingRulesButton />
+      <HubNeedsEditor hub={hub} />
       <InventorySection hub={hub} />
       <BatchesHistorySection hub={hub} />
       <LotesSection hub={hub} canManageVehicles={canManageVehicles} />

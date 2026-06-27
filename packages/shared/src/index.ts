@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { HUB_STATUSES } from "./resources";
+import { HUB_STATUSES, hubNeedSchema } from "./resources";
 
 /**
  * Constantes y schemas de dominio compartidos entre `api` y `web`.
@@ -33,6 +33,7 @@ export const centroSchema = z.object({
   estado: z.enum(HUB_STATUSES).optional(),
   isInformal: z.boolean().optional().default(false),
   inventario: z.record(z.string(), z.number()),
+  needs: z.array(hubNeedSchema).optional().default([]),
   metadata: z.record(z.unknown()).optional(),
   verificacion: verificacionSchema.optional(),
 });

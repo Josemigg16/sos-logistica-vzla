@@ -24,6 +24,7 @@ import {
   LogIn,
 } from 'lucide-react'
 
+import { SupportContactBlock } from '@/components/hub-pending-verification'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/')({
@@ -745,6 +746,16 @@ function NecesidadesPage() {
               ? 'Aunque algunas metas ya están cubiertas, los centros siguen activos y las familias siguen llegando. Lo que sobre hoy se convierte en reserva para mañana.'
               : 'Los centros de acopio están activos y recibiendo donaciones todos los días. Cada ítem entregado actualiza estas cifras en tiempo real.'}
           </p>
+
+          <div className="mb-8 flex flex-col items-center gap-2">
+            <span className="text-[10px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">
+              ¿Necesitas ayuda?
+            </span>
+            <SupportContactBlock message="Hola, escribo desde la página de SOS Logística y necesito ayuda." />
+            <span className="text-[10.5px] text-white/40 leading-relaxed max-w-xs">
+              Coordina donaciones, centros o resuelve dudas con nuestro equipo.
+            </span>
+          </div>
 
           <div className="flex items-center justify-center gap-3 text-[11px] text-white/20">
             <img src={logotipo} alt="Portuguesa Unida" className="h-5 w-auto opacity-30 object-contain" />

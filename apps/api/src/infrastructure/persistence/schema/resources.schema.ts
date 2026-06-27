@@ -1,6 +1,7 @@
 import {
   doublePrecision,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   timestamp,
@@ -9,8 +10,8 @@ import {
   text,
   boolean,
 } from "drizzle-orm/pg-core";
-import { relations } from "drizzle-orm";
-import { HUB_STATUSES, HUB_TYPES, INVENTORY_CATEGORIES, LOTE_STATUSES, NEED_STATUSES } from "@sos/shared";
+import { relations, sql } from "drizzle-orm";
+import { HUB_STATUSES, HUB_TYPES, INVENTORY_CATEGORIES, LOTE_STATUSES, NEED_STATUSES, type HubNeed } from "@sos/shared";
 import { users } from "./users.schema";
 import { viajes, vehiculos, operations } from "./operations.schema";
 
@@ -73,6 +74,7 @@ export const hubs = pgTable("hubs", {
     .notNull()
     .defaultNow(),
   isInformal: boolean("is_informal").notNull().default(false),
+  needs: jsonb("needs").$type<HubNeed[]>().notNull().default(sql`'[]'::jsonb`),
 });
 
 /**

@@ -84,12 +84,19 @@ export function HubPendingVerification({
   )
 }
 
+interface SupportContactBlockProps {
+  /** Mensaje pre-rellenado en WhatsApp. */
+  message?: string
+}
+
 /**
  * Bloque reutilizable con el número de soporte. Lee el número desde el endpoint
  * `/settings/support-phone` (configurable por admin desde el panel). Si todavía
  * no fue configurado, mostramos un placeholder en lugar de un link roto.
  */
-export function SupportContactBlock() {
+export function SupportContactBlock({
+  message = "Hola, quiero verificar mi centro de acopio registrado en SOS Logística.",
+}: SupportContactBlockProps = {}) {
   const { data, isLoading, isError } = useSupportContact()
 
   if (isLoading) {
@@ -114,9 +121,7 @@ export function SupportContactBlock() {
     )
   }
 
-  const waLink = `https://wa.me/${toWhatsappNumber(phone)}?text=${encodeURIComponent(
-    "Hola, quiero verificar mi centro de acopio registrado en SOS Logística.",
-  )}`
+  const waLink = `https://wa.me/${toWhatsappNumber(phone)}?text=${encodeURIComponent(message)}`
 
   return (
     <a

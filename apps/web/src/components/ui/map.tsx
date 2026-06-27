@@ -144,6 +144,16 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
       <MapContext.Provider value={{ map }}>
         {map && children}
       </MapContext.Provider>
+      <style>{`
+        @keyframes needs-halo-pulse {
+          0%, 100% { transform: scale(1); opacity: 0.9; }
+          50% { transform: scale(1.15); opacity: 0.35; }
+        }
+        .needs-halo-pulse { animation: needs-halo-pulse 1.6s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .needs-halo-pulse { animation: none; }
+        }
+      `}</style>
     </div>
   );
 }
@@ -187,6 +197,8 @@ interface MapMarkerProps {
   active?: boolean;
   draggable?: boolean;
   onDragEnd?: (lngLat: [number, number]) => void;
+  /** Si true: agrega un anillo dorado pulsante encima — señal "este centro tiene necesidades". */
+  hasNeeds?: boolean;
 }
 
 export function MapMarker({
@@ -196,6 +208,7 @@ export function MapMarker({
   active = false,
   draggable = false,
   onDragEnd,
+  hasNeeds = false,
 }: MapMarkerProps) {
   const { map } = useContext(MapContext);
   const markerRef = useRef<maplibregl.Marker | null>(null);
@@ -213,19 +226,34 @@ export function MapMarker({
     // Crear un elemento HTML personalizado para el marcador con animación de pulso
     const el = document.createElement("div");
     el.className = "relative flex items-center justify-center cursor-pointer";
-    el.style.width = active ? "32px" : "24px";
-    el.style.height = active ? "32px" : "24px";
+    // Si hay necesidades, el contenedor crece para alojar el halo dorado.
+    const sizePx = hasNeeds ? (active ? 44 : 36) : (active ? 32 : 24);
+    el.style.width = `${sizePx}px`;
+    el.style.height = `${sizePx}px`;
     // Transicionar SOLO tamaño — nunca 'all', porque MapLibre posiciona el
     // marcador vía transform y un transition: all lo haría arrastrarse con
     // delay detrás del mapa al moverse.
     el.style.transition = "width 0.3s ease, height 0.3s ease";
 
-    // Efecto de pulso
+    // Halo dorado pulsante — sólo cuando el centro tiene necesidades activas.
+    // Va detrás del pulso de color para que el tipo del centro siga siendo legible.
+    if (hasNeeds) {
+      const needsHalo = document.createElement("div");
+      needsHalo.className = "absolute rounded-full needs-halo-pulse";
+      needsHalo.style.width = "100%";
+      needsHalo.style.height = "100%";
+      needsHalo.style.border = "2px solid #fbbf24";
+      needsHalo.style.boxShadow = "0 0 14px rgba(251, 191, 36, 0.7)";
+      el.appendChild(needsHalo);
+    }
+
+    // Efecto de pulso del color por tipo
     const pulse = document.createElement("div");
     pulse.className = "absolute rounded-full animate-ping opacity-75";
     pulse.style.backgroundColor = color;
-    pulse.style.width = active ? "100%" : "80%";
-    pulse.style.height = active ? "100%" : "80%";
+    const innerPct = hasNeeds ? (active ? "70%" : "60%") : (active ? "100%" : "80%");
+    pulse.style.width = innerPct;
+    pulse.style.height = innerPct;
 
     // Punto central
     const dot = document.createElement("div");
@@ -270,7 +298,7 @@ export function MapMarker({
       }
       markerRef.current = null;
     };
-  }, [map, color, active, draggable]);
+  }, [map, color, active, draggable, hasNeeds]);
 
   // Sincronizar posición sin recrear el marcador
   useEffect(() => {

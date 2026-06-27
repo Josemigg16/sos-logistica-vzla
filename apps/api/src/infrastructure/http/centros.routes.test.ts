@@ -191,6 +191,56 @@ describe("GET /centros — after POST", () => {
   });
 });
 
+describe("Hub needs (operational signals)", () => {
+  test("POST /centros stores needs and GET /centros echoes them", async () => {
+    const app = buildApp();
+    const needs = [
+      { type: "TRANSPORT", note: "Camión 350" },
+      { type: "LABOR" },
+    ];
+
+    const postRes = await app.request("/centros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader()) },
+      body: JSON.stringify(makeCentro({ needs })),
+    });
+    expect(postRes.status).toBe(200);
+    const postBody = (await postRes.json()) as any;
+    expect(postBody.centro.needs).toEqual(needs);
+
+    const listRes = await app.request("/centros");
+    const list = (await listRes.json()) as any;
+    expect(list[0].needs).toEqual(needs);
+  });
+
+  test("POST /centros without needs defaults to empty array on output", async () => {
+    const app = buildApp();
+    await app.request("/centros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader()) },
+      body: JSON.stringify(makeCentro()),
+    });
+    const list = (await (await app.request("/centros")).json()) as any;
+    expect(list[0].needs).toEqual([]);
+  });
+
+  test("POST /centros replaces needs (not accumulates)", async () => {
+    const app = buildApp();
+    await app.request("/centros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader()) },
+      body: JSON.stringify(makeCentro({ needs: [{ type: "TRANSPORT" }] })),
+    });
+    await app.request("/centros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader()) },
+      body: JSON.stringify(makeCentro({ needs: [{ type: "FUEL", note: "diesel" }] })),
+    });
+    const list = (await (await app.request("/centros")).json()) as any;
+    expect(list[0].needs).toEqual([{ type: "FUEL", note: "diesel" }]);
+  });
+});
+
 describe("DELETE /centros/:id", () => {
   test("returns { success: true } and removes the hub", async () => {
     const app = buildApp();

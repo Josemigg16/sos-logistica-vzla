@@ -30,6 +30,36 @@ export type InventoryCategoryName = z.infer<typeof inventoryCategorySchema>;
 export const NEED_STATUSES = ["DRAFT", "PUBLISHED"] as const;
 export type NeedStatus = (typeof NEED_STATUSES)[number];
 
+// Operational needs declared at the hub level (transport, labor, fuel, etc.).
+// Distinct from the per-product `needs` table — these are coarse-grained signals
+// for the public map ("este centro necesita transporte").
+export const HUB_NEED_TYPES = ["TRANSPORT", "LABOR", "FUEL", "OTHER"] as const;
+export const hubNeedTypeSchema = z.enum(HUB_NEED_TYPES);
+export type HubNeedType = z.infer<typeof hubNeedTypeSchema>;
+
+export const hubNeedSchema = z.object({
+  type: hubNeedTypeSchema,
+  note: z.string().trim().max(280).optional(),
+});
+export type HubNeed = z.infer<typeof hubNeedSchema>;
+
+const hubNeedsArraySchema = z
+  .array(hubNeedSchema)
+  .default([])
+  .refine(
+    (needs) => new Set(needs.map((n) => n.type)).size === needs.length,
+    { message: "No se permiten necesidades duplicadas del mismo tipo" },
+  );
+
+// Body de los endpoints PUT /resources/my-hub/needs y PUT /resources/hubs/:id/needs.
+export const updateHubNeedsSchema = z.object({
+  needs: z.array(hubNeedSchema).refine(
+    (needs) => new Set(needs.map((n) => n.type)).size === needs.length,
+    { message: "No se permiten necesidades duplicadas del mismo tipo" },
+  ),
+});
+export type UpdateHubNeedsRequest = z.infer<typeof updateHubNeedsSchema>;
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(1).max(160),
   category: inventoryCategorySchema,
@@ -55,6 +85,7 @@ export const createHubSchema = z.object({
   longitude: z.number().min(-180).max(180),
   status: hubStatusSchema.optional(),
   isInformal: z.boolean().optional().default(false),
+  needs: hubNeedsArraySchema,
 });
 export type CreateHubRequest = z.infer<typeof createHubSchema>;
 
@@ -77,6 +108,7 @@ export interface PublicHub {
   coordinatorId: string | null;
   createdAt: string;
   isInformal: boolean;
+  needs: HubNeed[];
 }
 
 export interface PublicResource {

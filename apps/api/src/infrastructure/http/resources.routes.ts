@@ -5,6 +5,7 @@ import {
   hubStatusSchema,
   registerInventoryBatchSchema,
   stockResourceSchema,
+  updateHubNeedsSchema,
 } from "@sos/shared";
 import type { RegisterHub } from "../../application/resources/register-hub";
 import type { ListHubs } from "../../application/resources/list-hubs";
@@ -16,6 +17,7 @@ import type { ListInventoryBatchesByHub } from "../../application/resources/list
 import type { GetHubStockSummary } from "../../application/resources/get-hub-stock-summary";
 import type { DeleteInventoryBatch } from "../../application/resources/delete-inventory-batch";
 import type { ChangeHubStatus } from "../../application/resources/change-hub-status";
+import type { UpdateHubNeeds } from "../../application/resources/update-hub-needs";
 import { ResourceError } from "../../domain/resources/errors";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
@@ -30,7 +32,9 @@ export interface ResourceRoutesDeps {
   getHubStockSummary: GetHubStockSummary;
   deleteInventoryBatch: DeleteInventoryBatch;
   changeHubStatus: ChangeHubStatus;
+  updateHubNeeds: UpdateHubNeeds;
 }
+
 
 // Reusa el enum compartido directamente — no necesitamos un objeto wrapper.
 function parseStatusBody(body: unknown): { status: "ACTIVO" | "INACTIVO" } | null {
@@ -114,6 +118,57 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
       return mapError(c, error);
     }
   });
+
+  // El coordinador edita las necesidades operativas (transporte/mano de obra/
+  // combustible/otros) de su propio centro.
+  router.put("/my-hub/needs", authentication, async (c) => {
+    const actor = c.get("actor");
+    const parsed = updateHubNeedsSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json(
+        { error: "Datos inválidos", details: parsed.error.flatten() },
+        400,
+      );
+    }
+    try {
+      const hub = await deps.getHubByCoordinator.execute(actor.userId);
+      if (!hub) return c.json({ error: "Aún no tienes un centro registrado", code: "HUB_NOT_FOUND" }, 404);
+      const updated = await deps.updateHubNeeds.execute({
+        hubId: hub.id,
+        needs: parsed.data.needs,
+      });
+      return c.json({ hub: updated });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // ADMIN/MANAGER editan necesidades de cualquier centro.
+  router.put(
+    "/hubs/:hubId/needs",
+    authentication,
+    requireRole("ADMIN", "MANAGER"),
+    async (c) => {
+      const hubId = c.req.param("hubId");
+      const parsed = updateHubNeedsSchema.safeParse(await c.req.json().catch(() => null));
+      if (!parsed.success) {
+        return c.json(
+          { error: "Datos inválidos", details: parsed.error.flatten() },
+          400,
+        );
+      }
+      try {
+        const hub = await deps.updateHubNeeds.execute({
+          hubId,
+          needs: parsed.data.needs,
+        });
+        return c.json({ hub });
+      } catch (error) {
+        console.error(`[PUT /hubs/${hubId}/needs] error:`, error);
+        return mapError(c, error);
+      }
+    },
+  );
 
   router.post("/hubs", authentication, async (c) => {
     const parsed = createHubSchema.safeParse(

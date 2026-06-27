@@ -19,6 +19,7 @@ function toDomain(row: HubRow): Hub {
     coordinatorId: row.coordinatorId ?? null,
     createdAt: row.createdAt,
     isInformal: row.isInformal,
+    needs: row.needs ?? [],
   });
 }
 
@@ -56,6 +57,7 @@ export class DrizzleHubRepository implements HubRepository {
       coordinatorId: pub.coordinatorId,
       createdAt: new Date(pub.createdAt),
       isInformal: pub.isInformal,
+      needs: pub.needs,
     };
     await db
       .insert(hubs)
@@ -73,6 +75,7 @@ export class DrizzleHubRepository implements HubRepository {
           // Preserva el coordinador si el upsert no trae uno (ej. edición admin).
           coordinatorId: sql`coalesce(${values.coordinatorId}, ${hubs.coordinatorId})`,
           isInformal: values.isInformal,
+          needs: values.needs,
         },
       });
   }
