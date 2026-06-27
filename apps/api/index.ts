@@ -2,9 +2,9 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { join } from "path";
 import { centroSchema, type Centro } from "@sos/shared";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./src/infrastructure/persistence/db";
-import { hubs, resources } from "./src/infrastructure/persistence/schema/resources.schema";
+import { hubs, resources, products, needs } from "./src/infrastructure/persistence/schema/resources.schema";
 import { createIdentityModule } from "./src/infrastructure/identity.module";
 import { createResourcesModule } from "./src/infrastructure/resources.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
@@ -73,6 +73,17 @@ app.use(
     credentials: true,
   }),
 );
+
+// Obtener todos los productos (catálogo maestro) desde Postgres vía Drizzle
+app.get("/api/productos", async (c) => {
+  try {
+    const list = await db.select().from(products);
+    return c.json(list);
+  } catch (error) {
+    console.error("Error al obtener productos de la DB:", error);
+    return c.json({ error: "Error al obtener productos" }, 500);
+  }
+});
 
 // Bounded context `identity` — autenticación bajo /auth.
 app.route("/auth", createIdentityModule().routes);
@@ -217,80 +228,186 @@ app.delete("/api/centros/:id", async (c) => {
   }
 });
 
-// --- Needs (necesidades) — public read + admin CRUD, persistido en JSON local ---
+// --- Needs (necesidades) — public read + admin CRUD, persistido en base de datos relacional ---
 
 app.get("/api/necesidades", async (c) => {
-  const needs = await readNeeds();
-  return c.json(needs);
+  try {
+    const hubId = c.req.query("hubId");
+    let query = db
+      .select({
+        id: needs.id,
+        hubId: needs.hubId,
+        hubName: hubs.name,
+        productId: needs.productId,
+        nombre: products.name,
+        categoria: products.category,
+        unidad: products.unit,
+        meta: needs.meta,
+        recibido: needs.recibido,
+        prioridad: needs.prioridad,
+        descripcion: needs.descripcion,
+        fechaNecesidad: needs.fechaNecesidad,
+        createdAt: needs.createdAt,
+        updatedAt: needs.updatedAt,
+      })
+      .from(needs)
+      .innerJoin(hubs, eq(needs.hubId, hubs.id))
+      .innerJoin(products, eq(needs.productId, products.id));
+
+    if (hubId) {
+      query = query.where(eq(needs.hubId, hubId)) as any;
+    }
+
+    const list = await query;
+    const formatted = list.map((n) => ({
+      ...n,
+      fechaNecesidad: n.fechaNecesidad ? n.fechaNecesidad.toISOString().split("T")[0] : null,
+    }));
+    return c.json(formatted);
+  } catch (error) {
+    console.error("Error al obtener necesidades:", error);
+    return c.json({ error: "Error al obtener necesidades" }, 500);
+  }
 });
 
 app.post("/api/necesidades", async (c) => {
   try {
-    const body = (await c.req.json()) as Partial<NeedRecord>;
-    if (!body.nombre || !body.categoria || !body.unidad || !body.meta || !body.prioridad || !body.fechaNecesidad) {
+    const body = await c.req.json();
+    if (!body.hubId || !body.nombre || !body.categoria || !body.meta || !body.prioridad) {
       return c.json({ error: "Faltan campos requeridos" }, 400);
     }
-    const newRecord: NeedRecord = {
-      id: `nec-${Date.now()}`,
-      nombre: body.nombre,
-      categoria: body.categoria,
-      unidad: body.unidad,
+
+    // 1. Search for existing product (case-insensitive check on name)
+    let product = await db
+      .select()
+      .from(products)
+      .where(eq(sql`LOWER(${products.name})`, body.nombre.toLowerCase()))
+      .limit(1)
+      .then((r) => r[0]);
+
+    // 2. Create if not exists with automated unit: general = kg, Medicamentos = cajas
+    if (!product) {
+      const unit = body.categoria === "Medicamentos" ? "cajas" : "kg";
+      const productId = crypto.randomUUID();
+      await db.insert(products).values({
+        id: productId,
+        name: body.nombre,
+        category: body.categoria,
+        unit: unit,
+        description: `Creado automáticamente al registrar una necesidad.`,
+      });
+      product = { id: productId, name: body.nombre, category: body.categoria, unit } as any;
+    }
+
+    // 3. Create the need
+    const needId = crypto.randomUUID();
+    const draft = {
+      id: needId,
+      hubId: body.hubId,
+      productId: product.id,
       meta: Number(body.meta),
       recibido: Number(body.recibido ?? 0),
       prioridad: body.prioridad,
       descripcion: body.descripcion ?? "",
-      fechaNecesidad: body.fechaNecesidad,
+      fechaNecesidad: body.fechaNecesidad ? new Date(body.fechaNecesidad) : null,
+    };
+
+    await db.insert(needs).values(draft);
+
+    const result = {
+      id: needId,
+      hubId: body.hubId,
+      productId: product.id,
+      nombre: product.name,
+      categoria: product.category,
+      unidad: product.unit,
+      meta: draft.meta,
+      recibido: draft.recibido,
+      prioridad: draft.prioridad,
+      descripcion: draft.descripcion,
+      fechaNecesidad: body.fechaNecesidad ?? null,
       ultimaActualizacion: new Date().toISOString(),
     };
-    const needs = await readNeeds();
-    needs.push(newRecord);
-    const saved = await writeNeeds(needs);
-    if (!saved) return c.json({ error: "Error al guardar" }, 500);
-    return c.json(newRecord, 201);
-  } catch {
-    return c.json({ error: "Error en la petición" }, 400);
+
+    return c.json(result, 201);
+  } catch (error) {
+    console.error("Error al crear necesidad:", error);
+    return c.json({ error: "Error interno en el servidor" }, 500);
   }
 });
 
 app.put("/api/necesidades/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const needs = await readNeeds();
-    const idx = needs.findIndex((n) => n.id === id);
-    if (idx === -1) return c.json({ error: "No encontrada" }, 404);
+    const body = await c.req.json();
 
-    const body = (await c.req.json()) as Partial<NeedRecord>;
-    const current = needs[idx]!;
-    const updated: NeedRecord = {
-      id: current.id,
-      nombre: body.nombre ?? current.nombre,
-      categoria: body.categoria ?? current.categoria,
-      unidad: body.unidad ?? current.unidad,
-      prioridad: body.prioridad ?? current.prioridad,
-      descripcion: body.descripcion ?? current.descripcion,
-      fechaNecesidad: body.fechaNecesidad ?? current.fechaNecesidad,
-      meta: Number(body.meta ?? current.meta),
-      recibido: Number(body.recibido ?? current.recibido),
-      ultimaActualizacion: new Date().toISOString(),
-    };
-    needs[idx] = updated;
-    const saved = await writeNeeds(needs);
-    if (!saved) return c.json({ error: "Error al guardar" }, 500);
-    return c.json(updated);
-  } catch {
-    return c.json({ error: "Error en la petición" }, 400);
+    const needExists = await db
+      .select()
+      .from(needs)
+      .where(eq(needs.id, id))
+      .limit(1)
+      .then((r) => r[0]);
+
+    if (!needExists) {
+      return c.json({ error: "Necesidad no encontrada" }, 404);
+    }
+
+    await db
+      .update(needs)
+      .set({
+        meta: body.meta !== undefined ? Number(body.meta) : undefined,
+        recibido: body.recibido !== undefined ? Number(body.recibido) : undefined,
+        prioridad: body.prioridad ?? undefined,
+        descripcion: body.descripcion ?? undefined,
+        fechaNecesidad: body.fechaNecesidad ? new Date(body.fechaNecesidad) : undefined,
+        updatedAt: new Date(),
+      })
+      .where(eq(needs.id, id));
+
+    const updated = await db
+      .select({
+        id: needs.id,
+        hubId: needs.hubId,
+        hubName: hubs.name,
+        productId: needs.productId,
+        nombre: products.name,
+        categoria: products.category,
+        unidad: products.unit,
+        meta: needs.meta,
+        recibido: needs.recibido,
+        prioridad: needs.prioridad,
+        descripcion: needs.descripcion,
+        fechaNecesidad: needs.fechaNecesidad,
+      })
+      .from(needs)
+      .innerJoin(hubs, eq(needs.hubId, hubs.id))
+      .innerJoin(products, eq(needs.productId, products.id))
+      .where(eq(needs.id, id))
+      .limit(1)
+      .then((r) => r[0]);
+
+    return c.json({
+      ...updated,
+      fechaNecesidad: updated?.fechaNecesidad ? updated.fechaNecesidad.toISOString().split("T")[0] : null,
+    });
+  } catch (error) {
+    console.error("Error al actualizar necesidad:", error);
+    return c.json({ error: "Error interno en el servidor" }, 500);
   }
 });
 
 app.delete("/api/necesidades/:id", async (c) => {
-  const id = c.req.param("id");
-  const needs = await readNeeds();
-  const idx = needs.findIndex((n) => n.id === id);
-  if (idx === -1) return c.json({ error: "No encontrada" }, 404);
-  needs.splice(idx, 1);
-  const saved = await writeNeeds(needs);
-  if (!saved) return c.json({ error: "Error al guardar" }, 500);
-  return c.json({ ok: true });
+  try {
+    const id = c.req.param("id");
+    const deleted = await db.delete(needs).where(eq(needs.id, id)).returning();
+    if (deleted.length === 0) {
+      return c.json({ error: "Necesidad no encontrada" }, 404);
+    }
+    return c.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar necesidad:", error);
+    return c.json({ error: "Error interno en el servidor" }, 500);
+  }
 });
 
 const port = Number(process.env.PORT ?? 8081);

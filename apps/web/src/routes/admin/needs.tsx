@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
   Plus,
   Pencil,
@@ -12,9 +12,12 @@ import {
   CheckCircle2,
   Loader2,
   AlertTriangle,
+  MapPin,
+  ChevronDown,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
+import { type ProductMaster } from '@sos/shared'
 
 export const Route = createFileRoute('/admin/needs')({
   component: NeedsGate,
@@ -33,6 +36,9 @@ type Priority = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'
 
 interface Need {
   id: string
+  hubId: string
+  hubName: string
+  productId: string
   nombre: string
   categoria: string
   unidad: string
@@ -44,7 +50,9 @@ interface Need {
   fechaNecesidad: string
 }
 
-type NeedDraft = Omit<Need, 'id' | 'ultimaActualizacion'>
+type NeedDraft = Omit<Need, 'id' | 'ultimaActualizacion' | 'hubName' | 'productId'> & {
+  hubId: string
+}
 
 const CATEGORIES = [
   'Víveres',
@@ -349,6 +357,7 @@ function AdminNeedsPage() {
               <thead>
                 <tr className="border-b border-[#2B5F8E]/40 text-[10px] font-bold text-white/40 uppercase tracking-wider">
                   <th className="text-left px-5 py-3">Ítem</th>
+                  <th className="text-left px-5 py-3">Centro</th>
                   <th className="text-left px-5 py-3">Categoría</th>
                   <th className="text-left px-5 py-3">Prioridad</th>
                   <th className="text-left px-5 py-3">Fecha</th>
@@ -424,6 +433,12 @@ function NeedRow({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; o
         <div className="font-semibold text-white text-[13px]">{need.nombre}</div>
         <div className="text-[11px] text-white/40 mt-0.5 line-clamp-1">{need.descripcion}</div>
       </td>
+      <td className="px-5 py-4 text-[12px] text-white/70 font-medium">
+        <div className="flex items-center gap-1.5">
+          <MapPin className="w-3.5 h-3.5 text-[#4A89C0] shrink-0" />
+          <span>{need.hubName || 'Global'}</span>
+        </div>
+      </td>
       <td className="px-5 py-4 text-[12px] text-white/60">{need.categoria}</td>
       <td className="px-5 py-4">
         <span
@@ -474,6 +489,10 @@ function NeedMobileCard({ need, onEdit, onDelete }: { need: Need; onEdit: () => 
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">
           <h3 className="font-semibold text-white text-sm truncate">{need.nombre}</h3>
+          <div className="flex items-center gap-1 text-[10px] text-[#4A89C0] mt-0.5 mb-1 font-semibold">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="truncate">{need.hubName || 'Global'}</span>
+          </div>
           <p className="text-[11px] text-white/40">{need.categoria}</p>
         </div>
         <span
@@ -590,7 +609,47 @@ function NeedFormModal({
     prioridad: initial?.prioridad ?? 'ALTA',
     descripcion: initial?.descripcion ?? '',
     fechaNecesidad: initial?.fechaNecesidad ?? todayIso(),
+    hubId: initial?.hubId ?? '',
   })
+
+  const [showSuggestions, setShowSuggestions] = useState(false)
+
+  const { data: centers = [] } = useQuery<any[]>({
+    queryKey: ['centros'],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/api/centros`)
+      if (!res.ok) throw new Error('API error')
+      return res.json()
+    },
+  })
+
+  const { data: products = [] } = useQuery<ProductMaster[]>({
+    queryKey: ['productos'],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/api/productos`)
+      if (!res.ok) throw new Error('Error al cargar productos')
+      return res.json()
+    },
+  })
+
+  const suggestions = useMemo(() => {
+    if (!draft.nombre.trim()) return []
+    return products.filter(
+      (prod) =>
+        prod.name.toLowerCase().includes(draft.nombre.toLowerCase()) &&
+        prod.name.toLowerCase() !== draft.nombre.toLowerCase()
+    ).slice(0, 5)
+  }, [products, draft.nombre])
+
+  const selectProduct = (prod: ProductMaster) => {
+    setDraft({
+      ...draft,
+      nombre: prod.name,
+      categoria: prod.category,
+      unidad: prod.unit,
+    })
+    setShowSuggestions(false)
+  }
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -628,16 +687,62 @@ function NeedFormModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
-          <Field label="Nombre del ítem" required>
-            <input
-              type="text"
-              value={draft.nombre}
-              onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
-              required
-              maxLength={120}
-              className="input"
-              placeholder="ej. Agua potable"
-            />
+          <Field label="Centro de Acopio" required>
+            <div className="relative">
+              <select
+                value={draft.hubId}
+                onChange={(e) => setDraft({ ...draft, hubId: e.target.value })}
+                required
+                disabled={!!initial}
+                className="w-full px-3 py-2.5 rounded-xl bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 appearance-none cursor-pointer"
+              >
+                <option value="">Selecciona el centro...</option>
+                {centers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-3.5 pointer-events-none" />
+            </div>
+          </Field>
+
+          <Field label="Nombre del ítem" required hint="Escribe para buscar sugerencias en el catálogo">
+            <div className="relative">
+              <input
+                type="text"
+                value={draft.nombre}
+                onChange={(e) => {
+                  setDraft({ ...draft, nombre: e.target.value })
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => {
+                  setTimeout(() => setShowSuggestions(false), 200)
+                }}
+                required
+                maxLength={120}
+                className="input"
+                placeholder="ej. Agua potable"
+              />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 z-50 rounded-lg border border-[#2B5F8E]/50 bg-[#0F2337] shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                  {suggestions.map((prod) => (
+                    <button
+                      key={prod.id}
+                      type="button"
+                      onClick={() => selectProduct(prod)}
+                      className="w-full text-left px-3 py-2 text-xs text-white/80 hover:text-white hover:bg-[#2B5F8E]/40 border-b border-[#2B5F8E]/10 last:border-0 flex items-center justify-between cursor-pointer"
+                    >
+                      <span>{prod.name}</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/50">
+                        {prod.category} • {prod.unit}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </Field>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

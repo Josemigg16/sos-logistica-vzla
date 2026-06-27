@@ -564,6 +564,15 @@ function NecesidadesPage() {
                 Estas son las necesidades urgentes de los centros de acopio activos.
                 Cada donación se registra y actualiza estas cifras en tiempo real.
               </p>
+              <div className="mt-5">
+                <Link
+                  to="/needs-register"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2B5F8E]/40 border border-[#4A89C0]/40 text-xs font-bold text-[#C8DCF0] hover:bg-[#2B5F8E]/60 hover:text-white transition-all duration-200"
+                >
+                  <HandHeart className="w-4 h-4 text-[#4A89C0]" />
+                  REPORTAR NECESIDADES DE UN CENTRO
+                </Link>
+              </div>
             </div>
 
             {/* Big CTA block — real MapLibre map preview as background */}

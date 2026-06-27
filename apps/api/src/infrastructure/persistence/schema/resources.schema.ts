@@ -22,6 +22,37 @@ export const accionCargaEnum = pgEnum("accion_carga", ["RECEPCION", "EMBALAJE", 
 // --- TABLAS ---
 
 /**
+ * Catálogo Maestro de Productos en la Base de Datos.
+ */
+export const products = pgTable("products", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: varchar("name", { length: 160 }).notNull().unique(),
+  category: inventoryCategoryEnum("category").notNull(),
+  unit: varchar("unit", { length: 40 }).notNull(),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const needs = pgTable("needs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hubId: uuid("hub_id")
+    .notNull()
+    .references(() => hubs.id, { onDelete: "cascade" }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  meta: integer("meta").notNull().default(0),
+  recibido: integer("recibido").notNull().default(0),
+  prioridad: varchar("prioridad", { length: 20 }).notNull().default("ALTA"),
+  descripcion: text("descripcion").default(""),
+  fechaNecesidad: timestamp("fecha_necesidad", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/**
  * Centros de acopio periféricos, de salida (Protección Civil) y destinos finales.
  * Tabla esperada por el repositorio remoto en inglés: 'hubs'.
  */
@@ -107,10 +138,22 @@ export const historialCarga = pgTable("historial_carga", {
 
 export const hubsRelations = relations(hubs, ({ many }) => ({
   resources: many(resources),
+  needs: many(needs),
   vehiculosUbicados: many(vehiculos),
   operationsDestino: many(operations),
   viajesDestino: many(viajes),
   historialAcciones: many(historialCarga),
+}));
+
+export const needsRelations = relations(needs, ({ one }) => ({
+  hub: one(hubs, {
+    fields: [needs.hubId],
+    references: [hubs.id],
+  }),
+  product: one(products, {
+    fields: [needs.productId],
+    references: [products.id],
+  }),
 }));
 
 export const resourcesRelations = relations(resources, ({ one }) => ({
