@@ -7,8 +7,11 @@ import { CreateVehicle } from "./create-vehicle";
 import { ListVehicles } from "./list-vehicles";
 import { UpdateVehicle } from "./update-vehicle";
 import { DeleteVehicle } from "./delete-vehicle";
+import { CreateDriver } from "./create-driver";
+import { ListDrivers } from "./list-drivers";
 import { InMemoryVehicleTypeRepository } from "../../infrastructure/persistence/in-memory-vehicle-type.repository";
 import { InMemoryVehicleRepository } from "../../infrastructure/persistence/in-memory-vehicle.repository";
+import { InMemoryDriverRepository } from "../../infrastructure/persistence/in-memory-driver.repository";
 import { VehicleTypeNotFoundError, VehicleNotFoundError, PlacaTakenError } from "../../domain/fleet/errors";
 
 describe("VehicleType use cases", () => {
@@ -102,5 +105,39 @@ describe("Vehicle use cases", () => {
     await remove.execute(created.id);
     const all = await list.execute();
     expect(all).toHaveLength(0);
+  });
+});
+
+describe("Driver use cases", () => {
+  let drivers: InMemoryDriverRepository;
+  let create: CreateDriver;
+  let list: ListDrivers;
+
+  beforeEach(() => {
+    drivers = new InMemoryDriverRepository();
+    create = new CreateDriver(drivers);
+    list = new ListDrivers(drivers);
+  });
+
+  test("creates a driver without user account", async () => {
+    const result = await create.execute({
+      nombre: "Juan",
+      apellido: "Pérez",
+      cedula: "12345678",
+      licencia: "Grado 5",
+      telefono: "0412-1234567",
+    });
+    expect(result.nombre).toBe("Juan");
+    expect(result.apellido).toBe("Pérez");
+    expect(result.cedula).toBe("12345678");
+    expect(result.disponible).toBe(true);
+    expect(result.id).toBeTruthy();
+  });
+
+  test("lists drivers", async () => {
+    await create.execute({ nombre: "A", apellido: "B", cedula: "11111111", licencia: "G3", telefono: "0412-0000001" });
+    await create.execute({ nombre: "C", apellido: "D", cedula: "22222222", licencia: "G5", telefono: "0412-0000002" });
+    const all = await list.execute();
+    expect(all).toHaveLength(2);
   });
 });

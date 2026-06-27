@@ -16,6 +16,8 @@ function toDomain(row: UserRow): User {
     role: Role.create(row.role),
     status: row.status,
     email: row.email,
+    cedula: row.cedula ?? null,
+    telefono: row.telefono ?? null,
     createdAt: row.createdAt,
   });
 }
@@ -27,11 +29,12 @@ export class DrizzleUserRepository implements UserRepository {
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    const [row] = await db
-      .select()
-      .from(users)
-      .where(eq(users.username, username))
-      .limit(1);
+    const [row] = await db.select().from(users).where(eq(users.username, username)).limit(1);
+    return row ? toDomain(row) : null;
+  }
+
+  async findByCedula(cedula: string): Promise<User | null> {
+    const [row] = await db.select().from(users).where(eq(users.cedula, cedula)).limit(1);
     return row ? toDomain(row) : null;
   }
 
@@ -53,6 +56,8 @@ export class DrizzleUserRepository implements UserRepository {
       role: user.role.value,
       status: user.status,
       email: user.email,
+      cedula: user.cedula,
+      telefono: user.telefono,
       createdAt: user.createdAt,
     };
     await db
@@ -66,6 +71,8 @@ export class DrizzleUserRepository implements UserRepository {
           role: values.role,
           status: values.status,
           email: values.email,
+          cedula: values.cedula,
+          telefono: values.telefono,
         },
       });
   }

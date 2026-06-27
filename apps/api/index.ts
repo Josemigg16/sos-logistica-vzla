@@ -10,6 +10,7 @@ import { createProductsModule } from "./src/infrastructure/products.module";
 import { createNeedsModule } from "./src/infrastructure/needs.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
 import { createFleetModule } from "./src/infrastructure/fleet.module";
+import { createCargoModule } from "./src/infrastructure/cargo.module";
 
 const app = new Hono();
 
@@ -44,6 +45,9 @@ app.route("/operations", createOperationsModule().routes);
 
 // Bounded context `fleet` — choferes, vehículos y tipos de vehículo bajo /fleet.
 app.route("/fleet", createFleetModule().routes);
+
+// Bounded context `cargo` — lotes, asignaciones y traspasos bajo /cargo.
+app.route("/cargo", createCargoModule().routes);
 
 // --- Endpoints del Servidor ---
 

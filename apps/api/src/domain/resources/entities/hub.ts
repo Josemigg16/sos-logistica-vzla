@@ -8,6 +8,7 @@ export interface HubProps {
   type: HubType;
   latitude: number;
   longitude: number;
+  coordinatorId: string | null;
   createdAt: Date;
 }
 
@@ -30,8 +31,9 @@ export class Hub {
     type: HubType;
     latitude: number;
     longitude: number;
+    coordinatorId?: string | null;
   }): Hub {
-    return new Hub({ ...input, createdAt: new Date() });
+    return new Hub({ ...input, coordinatorId: input.coordinatorId ?? null, createdAt: new Date() });
   }
 
   get id(): string {
@@ -53,6 +55,7 @@ export class Hub {
       type: this.props.type,
       latitude: this.props.latitude,
       longitude: this.props.longitude,
+      coordinatorId: this.props.coordinatorId,
       createdAt: this.props.createdAt.toISOString(),
     };
   }

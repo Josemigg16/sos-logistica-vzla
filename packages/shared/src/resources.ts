@@ -65,6 +65,7 @@ export interface PublicHub {
   type: HubType;
   latitude: number;
   longitude: number;
+  coordinatorId: string | null;
   createdAt: string;
 }
 

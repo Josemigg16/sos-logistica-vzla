@@ -11,7 +11,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { OPERATION_STATUSES } from "@sos/shared";
-import { users } from "./users.schema";
 import { incidents } from "./incidents.schema";
 import { hubs, lotesCarga, traspasosCarga, resources } from "./resources.schema";
 import { tiposVehiculo } from "./fleet.schema";
@@ -27,11 +26,14 @@ export const estadoViajeEnum = pgEnum("estado_viaje", ["PLANIFICADO", "EN_RUTA",
 // --- TABLAS ---
 
 /**
- * Tabla que extiende a los usuarios con rol 'DRIVER' para registrar sus datos específicos de chofer.
+ * Registro de choferes. Entidad independiente — no es un usuario del sistema.
  */
 export const choferes = pgTable("choferes", {
-  id: uuid("id").primaryKey().references(() => users.id, { onDelete: "cascade" }),
-  licencia: text("licencia").notNull(), // Nro de licencia y grado (ej: "Grado 5")
+  id: uuid("id").primaryKey().defaultRandom(),
+  nombre: varchar("nombre", { length: 80 }).notNull(),
+  apellido: varchar("apellido", { length: 80 }).notNull(),
+  cedula: varchar("cedula", { length: 20 }).notNull().unique(),
+  licencia: text("licencia").notNull(),
   telefono: text("telefono").notNull(),
   disponible: boolean("disponible").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
@@ -116,11 +118,7 @@ export const assignments = pgTable("assignments", {
 
 // --- RELACIONES (Drizzle Relations) ---
 
-export const choferesRelations = relations(choferes, ({ one, many }) => ({
-  usuario: one(users, {
-    fields: [choferes.id],
-    references: [users.id],
-  }),
+export const choferesRelations = relations(choferes, ({ many }) => ({
   vehiculosAsignados: many(vehiculos),
 }));
 

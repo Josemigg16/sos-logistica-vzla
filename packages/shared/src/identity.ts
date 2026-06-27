@@ -58,3 +58,12 @@ export interface AdminUserView extends PublicUser {
   status: UserStatus;
   createdAt: string;
 }
+
+/** Auto-registro público para coordinadores de centros de acopio. */
+export const signupSchema = z.object({
+  username: z.string().trim().toLowerCase().min(3).max(64),
+  password: z.string().min(8).max(128),
+  cedula: z.string().trim().min(4).max(20),
+  telefono: z.string().trim().min(7).max(20),
+});
+export type SignupRequest = z.infer<typeof signupSchema>;

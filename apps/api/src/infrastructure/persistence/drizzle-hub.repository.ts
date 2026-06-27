@@ -15,6 +15,7 @@ function toDomain(row: HubRow): Hub {
     type: row.type,
     latitude: row.latitude,
     longitude: row.longitude,
+    coordinatorId: row.coordinatorId ?? null,
     createdAt: row.createdAt,
   });
 }
@@ -40,6 +41,7 @@ export class DrizzleHubRepository implements HubRepository {
       type: pub.type,
       latitude: pub.latitude,
       longitude: pub.longitude,
+      coordinatorId: pub.coordinatorId,
       createdAt: new Date(pub.createdAt),
     };
     await db
@@ -54,6 +56,7 @@ export class DrizzleHubRepository implements HubRepository {
           type: values.type,
           latitude: values.latitude,
           longitude: values.longitude,
+          coordinatorId: values.coordinatorId,
         },
       });
   }

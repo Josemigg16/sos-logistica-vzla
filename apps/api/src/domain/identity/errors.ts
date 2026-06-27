@@ -35,3 +35,9 @@ export class InvalidRefreshTokenError extends IdentityError {
     super("Sesión inválida o expirada", "INVALID_REFRESH_TOKEN");
   }
 }
+
+export class CedulaTakenError extends IdentityError {
+  constructor(cedula: string) {
+    super(`La cédula "${cedula}" ya está registrada`, "CEDULA_TAKEN");
+  }
+}
