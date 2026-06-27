@@ -82,15 +82,22 @@ export default function App() {
   const handleMapClick = (lngLat: [number, number]) => {
     if (isCustomRoutingMode) {
       setCustomRoutePoints(prev => {
-        if (prev.length >= 2) {
-          return [lngLat];
-        } else {
-          return [...prev, lngLat];
-        }
+        if (prev.length >= 2) return [lngLat];
+        return [...prev, lngLat];
       });
     } else {
       setClickedCoordinates(lngLat);
       setIsRegistering(true);
+      // En mobile el modal cubre ~70% de la pantalla — hacemos pan para que
+      // el pin quede visible en el tercio superior del área expuesta.
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        // offset ≈ 35% de la pantalla en grados, según el zoom actual
+        const latOffset = 180 / Math.pow(2, mapZoom);
+        setMapCenter([lngLat[0], lngLat[1] - latOffset]);
+      } else {
+        setMapCenter([lngLat[0], lngLat[1]]);
+      }
     }
   };
 
@@ -985,7 +992,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 </span>
               </div>
 
-              <div className="w-full h-36 rounded-xl overflow-hidden border border-border/60 relative ring-1 ring-border/30">
+              {/* <div className="w-full h-36 rounded-xl overflow-hidden border border-border/60 relative ring-1 ring-border/30">
                 <Map
                   center={[lng, lat]}
                   zoom={13}
@@ -1009,7 +1016,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/70 text-[8.5px] text-white/70 pointer-events-none backdrop-blur-sm border border-white/5">
                   Hacé clic o arrastrá el marcador
                 </div>
-              </div>
+              </div> */}
             </div>
 
             <div className="flex items-start gap-2 p-3 bg-violet-500/5 border border-violet-500/10 rounded-xl text-[9.5px] text-violet-400/80">
