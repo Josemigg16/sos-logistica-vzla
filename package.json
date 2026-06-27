@@ -14,8 +14,9 @@
     "build": "bun --filter '*' build",
     "lint": "bun --filter '*' lint",
     "test": "bun test",
-    "db:push": "bun --filter @sos/api db:push",
+    "db:generate": "bun --filter @sos/api db:generate",
     "db:migrate": "bun --filter @sos/api db:migrate",
+    "db:push": "bun --filter @sos/api db:push",
     "db:studio": "bun --filter @sos/api db:studio"
   },
   "devDependencies": {
