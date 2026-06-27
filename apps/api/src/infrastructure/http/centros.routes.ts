@@ -57,7 +57,7 @@ function mapError(c: Context, error: unknown) {
 // ---------- helpers ----------
 
 async function buildCentroFromHub(
-  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number },
+  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number; isInformal: boolean },
   listResourcesByHub: ListResourcesByHub,
 ): Promise<Centro> {
   const resources = await listResourcesByHub.execute(hub.id);
@@ -76,6 +76,7 @@ async function buildCentroFromHub(
     tipo: HUB_TYPE_TO_TIPO[hub.type],
     estado: hub.status,
     inventario,
+    isInformal: hub.isInformal,
   };
 }
 
@@ -143,6 +144,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
         status: centro.estado,
         latitude: centro.coordenadas[1],
         longitude: centro.coordenadas[0],
+        isInformal: centro.isInformal ?? false,
       });
 
       await deps.replaceHubInventory.execute({
