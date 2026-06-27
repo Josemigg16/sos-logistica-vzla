@@ -43,6 +43,13 @@
       "when": 1782806400000,
       "tag": "0005_resources_product_id",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782892800000,
+      "tag": "0006_convoys",
+      "breakpoints": true
     }
   ]
 }
