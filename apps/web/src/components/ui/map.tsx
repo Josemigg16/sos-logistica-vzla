@@ -11,13 +11,14 @@ interface MapProps {
   children?: React.ReactNode;
   className?: string;
   onClick?: (lngLat: [number, number]) => void;
+  onMoveEnd?: (center: [number, number], zoom: number) => void;
 }
 
 const isValidLngLat = (lng: number, lat: number) => {
   return typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 };
 
-export function Map({ center, zoom, theme = "dark", children, className, onClick }: MapProps) {
+export function Map({ center, zoom, theme = "dark", children, className, onClick, onMoveEnd }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
 
@@ -73,15 +74,33 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
   }, [center, map]);
 
   // Escuchar clics en el mapa
+  const onClickRef = useRef(onClick);
   useEffect(() => {
-    if (!map || !onClick) return;
+    onClickRef.current = onClick;
+  }, [onClick]);
+
+  useEffect(() => {
+    if (!map) return;
+    let clickTimeout: any = null;
+
     const handleMapClick = (e: maplibregl.MapMouseEvent) => {
-      // Evitar que el clic en un marcador propague el evento al mapa principal
-      // Nota: los marcadores usan addEventListener con e.stopPropagation()
-      onClick([e.lngLat.lng, e.lngLat.lat]);
+      if (!onClickRef.current) return;
+      
+      if (clickTimeout) {
+        clearTimeout(clickTimeout);
+        clickTimeout = null;
+        return;
+      }
+
+      clickTimeout = setTimeout(() => {
+        onClickRef.current?.([e.lngLat.lng, e.lngLat.lat]);
+        clickTimeout = null;
+      }, 250);
     };
+
     map.on("click", handleMapClick);
     return () => {
+      if (clickTimeout) clearTimeout(clickTimeout);
       try {
         if (map && typeof map.off === "function") {
           map.off("click", handleMapClick);
@@ -90,7 +109,34 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
         console.warn("Error removing click listener:", err);
       }
     };
-  }, [map, onClick]);
+  }, [map]);
+
+  // Escuchar movimiento/zoom del mapa
+  const onMoveEndRef = useRef(onMoveEnd);
+  useEffect(() => {
+    onMoveEndRef.current = onMoveEnd;
+  }, [onMoveEnd]);
+
+  useEffect(() => {
+    if (!map || !onMoveEnd) return;
+    const handleMoveEnd = () => {
+      const c = map.getCenter();
+      const z = map.getZoom();
+      const newCenter: [number, number] = [c.lng, c.lat];
+      lastCenter.current = newCenter; // Sincronizar lastCenter para evitar bucles o saltos de flyTo
+      onMoveEndRef.current?.(newCenter, z);
+    };
+    map.on("moveend", handleMoveEnd);
+    return () => {
+      try {
+        if (map && typeof map.off === "function") {
+          map.off("moveend", handleMoveEnd);
+        }
+      } catch (err) {
+        console.warn("Error removing moveend listener:", err);
+      }
+    };
+  }, [map, onMoveEnd]);
 
 
   return (
@@ -109,10 +155,21 @@ export function MapControls() {
     if (!map) return;
     const nav = new maplibregl.NavigationControl({ showCompass: false });
     map.addControl(nav, "top-right");
+
+    const geolocate = new maplibregl.GeolocateControl({
+      positionOptions: {
+        enableHighAccuracy: true,
+      },
+      trackUserLocation: true,
+      showUserLocation: true,
+    });
+    map.addControl(geolocate, "top-right");
+
     return () => {
       try {
         if (map && typeof map.removeControl === "function") {
           map.removeControl(nav);
+          map.removeControl(geolocate);
         }
       } catch (err) {
         console.warn("Error removing control:", err);
@@ -128,11 +185,27 @@ interface MapMarkerProps {
   onClick?: () => void;
   color?: string;
   active?: boolean;
+  draggable?: boolean;
+  onDragEnd?: (lngLat: [number, number]) => void;
 }
 
-export function MapMarker({ coordinates, onClick, color = "#22c55e", active = false }: MapMarkerProps) {
+export function MapMarker({
+  coordinates,
+  onClick,
+  color = "#22c55e",
+  active = false,
+  draggable = false,
+  onDragEnd,
+}: MapMarkerProps) {
   const { map } = useContext(MapContext);
   const markerRef = useRef<maplibregl.Marker | null>(null);
+  const onClickRef = useRef(onClick);
+  const onDragEndRef = useRef(onDragEnd);
+
+  useEffect(() => {
+    onClickRef.current = onClick;
+    onDragEndRef.current = onDragEnd;
+  }, [onClick, onDragEnd]);
 
   useEffect(() => {
     if (!map || !isValidLngLat(coordinates[0], coordinates[1])) return;
@@ -167,14 +240,20 @@ export function MapMarker({ coordinates, onClick, color = "#22c55e", active = fa
 
     const marker = new maplibregl.Marker({
       element: el,
+      draggable: draggable,
     })
       .setLngLat(coordinates)
       .addTo(map);
 
-    if (onClick) {
-      el.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onClick();
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onClickRef.current?.();
+    });
+
+    if (draggable) {
+      marker.on("dragend", () => {
+        const lngLat = marker.getLngLat();
+        onDragEndRef.current?.([lngLat.lng, lngLat.lat]);
       });
     }
 
@@ -186,8 +265,19 @@ export function MapMarker({ coordinates, onClick, color = "#22c55e", active = fa
       } catch (err) {
         console.warn("Error removing marker:", err);
       }
+      markerRef.current = null;
     };
-  }, [map, coordinates, color, onClick, active]);
+  }, [map, color, active, draggable]);
+
+  // Sincronizar posición sin recrear el marcador
+  useEffect(() => {
+    if (markerRef.current && isValidLngLat(coordinates[0], coordinates[1])) {
+      const currentLngLat = markerRef.current.getLngLat();
+      if (currentLngLat.lng !== coordinates[0] || currentLngLat.lat !== coordinates[1]) {
+        markerRef.current.setLngLat(coordinates);
+      }
+    }
+  }, [coordinates]);
 
   return null;
 }

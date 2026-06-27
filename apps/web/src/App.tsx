@@ -15,7 +15,8 @@ import {
   ArrowLeft,
   X,
   Plus,
-  Loader2
+  Loader2,
+  Compass
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { PublicConvoy } from "@sos/shared";
@@ -69,6 +70,7 @@ export default function App() {
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [clickedCoordinates, setClickedCoordinates] = useState<[number, number] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
   const toast = useToast();
@@ -77,16 +79,20 @@ export default function App() {
   const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
   const [customRoutePoints, setCustomRoutePoints] = useState<[number, number][]>([]);
 
-  // Manejar el clic en el mapa para el trazado personalizado
+  // Manejar el clic en el mapa para el trazado personalizado o abrir el formulario de registro
   const handleMapClick = (lngLat: [number, number]) => {
-    if (!isCustomRoutingMode) return;
-    setCustomRoutePoints(prev => {
-      if (prev.length >= 2) {
-        return [lngLat];
-      } else {
-        return [...prev, lngLat];
-      }
-    });
+    if (isCustomRoutingMode) {
+      setCustomRoutePoints(prev => {
+        if (prev.length >= 2) {
+          return [lngLat];
+        } else {
+          return [...prev, lngLat];
+        }
+      });
+    } else {
+      setClickedCoordinates(lngLat);
+      setIsRegistering(true);
+    }
   };
 
   // Definir la ruta nacional de distribución: Aragua -> Carabobo -> Lara
@@ -158,9 +164,56 @@ export default function App() {
     return centros.find(c => c.id === selectedId) || null;
   }, [selectedId, centros]);
 
-  // Coordenadas iniciales (Venezuela)
-  const [mapCenter, setMapCenter] = useState<[number, number]>([-66.9036, 10.4806]);
-  const [mapZoom, setMapZoom] = useState(7);
+  // Coordenadas iniciales (Portuguesa por defecto la primera vez, o la guardada anteriormente)
+  const [mapCenter, setMapCenter] = useState<[number, number]>(() => {
+    const saved = localStorage.getItem("map_center");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+    const hasEntered = localStorage.getItem("has_entered_map");
+    if (hasEntered) {
+      return [-66.9036, 10.4806]; // Caracas (default anterior si ya había entrado)
+    }
+    return [-69.2216, 9.5832]; // Portuguesa (default primera vez)
+  });
+
+  const [mapZoom, setMapZoom] = useState<number>(() => {
+    const saved = localStorage.getItem("map_zoom");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        // Fallback
+      }
+    }
+    const hasEntered = localStorage.getItem("has_entered_map");
+    if (hasEntered) {
+      return 7; // Zoom default Caracas
+    }
+    return 8; // Zoom default Portuguesa
+  });
+
+  // Solicitar ubicación al entrar y centrar el mapa
+  useEffect(() => {
+    // Registrar que el usuario ya entró al mapa
+    localStorage.setItem("has_entered_map", "true");
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setMapCenter([position.coords.longitude, position.coords.latitude]);
+          setMapZoom(12);
+        },
+        (error) => {
+          console.warn("Error obteniendo la ubicación al inicio:", error);
+        }
+      );
+    }
+  }, []);
 
   // Categorías de inventario disponibles
   const categorias = [
@@ -283,6 +336,16 @@ export default function App() {
             <MapPin className={`w-4 h-4 ${isCustomRoutingMode ? "animate-bounce" : ""}`} />
           </button>
           <button
+            onClick={() => {
+              setMapCenter([-69.2216, 9.5832]);
+              setMapZoom(8);
+            }}
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
+            title="Centrar mapa en la región"
+          >
+            <Compass className="w-4 h-4" />
+          </button>
+          <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
             title="Cambiar tema"
@@ -290,7 +353,10 @@ export default function App() {
             {theme === "dark" ? <Sun className="w-4 h-4 text-blue-300" /> : <Moon className="w-4 h-4 text-blue-700" />}
           </button>
           <button
-            onClick={() => setIsRegistering(true)}
+            onClick={() => {
+              setClickedCoordinates(null);
+              setIsRegistering(true);
+            }}
             className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:px-2.5 md:py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
             title="Proponer nuevo centro de acopio"
@@ -313,6 +379,12 @@ export default function App() {
           theme={theme} 
           className="w-full h-full"
           onClick={handleMapClick}
+          onMoveEnd={(center, zoom) => {
+            setMapCenter(center);
+            setMapZoom(zoom);
+            localStorage.setItem("map_center", JSON.stringify(center));
+            localStorage.setItem("map_zoom", JSON.stringify(zoom));
+          }}
         >
           <MapControls />
           {showSupplyRoute && (
@@ -718,7 +790,11 @@ export default function App() {
 
       {isRegistering && (
         <PublicHubModal
-          onClose={() => setIsRegistering(false)}
+          onClose={() => {
+            setIsRegistering(false);
+            setClickedCoordinates(null);
+          }}
+          initialCoordinates={clickedCoordinates}
           isSubmitting={isSaving}
           onSubmit={async (data) => {
             setIsSaving(true);
@@ -764,15 +840,24 @@ interface PublicHubModalProps {
   onClose: () => void;
   onSubmit: (data: Omit<Centro, "inventario" | "verificacion" | "metadata">) => Promise<void>;
   isSubmitting: boolean;
+  initialCoordinates?: [number, number] | null;
 }
 
-function PublicHubModal({ onClose, onSubmit, isSubmitting }: PublicHubModalProps) {
+function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }: PublicHubModalProps) {
   const [nombre, setNombre] = useState("");
   const [direccion, setDireccion] = useState("");
   const [responsable, setResponsable] = useState("");
   const [contacto, setContacto] = useState("");
-  const [latitud, setLatitud] = useState("9.5832");
-  const [longitud, setLongitud] = useState("-69.2216");
+  const [latitud, setLatitud] = useState(() => initialCoordinates ? initialCoordinates[1].toFixed(5) : "9.5832");
+  const [longitud, setLongitud] = useState(() => initialCoordinates ? initialCoordinates[0].toFixed(5) : "-69.2216");
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !isSubmitting) onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, isSubmitting]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -871,11 +956,31 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting }: PublicHubModalProps
             </div>
           </div>
 
-          <div className="border-t border-border/50 pt-3">
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Coordenadas Geográficas *</label>
-              <div className="text-[9px] font-mono text-blue-400 font-bold bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20 select-all">
-                Lat: {parseFloat(latitud).toFixed(5)} • Lng: {parseFloat(longitud).toFixed(5)}
+          <div className="border-t border-border/50 pt-3 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Latitud *</label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={latitud}
+                  onChange={(e) => setLatitud(e.target.value)}
+                  placeholder="ej. 9.5832"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Longitud *</label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  value={longitud}
+                  onChange={(e) => setLongitud(e.target.value)}
+                  placeholder="ej. -69.2216"
+                  className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+                />
               </div>
             </div>
 
@@ -895,10 +1000,15 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting }: PublicHubModalProps
                   coordinates={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
                   color="#3b82f6"
                   active={true}
+                  draggable={true}
+                  onDragEnd={(lngLat) => {
+                    setLongitud(lngLat[0].toFixed(5));
+                    setLatitud(lngLat[1].toFixed(5));
+                  }}
                 />
               </Map>
               <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/80 text-[8px] text-white/70 pointer-events-none">
-                Hacé clic en el mapa para marcar la ubicación
+                Hacé clic o arrastrá el marcador para ubicar el centro
               </div>
             </div>
           </div>
