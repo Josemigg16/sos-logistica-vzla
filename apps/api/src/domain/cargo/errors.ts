@@ -38,6 +38,18 @@ export class LoteAlreadyDeliveredError extends CargoError {
   }
 }
 
+export class LoteNotDeliveredError extends CargoError {
+  constructor(id: string) {
+    super(`El lote "${id}" todavía no fue entregado`, "LOTE_NOT_DELIVERED");
+  }
+}
+
+export class LoteAlreadyReceivedError extends CargoError {
+  constructor(id: string) {
+    super(`El lote "${id}" ya tiene recepción confirmada`, "LOTE_ALREADY_RECEIVED");
+  }
+}
+
 export class HubNotFoundError extends CargoError {
   constructor(id: string) {
     super(`Centro de acopio "${id}" no encontrado`, "HUB_NOT_FOUND");

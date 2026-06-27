@@ -1,4 +1,10 @@
 import type { LoteStatus, PublicLote, PublicLoteItem } from "@sos/shared";
+import {
+  LoteNotInTransitError,
+  LoteAlreadyDeliveredError,
+  LoteNotDeliveredError,
+  LoteAlreadyReceivedError,
+} from "../errors";
 
 export interface LoteItemProps {
   id: string;
@@ -21,6 +27,8 @@ export interface LoteProps {
   nota: string | null;
   pesoTotalKg: number;
   creadoPorId: string | null;
+  confirmadoPorId: string | null;
+  confirmadoEn: Date | null;
   items: LoteItemProps[];
   createdAt: Date;
   updatedAt: Date;
@@ -52,6 +60,8 @@ export class Lote {
       nota: input.nota ?? null,
       pesoTotalKg: pesoTotal,
       creadoPorId: input.creadoPorId ?? null,
+      confirmadoPorId: null,
+      confirmadoEn: null,
       items: input.items,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -70,6 +80,8 @@ export class Lote {
   get nota(): string | null { return this.props.nota; }
   get pesoTotalKg(): number { return this.props.pesoTotalKg; }
   get creadoPorId(): string | null { return this.props.creadoPorId; }
+  get confirmadoPorId(): string | null { return this.props.confirmadoPorId; }
+  get confirmadoEn(): Date | null { return this.props.confirmadoEn; }
   get items(): LoteItemProps[] { return this.props.items; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
@@ -87,10 +99,31 @@ export class Lote {
     this.props.updatedAt = new Date();
   }
 
+  /** Acto 1 — el ZODI_SENDER declara la entrega. EN_TRANSITO → ENTREGADO. */
   markDelivered(): void {
+    if (this.props.estado === "ENTREGADO" || this.props.estado === "RECIBIDO") {
+      throw new LoteAlreadyDeliveredError(this.props.id);
+    }
+    if (this.props.estado !== "EN_TRANSITO") {
+      throw new LoteNotInTransitError(this.props.id);
+    }
     this.props.estado = "ENTREGADO";
     this.props.vehiculoId = null;
     this.props.vehiculoPlaca = null;
+    this.props.updatedAt = new Date();
+  }
+
+  /** Acto 2 — el ZODI_DESTINATION acusa recibo. ENTREGADO → RECIBIDO. */
+  confirmReceipt(confirmadoPorId: string): void {
+    if (this.props.estado === "RECIBIDO") {
+      throw new LoteAlreadyReceivedError(this.props.id);
+    }
+    if (this.props.estado !== "ENTREGADO") {
+      throw new LoteNotDeliveredError(this.props.id);
+    }
+    this.props.estado = "RECIBIDO";
+    this.props.confirmadoPorId = confirmadoPorId;
+    this.props.confirmadoEn = new Date();
     this.props.updatedAt = new Date();
   }
 
@@ -114,6 +147,8 @@ export class Lote {
       nota: this.props.nota,
       pesoTotalKg: this.props.pesoTotalKg,
       creadoPorId: this.props.creadoPorId,
+      confirmadoPorId: this.props.confirmadoPorId,
+      confirmadoEn: this.props.confirmadoEn ? this.props.confirmadoEn.toISOString() : null,
       items: this.props.items.map((it): PublicLoteItem => ({
         id: it.id,
         productId: it.productId,

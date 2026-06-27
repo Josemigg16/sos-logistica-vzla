@@ -12,6 +12,8 @@ import type { UpdateLote } from "../../application/cargo/update-lote";
 import type { DeleteLote } from "../../application/cargo/delete-lote";
 import type { AssignVehicle } from "../../application/cargo/assign-vehicle";
 import type { TransferLote } from "../../application/cargo/transfer-lote";
+import type { MarkLoteDelivered } from "../../application/cargo/mark-lote-delivered";
+import type { ConfirmLoteReceipt } from "../../application/cargo/confirm-lote-receipt";
 import { CargoError } from "../../domain/cargo/errors";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
@@ -22,6 +24,8 @@ export interface CargoRoutesDeps {
   deleteLote: DeleteLote;
   assignVehicle: AssignVehicle;
   transferLote: TransferLote;
+  markLoteDelivered: MarkLoteDelivered;
+  confirmLoteReceipt: ConfirmLoteReceipt;
 }
 
 const CARGO_ERROR_STATUS: Record<string, 400 | 403 | 404 | 409> = {
@@ -31,6 +35,8 @@ const CARGO_ERROR_STATUS: Record<string, 400 | 403 | 404 | 409> = {
   VEHICLE_CAPACITY_EXCEEDED: 409,
   LOTE_NOT_IN_TRANSIT: 400,
   LOTE_ALREADY_DELIVERED: 400,
+  LOTE_NOT_DELIVERED: 400,
+  LOTE_ALREADY_RECEIVED: 400,
 };
 
 function mapError(c: Context, error: unknown) {
@@ -106,6 +112,29 @@ export function createCargoRoutes(deps: CargoRoutesDeps): Hono<AuthEnv> {
     }
     try {
       const lote = await deps.assignVehicle.execute(id, parsed.data);
+      return c.json({ lote });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // Acto 1: el ZODI_SENDER declara la entrega del lote en destino (EN_TRANSITO → ENTREGADO).
+  router.post("/lotes/:id/deliver", authentication, requireRole("ADMIN", "ZODI_SENDER"), async (c) => {
+    const id = c.req.param("id");
+    try {
+      const lote = await deps.markLoteDelivered.execute(id);
+      return c.json({ lote });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // Acto 2: el ZODI_DESTINATION confirma que recibió el lote (ENTREGADO → RECIBIDO).
+  router.post("/lotes/:id/confirm-receipt", authentication, requireRole("ADMIN", "ZODI_DESTINATION"), async (c) => {
+    const id = c.req.param("id");
+    const actor = c.get("actor");
+    try {
+      const lote = await deps.confirmLoteReceipt.execute(id, actor.userId);
       return c.json({ lote });
     } catch (error) {
       return mapError(c, error);

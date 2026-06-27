@@ -4,6 +4,8 @@ import { UpdateLote } from "../application/cargo/update-lote";
 import { DeleteLote } from "../application/cargo/delete-lote";
 import { AssignVehicle } from "../application/cargo/assign-vehicle";
 import { TransferLote } from "../application/cargo/transfer-lote";
+import { MarkLoteDelivered } from "../application/cargo/mark-lote-delivered";
+import { ConfirmLoteReceipt } from "../application/cargo/confirm-lote-receipt";
 import { DrizzleLoteRepository } from "./persistence/drizzle-lote.repository";
 import { createCargoRoutes } from "./http/cargo.routes";
 import { db } from "./persistence/db";
@@ -49,6 +51,8 @@ export function createCargoModule() {
     deleteLote: new DeleteLote(lotesRepo),
     assignVehicle: new AssignVehicle(lotesRepo, vehicleLookup),
     transferLote: new TransferLote(lotesRepo, vehicleLookup),
+    markLoteDelivered: new MarkLoteDelivered(lotesRepo),
+    confirmLoteReceipt: new ConfirmLoteReceipt(lotesRepo),
   };
 
   return { useCases, routes: createCargoRoutes(useCases) };

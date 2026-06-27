@@ -54,6 +54,8 @@ async function withItems(loteQueryResultRows: LoteQueryResultRow[]): Promise<Lot
       nota: r.lote.nota,
       pesoTotalKg: r.lote.pesoTotalKg,
       creadoPorId: r.lote.creadoPorId,
+      confirmadoPorId: r.lote.confirmadoPorId,
+      confirmadoEn: r.lote.confirmadoEn,
       items,
       createdAt: r.lote.createdAt,
       updatedAt: r.lote.updatedAt,
@@ -139,6 +141,8 @@ export class DrizzleLoteRepository implements LoteRepository {
         nota: lote.nota,
         pesoTotalKg: lote.pesoTotalKg,
         creadoPorId: lote.creadoPorId,
+        confirmadoPorId: lote.confirmadoPorId,
+        confirmadoEn: lote.confirmadoEn,
         createdAt: lote.createdAt,
         updatedAt: lote.updatedAt,
       })
@@ -150,6 +154,8 @@ export class DrizzleLoteRepository implements LoteRepository {
           estado: lote.estado,
           nota: lote.nota,
           pesoTotalKg: lote.pesoTotalKg,
+          confirmadoPorId: lote.confirmadoPorId,
+          confirmadoEn: lote.confirmadoEn,
           updatedAt: lote.updatedAt,
         },
       });
