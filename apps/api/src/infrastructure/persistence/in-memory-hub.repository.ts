@@ -19,4 +19,8 @@ export class InMemoryHubRepository implements HubRepository {
   async save(hub: Hub): Promise<void> {
     this.byId.set(hub.id, hub);
   }
+
+  async delete(id: string): Promise<void> {
+    this.byId.delete(id);
+  }
 }

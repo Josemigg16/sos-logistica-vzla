@@ -12,4 +12,5 @@ export interface ResourceRepository {
     category: InventoryCategory,
   ): Promise<Resource | null>;
   save(resource: Resource): Promise<void>;
+  deleteByHub(hubId: string): Promise<void>;
 }

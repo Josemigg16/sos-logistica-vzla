@@ -57,4 +57,8 @@ export class DrizzleHubRepository implements HubRepository {
         },
       });
   }
+
+  async delete(id: string): Promise<void> {
+    await db.delete(hubs).where(eq(hubs.id, id));
+  }
 }

@@ -23,6 +23,22 @@ export const INVENTORY_CATEGORIES = [
 export const inventoryCategorySchema = z.enum(INVENTORY_CATEGORIES);
 export type InventoryCategoryName = z.infer<typeof inventoryCategorySchema>;
 
+export const createProductSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  category: inventoryCategorySchema,
+  unit: z.string().trim().min(1).max(40),
+  description: z.string().default(""),
+});
+export type CreateProductRequest = z.infer<typeof createProductSchema>;
+
+export const updateProductSchema = z.object({
+  name: z.string().trim().min(1).max(160),
+  category: inventoryCategorySchema,
+  unit: z.string().trim().min(1).max(40),
+  description: z.string().default(""),
+});
+export type UpdateProductRequest = z.infer<typeof updateProductSchema>;
+
 export const createHubSchema = z.object({
   name: z.string().trim().min(3).max(160),
   address: z.string().trim().min(1).max(255),

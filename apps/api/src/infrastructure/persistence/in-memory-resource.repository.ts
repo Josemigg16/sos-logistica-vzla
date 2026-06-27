@@ -31,4 +31,12 @@ export class InMemoryResourceRepository implements ResourceRepository {
   async save(resource: Resource): Promise<void> {
     this.byId.set(resource.id, resource);
   }
+
+  async deleteByHub(hubId: string): Promise<void> {
+    for (const [id, resource] of this.byId.entries()) {
+      if (resource.hubId === hubId) {
+        this.byId.delete(id);
+      }
+    }
+  }
 }

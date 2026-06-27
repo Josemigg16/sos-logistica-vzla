@@ -72,4 +72,8 @@ export class DrizzleResourceRepository implements ResourceRepository {
         },
       });
   }
+
+  async deleteByHub(hubId: string): Promise<void> {
+    await db.delete(resources).where(eq(resources.hubId, hubId));
+  }
 }

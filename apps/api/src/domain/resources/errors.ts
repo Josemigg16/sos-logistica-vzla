@@ -28,3 +28,21 @@ export class InvalidStockAmountError extends ResourceError {
     super("La cantidad de stock no puede ser negativa", "INVALID_STOCK_AMOUNT");
   }
 }
+
+export class ProductNotFoundError extends ResourceError {
+  constructor(id: string) {
+    super(`Producto no encontrado`, "PRODUCT_NOT_FOUND");
+  }
+}
+
+export class DuplicateProductNameError extends ResourceError {
+  constructor(name: string) {
+    super(`Ya existe un producto con este nombre en el catálogo`, "DUPLICATE_PRODUCT_NAME");
+  }
+}
+
+export class NeedNotFoundError extends ResourceError {
+  constructor(needId: string) {
+    super(`No se encontró la necesidad ${needId}`, "NEED_NOT_FOUND");
+  }
+}
