@@ -36,8 +36,8 @@ type Priority = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'
 
 interface Need {
   id: string
-  hubId: string
-  hubName: string
+  hubId?: string
+  hubName?: string
   productId: string
   nombre: string
   categoria: string
@@ -51,7 +51,7 @@ interface Need {
 }
 
 type NeedDraft = Omit<Need, 'id' | 'ultimaActualizacion' | 'hubName' | 'productId'> & {
-  hubId: string
+  hubId?: string
 }
 
 const CATEGORIES = [
@@ -103,10 +103,11 @@ async function fetchNeeds(): Promise<Need[]> {
 }
 
 async function createNeed(draft: NeedDraft): Promise<Need> {
+  const payload = { ...draft, hubId: draft.hubId || undefined }
   const res = await fetch(`${API_URL}/needs`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify(draft),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error('No se pudo crear la necesidad')
   return res.json()
@@ -543,12 +544,11 @@ function NeedFormModal({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-4">
-          <Field label="Centro de Acopio" required>
+          <Field label="Centro de Acopio">
             <div className="relative">
               <select
-                value={draft.hubId}
-                onChange={(e) => setDraft({ ...draft, hubId: e.target.value })}
-                required
+                value={draft.hubId ?? ''}
+                onChange={(e) => setDraft({ ...draft, hubId: e.target.value || undefined })}
                 disabled={!!initial}
                 className="w-full px-3 py-2.5 rounded-xl bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 appearance-none cursor-pointer"
               >
