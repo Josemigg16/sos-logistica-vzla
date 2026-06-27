@@ -699,13 +699,13 @@ function NecesidadesPage() {
               <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
             </Link>
 
-            {/* Tertiary CTA — "Normas de embalaje" → PDF Download */}
+            {/* Tertiary CTA — "Normas de embalaje" → PDF (only on mobile here; desktop renders as full-width band below) */}
             <a
               href="/NORMAS DE EMBALAJE .pdf"
               download="NORMAS DE EMBALAJE .pdf"
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden
+              className="lg:hidden group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden
                          border border-[#2B5F8E]/30 bg-gradient-to-br from-[#152D46]/80 to-[#0F2337]/90
                          shadow-[0_4px_24px_rgba(15,35,55,0.5)]
                          hover:border-[#2B5F8E]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
@@ -740,6 +740,51 @@ function NecesidadesPage() {
 
             </div>
           </div>
+
+          {/* ── Desktop-only full-width band — "Normas de embalaje" PDF ── */}
+          <a
+            href="/NORMAS DE EMBALAJE .pdf"
+            download="NORMAS DE EMBALAJE .pdf"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden lg:flex group relative items-center gap-5 px-6 py-4 rounded-2xl overflow-hidden
+                       border border-[#2B5F8E]/30 bg-gradient-to-r from-[#152D46]/80 via-[#1E4A6E]/70 to-[#0F2337]/90
+                       shadow-[0_4px_24px_rgba(15,35,55,0.5)]
+                       hover:border-[#2B5F8E]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
+                       active:scale-[0.99] transition-[transform,box-shadow,border-color] duration-300"
+          >
+            {/* Shimmer on hover */}
+            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+
+            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
+              <Package className="w-5 h-5 animate-pulse" strokeWidth={2.2} />
+            </div>
+
+            <div className="relative flex flex-1 items-baseline gap-3 min-w-0">
+              <span
+                className="text-white leading-none tracking-tight whitespace-nowrap"
+                style={{
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontStyle: 'italic',
+                  fontWeight: 800,
+                  fontSize: '1.5rem',
+                }}
+              >
+                NORMAS DE EMBALAJE
+              </span>
+              <span className="text-[11px] text-[#C8DCF0]/60 font-semibold uppercase tracking-wider whitespace-nowrap">
+                PDF
+              </span>
+              <span className="text-[12px] text-white/55 font-medium leading-snug truncate">
+                Descarga las guías de preparación y entrega para tus donaciones
+              </span>
+            </div>
+
+            <div className="relative flex items-center gap-1.5 text-[11px] font-bold text-[#C8DCF0] uppercase tracking-wider shrink-0">
+              <span>Descargar</span>
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={3} />
+            </div>
+          </a>
         </header>
 
         {/* ── MOTIVATIONAL BANNER ── */}

@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Navigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { Eye, EyeOff, Loader2, Lock, User, Phone, CreditCard, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, User, Phone, CreditCard, CheckCircle2 } from "lucide-react";
 import { signupSchema } from "@sos/shared";
 import { useAuth } from "@/lib/auth/auth-context";
 import { API_URL } from "@/lib/auth/config";
@@ -13,7 +13,13 @@ export const Route = createFileRoute("/register")({
 
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
-async function signup(data: { username: string; password: string; cedula: string; telefono: string }) {
+async function signup(data: {
+  username: string;
+  password: string;
+  documentType?: "V" | "J";
+  cedula?: string;
+  telefono?: string;
+}) {
   const res = await fetch(`${API_URL}/auth/signup`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -32,6 +38,7 @@ function RegisterPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [documentType, setDocumentType] = useState<"V" | "J">("V");
   const [cedula, setCedula] = useState("");
   const [telefono, setTelefono] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
@@ -46,7 +53,24 @@ function RegisterPage() {
     setFormError(null);
     setFieldErrors({});
 
-    const parsed = signupSchema.safeParse({ username, password, cedula, telefono });
+    const cedulaTrim = cedula.trim();
+    const telefonoTrim = telefono.trim();
+
+    const localErrors: Record<string, string> = {};
+    if (!cedulaTrim) localErrors.cedula = "La cédula o RIF es obligatorio";
+    if (!telefonoTrim) localErrors.telefono = "El teléfono es obligatorio";
+    if (Object.keys(localErrors).length > 0) {
+      setFieldErrors(localErrors);
+      return;
+    }
+
+    const parsed = signupSchema.safeParse({
+      username,
+      password,
+      documentType,
+      cedula: cedulaTrim,
+      telefono: telefonoTrim,
+    });
     if (!parsed.success) {
       const flat = parsed.error.flatten().fieldErrors;
       setFieldErrors({
@@ -86,6 +110,14 @@ function RegisterPage() {
       <div className="pointer-events-none fixed top-0 left-1/2 z-0 h-64 w-[800px] -translate-x-1/2 rounded-full bg-[#2B5F8E]/20 blur-[80px]" />
 
       <div className="relative z-10 w-full max-w-md">
+        <Link
+          to="/"
+          className="mb-5 inline-flex items-center gap-1.5 text-xs font-medium uppercase tracking-wider text-white/50 transition-colors duration-150 hover:text-white/80"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" strokeWidth={2.5} />
+          <span>Volver al inicio</span>
+        </Link>
+
         <div className="mb-8 flex flex-col items-center text-center">
           <img
             src={logotipo}
@@ -147,9 +179,14 @@ function RegisterPage() {
                 </button>
               } />
 
-            <Field id="cedula" label="Cédula de identidad" icon={<CreditCard className="h-4 w-4" />}
-              value={cedula} onChange={setCedula} placeholder="ej: V-12345678"
-              error={fieldErrors.cedula} disabled={submitting} />
+            <DocumentField
+              documentType={documentType}
+              onDocumentTypeChange={setDocumentType}
+              value={cedula}
+              onChange={setCedula}
+              error={fieldErrors.cedula}
+              disabled={submitting}
+            />
 
             <Field id="telefono" label="Teléfono" icon={<Phone className="h-4 w-4" />}
               value={telefono} onChange={setTelefono} placeholder="ej: 0414-1234567"
@@ -224,6 +261,88 @@ function Field({ id, label, icon, value, onChange, type = "text", autoComplete, 
         {trailing && <span className="absolute right-3.5 top-1/2 -translate-y-1/2">{trailing}</span>}
       </div>
       {error && <p id={`${id}-error`} className="mt-1.5 text-[11px] text-[#C8DCF0]">{error}</p>}
+    </div>
+  );
+}
+
+interface DocumentFieldProps {
+  documentType: "V" | "J";
+  onDocumentTypeChange: (value: "V" | "J") => void;
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  disabled?: boolean;
+}
+
+function DocumentField({
+  documentType,
+  onDocumentTypeChange,
+  value,
+  onChange,
+  error,
+  disabled,
+}: DocumentFieldProps) {
+  return (
+    <div className="mb-5">
+      <label
+        htmlFor="cedula"
+        className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/50"
+      >
+        Cédula / RIF
+      </label>
+      <div
+        className={`flex items-stretch rounded-xl border bg-[#0F2337]/70 transition-[border-color,box-shadow] duration-150 focus-within:border-[#4A89C0] focus-within:ring-2 focus-within:ring-[#4A89C0]/30 ${
+          disabled ? "opacity-60" : ""
+        } ${error ? "border-[#C8DCF0]/50" : "border-[#2B5F8E]/40"}`}
+      >
+        <div className="relative flex items-center">
+          <select
+            value={documentType}
+            onChange={(e) => onDocumentTypeChange(e.target.value as "V" | "J")}
+            disabled={disabled}
+            aria-label="Tipo de documento"
+            className="h-full appearance-none rounded-l-xl border-r border-[#2B5F8E]/40 bg-[#152D46]/60 py-3 pl-4 pr-7 text-sm font-semibold text-white outline-none disabled:cursor-not-allowed"
+          >
+            <option value="V">V</option>
+            <option value="J">J</option>
+          </select>
+          <svg
+            className="pointer-events-none absolute right-2 h-3 w-3 text-white/50"
+            viewBox="0 0 12 8"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M1 1.5L6 6.5L11 1.5"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+        <span className="pointer-events-none flex items-center pl-3 text-white/35">
+          <CreditCard className="h-4 w-4" />
+        </span>
+        <input
+          id="cedula"
+          name="cedula"
+          type="text"
+          inputMode="numeric"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          disabled={disabled}
+          placeholder="ej: 12345678"
+          aria-invalid={error ? true : undefined}
+          aria-describedby={error ? "cedula-error" : undefined}
+          className="w-full rounded-r-xl bg-transparent py-3 pl-2.5 pr-4 text-sm text-white placeholder:text-white/25 outline-none disabled:cursor-not-allowed"
+        />
+      </div>
+      {error && (
+        <p id="cedula-error" className="mt-1.5 text-[11px] text-[#C8DCF0]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
