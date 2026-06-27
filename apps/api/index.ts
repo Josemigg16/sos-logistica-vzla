@@ -19,6 +19,7 @@ app.use(
 app.route("/auth", createIdentityModule().routes);
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
+const NEEDS_FILE_PATH = join(import.meta.dir, "data", "needs.json");
 
 // Helper para leer centros
 async function readCentros(): Promise<Centro[]> {
@@ -45,6 +46,32 @@ async function writeCentros(centros: Centro[]): Promise<boolean> {
   }
 }
 
+// Helpers para necesidades — persisten a apps/api/data/needs.json
+async function readNeeds(): Promise<NeedRecord[]> {
+  try {
+    const file = Bun.file(NEEDS_FILE_PATH);
+    if (!(await file.exists())) {
+      // Primera carga: inicializa el archivo con los seeds
+      await Bun.write(NEEDS_FILE_PATH, JSON.stringify(SEED_NEEDS, null, 2));
+      return SEED_NEEDS;
+    }
+    return (await file.json()) as NeedRecord[];
+  } catch (error) {
+    console.error("Error al leer necesidades:", error);
+    return [];
+  }
+}
+
+async function writeNeeds(needs: NeedRecord[]): Promise<boolean> {
+  try {
+    await Bun.write(NEEDS_FILE_PATH, JSON.stringify(needs, null, 2));
+    return true;
+  } catch (error) {
+    console.error("Error al escribir necesidades:", error);
+    return false;
+  }
+}
+
 // --- Mock data: necesidades públicas ---
 function todayPlus(days: number): string {
   const d = new Date();
@@ -52,7 +79,20 @@ function todayPlus(days: number): string {
   return d.toISOString().split("T")[0];
 }
 
-const necesidadesMock = [
+interface NeedRecord {
+  id: string;
+  nombre: string;
+  categoria: string;
+  unidad: string;
+  meta: number;
+  recibido: number;
+  prioridad: "CRITICA" | "ALTA" | "MEDIA" | "BAJA";
+  descripcion: string;
+  ultimaActualizacion: string;
+  fechaNecesidad: string;
+}
+
+const SEED_NEEDS: NeedRecord[] = [
   {
     id: "nec-001",
     nombre: "Agua potable",
@@ -195,9 +235,76 @@ app.post("/api/centros", async (c) => {
   }
 });
 
-// Obtener necesidades públicas actuales
-app.get("/api/necesidades", (c) => {
-  return c.json(necesidadesMock);
+// --- Needs (necesidades) — public read + admin CRUD, persistido en JSON local ---
+
+app.get("/api/necesidades", async (c) => {
+  const needs = await readNeeds();
+  return c.json(needs);
+});
+
+app.post("/api/necesidades", async (c) => {
+  try {
+    const body = (await c.req.json()) as Partial<NeedRecord>;
+    if (!body.nombre || !body.categoria || !body.unidad || !body.meta || !body.prioridad || !body.fechaNecesidad) {
+      return c.json({ error: "Faltan campos requeridos" }, 400);
+    }
+    const newRecord: NeedRecord = {
+      id: `nec-${Date.now()}`,
+      nombre: body.nombre,
+      categoria: body.categoria,
+      unidad: body.unidad,
+      meta: Number(body.meta),
+      recibido: Number(body.recibido ?? 0),
+      prioridad: body.prioridad,
+      descripcion: body.descripcion ?? "",
+      fechaNecesidad: body.fechaNecesidad,
+      ultimaActualizacion: new Date().toISOString(),
+    };
+    const needs = await readNeeds();
+    needs.push(newRecord);
+    const saved = await writeNeeds(needs);
+    if (!saved) return c.json({ error: "Error al guardar" }, 500);
+    return c.json(newRecord, 201);
+  } catch {
+    return c.json({ error: "Error en la petición" }, 400);
+  }
+});
+
+app.put("/api/necesidades/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const needs = await readNeeds();
+    const idx = needs.findIndex((n) => n.id === id);
+    if (idx === -1) return c.json({ error: "No encontrada" }, 404);
+
+    const body = (await c.req.json()) as Partial<NeedRecord>;
+    const current = needs[idx];
+    const updated: NeedRecord = {
+      ...current,
+      ...body,
+      id: current.id,
+      meta: Number(body.meta ?? current.meta),
+      recibido: Number(body.recibido ?? current.recibido),
+      ultimaActualizacion: new Date().toISOString(),
+    };
+    needs[idx] = updated;
+    const saved = await writeNeeds(needs);
+    if (!saved) return c.json({ error: "Error al guardar" }, 500);
+    return c.json(updated);
+  } catch {
+    return c.json({ error: "Error en la petición" }, 400);
+  }
+});
+
+app.delete("/api/necesidades/:id", async (c) => {
+  const id = c.req.param("id");
+  const needs = await readNeeds();
+  const idx = needs.findIndex((n) => n.id === id);
+  if (idx === -1) return c.json({ error: "No encontrada" }, 404);
+  needs.splice(idx, 1);
+  const saved = await writeNeeds(needs);
+  if (!saved) return c.json({ error: "Error al guardar" }, 500);
+  return c.json({ ok: true });
 });
 
 const port = Number(process.env.PORT ?? 3000);
