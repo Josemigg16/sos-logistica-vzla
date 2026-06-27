@@ -16,7 +16,9 @@ import {
   X,
   Plus,
   Loader2,
-  Compass
+  MousePointerClick,
+  Route,
+  HandHeart,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { PublicConvoy } from "@sos/shared";
@@ -73,26 +75,14 @@ export default function App() {
   const [clickedCoordinates, setClickedCoordinates] = useState<[number, number] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
+  const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
+    return !localStorage.getItem("map_welcome_seen");
+  });
   const toast = useToast();
 
-  // Estados para la ruta personalizada entre dos puntos
-  const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
-  const [customRoutePoints, setCustomRoutePoints] = useState<[number, number][]>([]);
-
-  // Manejar el clic en el mapa para el trazado personalizado o abrir el formulario de registro
   const handleMapClick = (lngLat: [number, number]) => {
-    if (isCustomRoutingMode) {
-      setCustomRoutePoints(prev => {
-        if (prev.length >= 2) {
-          return [lngLat];
-        } else {
-          return [...prev, lngLat];
-        }
-      });
-    } else {
-      setClickedCoordinates(lngLat);
-      setIsRegistering(true);
-    }
+    setClickedCoordinates(lngLat);
+    setIsRegistering(true);
   };
 
   // Definir la ruta nacional de distribución: Aragua -> Carabobo -> Lara
@@ -197,20 +187,15 @@ export default function App() {
     return 8; // Zoom default Portuguesa
   });
 
-  // Solicitar ubicación al entrar y centrar el mapa
   useEffect(() => {
-    // Registrar que el usuario ya entró al mapa
     localStorage.setItem("has_entered_map", "true");
-
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           setMapCenter([position.coords.longitude, position.coords.latitude]);
           setMapZoom(12);
         },
-        (error) => {
-          console.warn("Error obteniendo la ubicación al inicio:", error);
-        }
+        () => {}
       );
     }
   }, []);
@@ -301,8 +286,6 @@ export default function App() {
               if (!showSupplyRoute) {
                 setMapCenter([-68.0044, 10.1804]);
                 setMapZoom(8);
-                setIsCustomRoutingMode(false);
-                setCustomRoutePoints([]);
               }
             }}
             className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0 ${
@@ -315,35 +298,11 @@ export default function App() {
             <Layers className={`w-4 h-4 ${showSupplyRoute ? "animate-pulse" : ""}`} />
           </button>
           <button
-            onClick={() => {
-              setIsCustomRoutingMode(prev => {
-                const newValue = !prev;
-                if (newValue) {
-                  setShowSupplyRoute(false);
-                  setCustomRoutePoints([]);
-                  setSelectedId(null);
-                }
-                return newValue;
-              });
-            }}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0 ${
-              isCustomRoutingMode 
-                ? "bg-amber-500 text-zinc-950 border-amber-400 shadow-md shadow-amber-500/20" 
-                : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
-            }`}
-            title="Trazar ruta personalizada haciendo clics"
-          >
-            <MapPin className={`w-4 h-4 ${isCustomRoutingMode ? "animate-bounce" : ""}`} />
-          </button>
-          <button
-            onClick={() => {
-              setMapCenter([-69.2216, 9.5832]);
-              setMapZoom(8);
-            }}
+            onClick={() => setShowWelcomeModal(true)}
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
-            title="Centrar mapa en la región"
+            title="¿Cómo usar el mapa?"
           >
-            <Compass className="w-4 h-4" />
+            <Info className="w-4 h-4" />
           </button>
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -389,23 +348,6 @@ export default function App() {
           <MapControls />
           {showSupplyRoute && (
             <MapRoute coordinates={routeCoordinates} color="#10b981" />
-          )}
-          {isCustomRoutingMode && customRoutePoints.length === 2 && (
-            <MapRoute coordinates={customRoutePoints} color="#f59e0b" />
-          )}
-          {isCustomRoutingMode && customRoutePoints[0] && (
-            <MapMarker 
-              coordinates={customRoutePoints[0]} 
-              color="#f59e0b" 
-              active={true}
-            />
-          )}
-          {isCustomRoutingMode && customRoutePoints[1] && (
-            <MapMarker 
-              coordinates={customRoutePoints[1]} 
-              color="#d97706" 
-              active={true}
-            />
           )}
           {filteredCentros.map(c => {
             const getMarkerColor = (tipo: Centro["tipo"]) => {
@@ -479,14 +421,57 @@ export default function App() {
       <div className="absolute top-24 left-4 right-4 z-30 md:left-6 md:right-auto md:w-96 flex flex-col gap-2">
         {/* Barra de búsqueda */}
         <div className="relative flex items-center">
-          <Search className="absolute left-3 w-4 h-4 text-muted-foreground" />
+          <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
           <input
             type="text"
             placeholder="Buscar por ciudad, centro o dirección..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card/90 border border-border text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-emerald-500/50 shadow-lg backdrop-blur-md transition-all duration-300"
+            className="w-full pl-9 pr-9 py-2.5 rounded-xl bg-card/90 border border-border text-base md:text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-emerald-500/50 shadow-lg backdrop-blur-md transition-all duration-300"
           />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute right-2.5 flex items-center justify-center w-6 h-6 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors active:scale-95"
+              title="Limpiar búsqueda"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+
+          {/* Dropdown de resultados */}
+          {searchTerm.trim() && (
+            <div className="absolute top-full left-0 right-0 mt-2 max-h-72 overflow-y-auto no-scrollbar rounded-xl bg-card/95 border border-border shadow-2xl backdrop-blur-md z-50 animate-in fade-in slide-in-from-top-1 duration-200">
+              {filteredCentros.length > 0 ? (
+                filteredCentros.map((c) => {
+                  const dotColor =
+                    c.tipo === "salida" ? "bg-red-500" : c.tipo === "destino" ? "bg-green-500" : "bg-blue-500";
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => {
+                        handleSelectCentro(c);
+                        setSearchTerm("");
+                      }}
+                      className="w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-secondary/60 active:bg-secondary transition-colors border-b border-border/40 last:border-b-0"
+                    >
+                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground leading-tight truncate">{c.nombre}</p>
+                        <p className="text-[10px] text-muted-foreground leading-tight truncate mt-0.5">{c.direccion}</p>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="px-3 py-4 text-center">
+                  <p className="text-[11px] text-muted-foreground">
+                    Sin resultados para «{searchTerm.trim()}»
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Filtros rápidos de categorías horizontal scrollable */}
@@ -516,36 +501,6 @@ export default function App() {
           ))}
         </div>
 
-        {/* INDICACIONES DE RUTA PERSONALIZADA */}
-        {isCustomRoutingMode && (
-          <div className="p-3.5 rounded-xl bg-card/90 border border-border shadow-lg backdrop-blur-md flex flex-col gap-1 transition-all duration-300 animate-in fade-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center justify-between">
-              <h4 className="text-[9px] font-extrabold text-amber-500 uppercase tracking-wider">Modo Ruta Personalizada</h4>
-              <button 
-                onClick={() => {
-                  setIsCustomRoutingMode(false);
-                  setCustomRoutePoints([]);
-                }}
-                className="text-[9px] font-bold text-muted-foreground hover:text-foreground active:scale-95 transition-transform"
-              >
-                &times; Cerrar
-              </button>
-            </div>
-            <p className="text-[11px] text-foreground font-medium mt-0.5 leading-snug">
-              {customRoutePoints.length === 0 && "Haz clic en el mapa para marcar el Origen (A)."}
-              {customRoutePoints.length === 1 && "Haz clic en el mapa para marcar el Destino (B)."}
-              {customRoutePoints.length === 2 && "Ruta calculada. Vuelve a hacer clic para trazar otra."}
-            </p>
-            {customRoutePoints.length > 0 && (
-              <button
-                onClick={() => setCustomRoutePoints([])}
-                className="w-full mt-2 py-1.5 px-3 rounded-lg bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[10px] uppercase tracking-wide shadow transition-colors active:scale-[0.97]"
-              >
-                Limpiar Puntos
-              </button>
-            )}
-          </div>
-        )}
       </div>
 
       {/* PANEL DE DETALLES DEL CENTRO SELECCIONADO (MOBILE BOTTOM SHEET & DESKTOP SIDEBAR) */}
@@ -788,6 +743,13 @@ export default function App() {
         </div>
       )}
 
+      {showWelcomeModal && (
+        <WelcomeModal onClose={() => {
+          localStorage.setItem("map_welcome_seen", "1");
+          setShowWelcomeModal(false);
+        }} />
+      )}
+
       {isRegistering && (
         <PublicHubModal
           onClose={() => {
@@ -832,6 +794,147 @@ export default function App() {
           }}
         />
       )}
+    </div>
+  );
+}
+
+function WelcomeModal({ onClose }: { onClose: () => void }) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-300"
+      onClick={onClose}
+    >
+      <div
+        className="relative w-full md:max-w-md md:rounded-2xl bg-card border-t md:border border-border shadow-2xl flex flex-col max-h-[90vh] animate-in slide-in-from-bottom duration-300 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Franja decorativa superior */}
+        <div className="h-1 w-full bg-gradient-to-r from-blue-600 via-blue-400 to-blue-600" />
+
+        {/* Cabecera */}
+        <div className="p-5 pb-4 flex items-start justify-between">
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-1">
+              Mapa Público · SOS Logística
+            </p>
+            <h2
+              className="text-xl font-black text-foreground uppercase leading-tight"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+            >
+              Centros de Acopio
+            </h2>
+            <p className="text-[11px] text-muted-foreground mt-1.5 leading-relaxed text-balance">
+              Mapa en tiempo real de la red de acopio y distribución de ayuda humanitaria en el estado Portuguesa.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="ml-3 shrink-0 w-7 h-7 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Leyenda de puntos */}
+        <div className="px-5 pb-4">
+          <div className="flex items-center gap-4 p-3 rounded-xl bg-secondary/40 border border-border/60">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)]" />
+              <span className="text-[10px] text-foreground font-medium">Acopio</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
+              <span className="text-[10px] text-foreground font-medium">Salida ZODI</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
+              <span className="text-[10px] text-foreground font-medium">Destino</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Instrucciones */}
+        <div className="px-5 pb-5 flex flex-col gap-3">
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
+              <MousePointerClick className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Toca un marcador</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Ve el inventario, contacto y estado de cada centro de acopio.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
+              <Search className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Busca y filtra</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Encuentra centros por nombre o filtra por categoría de suministros disponibles.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
+              <Route className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Rutas de distribución</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                Activa la ruta de suministros{" "}
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-secondary border border-border text-[9px] font-mono align-middle">
+                  <Layers className="w-2.5 h-2.5 inline" />
+                </span>{" "}
+                o traza una ruta personalizada{" "}
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-secondary border border-border text-[9px] font-mono align-middle">
+                  <MapPin className="w-2.5 h-2.5 inline" />
+                </span>
+                .
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-3">
+            <div className="shrink-0 w-8 h-8 rounded-lg bg-blue-500/15 border border-blue-500/20 flex items-center justify-center">
+              <HandHeart className="w-4 h-4 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Propone un centro</p>
+              <p className="text-[10px] text-muted-foreground leading-relaxed">
+                ¿Conoces un centro que no aparece? Regístralo con el botón{" "}
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-600 text-white text-[9px] font-bold align-middle">
+                  <Plus className="w-2.5 h-2.5 inline stroke-[3]" /> Proponer
+                </span>
+                .
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA */}
+        <div className="p-4 pt-0">
+          <button
+            onClick={onClose}
+            className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wide transition-colors duration-200 active:scale-[0.98] transition-transform cursor-pointer shadow-lg shadow-blue-600/20"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+          >
+            Explorar el mapa
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
