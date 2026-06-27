@@ -37,7 +37,7 @@ function LoginPage() {
   }, []);
 
   // Ya hay sesión → directo al portal.
-  if (status === "authenticated") return <Navigate to="/portal" />;
+  if (status === "authenticated") return <Navigate to="/admin" />;
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -57,7 +57,7 @@ function LoginPage() {
     setSubmitting(true);
     try {
       await login(parsed.data);
-      navigate({ to: "/portal" });
+      navigate({ to: "/admin" });
     } catch (err) {
       setFormError(
         err instanceof AuthError ? err.message : "Ocurrió un error. Intenta de nuevo.",

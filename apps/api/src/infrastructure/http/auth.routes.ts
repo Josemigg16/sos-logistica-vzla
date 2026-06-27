@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { sign } from "hono/jwt";
 import { loginSchema, registerSchema } from "@sos/shared";
 import type { AuthenticateUser } from "../../application/identity/authenticate-user";
 import type { RegisterUser } from "../../application/identity/register-user";
@@ -97,6 +98,32 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
 
   // ¿Quién soy? — requiere access token válido.
   router.get("/me", authentication, (c) => c.json({ actor: c.get("actor") }));
+
+  // Solicitud de token mediante secreto de API (M2M / Clientes externos)
+  router.post("/token", async (c) => {
+    const body = await c.req.json().catch(() => null);
+    if (!body || typeof body.secret !== "string") {
+      return c.json({ error: "Secreto requerido" }, 400);
+    }
+    if (body.secret !== config.apiSecret) {
+      return c.json({ error: "Secreto inválido" }, 401);
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const accessToken = await sign(
+      {
+        sub: "00000000-0000-0000-0000-000000000000",
+        username: "api-client",
+        role: "ADMIN",
+        iat: now,
+        exp: now + 3600 * 24, // El token dura 24 horas para integraciones
+      },
+      config.jwtSecret,
+      "HS256",
+    );
+
+    return c.json({ accessToken });
+  });
 
   return router;
 }

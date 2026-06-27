@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { join } from "path";
 import { centroSchema, type Centro } from "@sos/shared";
 import { eq } from "drizzle-orm";
 import { db } from "./src/infrastructure/persistence/db";
@@ -9,6 +10,60 @@ import { createResourcesModule } from "./src/infrastructure/resources.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
 
 const app = new Hono();
+
+const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
+const NEEDS_FILE_PATH = join(import.meta.dir, "data", "needs.json");
+
+interface NeedRecord {
+  id: string;
+  nombre: string;
+  categoria: string;
+  unidad: string;
+  meta: number;
+  recibido: number;
+  prioridad: string;
+  descripcion: string;
+  fechaNecesidad: string;
+  ultimaActualizacion: string;
+}
+
+async function readCentros(): Promise<Centro[]> {
+  try {
+    const file = Bun.file(DATA_FILE_PATH);
+    if (!await file.exists()) return [];
+    return await file.json();
+  } catch {
+    return [];
+  }
+}
+
+async function writeCentros(data: Centro[]): Promise<boolean> {
+  try {
+    await Bun.write(DATA_FILE_PATH, JSON.stringify(data, null, 2));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readNeeds(): Promise<NeedRecord[]> {
+  try {
+    const file = Bun.file(NEEDS_FILE_PATH);
+    if (!await file.exists()) return [];
+    return await file.json();
+  } catch {
+    return [];
+  }
+}
+
+async function writeNeeds(data: NeedRecord[]): Promise<boolean> {
+  try {
+    await Bun.write(NEEDS_FILE_PATH, JSON.stringify(data, null, 2));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // CORS con credenciales para que el frontend mande la cookie del refresh token.
 app.use(
@@ -205,11 +260,15 @@ app.put("/api/necesidades/:id", async (c) => {
     if (idx === -1) return c.json({ error: "No encontrada" }, 404);
 
     const body = (await c.req.json()) as Partial<NeedRecord>;
-    const current = needs[idx];
+    const current = needs[idx]!;
     const updated: NeedRecord = {
-      ...current,
-      ...body,
       id: current.id,
+      nombre: body.nombre ?? current.nombre,
+      categoria: body.categoria ?? current.categoria,
+      unidad: body.unidad ?? current.unidad,
+      prioridad: body.prioridad ?? current.prioridad,
+      descripcion: body.descripcion ?? current.descripcion,
+      fechaNecesidad: body.fechaNecesidad ?? current.fechaNecesidad,
       meta: Number(body.meta ?? current.meta),
       recibido: Number(body.recibido ?? current.recibido),
       ultimaActualizacion: new Date().toISOString(),
