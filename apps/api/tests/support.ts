@@ -54,7 +54,7 @@ export async function buildAuthApp() {
     role: "ADMIN",
   });
 
-  return { app: createAuthRoutes(useCases), users, sessions };
+  return { app: createAuthRoutes({ ...useCases, userRepo: users, hasher }), users, sessions };
 }
 
 /** Extrae el par `refresh_token=valor` de un header Set-Cookie. */
