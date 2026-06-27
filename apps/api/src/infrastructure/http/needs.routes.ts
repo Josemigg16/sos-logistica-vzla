@@ -91,7 +91,7 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
 
   const putHandler = async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      const id = c.req.param("id") as string;
       const body = await c.req.json();
 
       const row = await deps.updateNeed.execute({
@@ -133,7 +133,7 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono {
 
   const deleteHandler = async (c: Context) => {
     try {
-      const id = c.req.param("id");
+      const id = c.req.param("id") as string;
       await deps.deleteNeed.execute(id);
       return c.json({ ok: true });
     } catch (error) {
