@@ -4,6 +4,7 @@ import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, Ma
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
 import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
+import { useScrollLock } from '@/lib/scroll-lock'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/admin')({
@@ -38,12 +39,7 @@ function AdminLayout({ user }: { user: SessionUser }) {
 
   useEffect(() => { setDrawerOpen(false) }, [currentPath])
 
-  useEffect(() => {
-    if (drawerOpen) {
-      document.body.style.overflow = 'hidden'
-      return () => { document.body.style.overflow = '' }
-    }
-  }, [drawerOpen])
+  useScrollLock(drawerOpen)
 
   useEffect(() => {
     if (!drawerOpen) return
