@@ -48,7 +48,7 @@ function AdminDashboard() {
           icon={<PackagePlus className="w-6 h-6" />}
           title="Necesidades"
           description="Crear, editar y cerrar requerimientos públicos."
-          stat="8 ítems activos"
+          stat="Gestionar necesidades"
         />
         <AdminSectionCard
           to="/admin/hubs"
