@@ -1,7 +1,6 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect, useMemo } from 'react'
-import { createPortal } from 'react-dom'
+import { useState, useMemo, useRef } from 'react'
 import {
   Loader2, MapPin, Plus, Package, Boxes, X, AlertTriangle, Trash2,
   Warehouse, Send, ChevronRight, History,
@@ -18,6 +17,7 @@ import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { Map as MapView, MapControls, MapMarker } from '@/components/ui/map'
 import { useToast } from '@/components/ui/toast'
+import { FormSheet } from '@/components/ui/form-sheet'
 
 export const Route = createFileRoute('/admin/coordinator')({ component: CoordinatorGate })
 
@@ -383,9 +383,24 @@ function StockModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => 
     mut.mutate({ hubId, productId, quantity: n })
   }
 
+  const snapshot = JSON.stringify({ productId, quantity })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
   return (
-    <ModalShell title="Sumar stock al inventario" onClose={onClose}>
-      <form onSubmit={submit} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Sumar stock al inventario"
+      size="md"
+      isDirty={isDirty}
+      isSubmitting={mut.isPending}
+      onClose={onClose}
+      onSubmit={submit}
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={mut.isPending} label="SUMAR" />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
         <Field label="Producto">
           {loadingProducts ? (
@@ -418,9 +433,8 @@ function StockModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => 
             placeholder="ej: 50"
           />
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="SUMAR" />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -586,17 +600,32 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
     mut.mutate({ hubOrigenId: hub.id, hubDestinoId: hubDestinoId || undefined, nota: nota || undefined, items: validItems })
   }
 
-  // ZODI_SENDER reparte desde su base ZODI hacia centros DESTINATION (puntos
-  // de llegada). El resto de coordinadores envían su carga hacia bases ZODI
-  // para que ZODI la distribuya.
-  const destinoTipo: HubType = user?.role === 'ZODI_SENDER' ? 'DESTINATION' : 'ZODI_BASE'
+  // ZODI_SENDER reparte desde su base de salida hacia centros DESTINATION
+  // (puntos de llegada). El resto de coordinadores envían su carga hacia las
+  // bases de salida (DISPATCH) para que ZODI la despache.
+  const destinoTipo: HubType = user?.role === 'ZODI_SENDER' ? 'DESTINATION' : 'DISPATCH'
   const destinos = hubs.filter((h) => h.id !== hub.id && h.type === destinoTipo)
   const hayDestinos = destinos.length > 0
   const destinoLabel = user?.role === 'ZODI_SENDER' ? 'Centro de destino (llegada)' : 'Base ZODI de salida'
 
+  const snapshot = JSON.stringify({ items, hubDestinoId, nota })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
+
   return (
-    <ModalShell title="Nuevo lote" onClose={onClose} wide>
-      <form onSubmit={submit} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Nuevo lote"
+      size="xl"
+      isDirty={isDirty}
+      isSubmitting={mut.isPending}
+      onClose={onClose}
+      onSubmit={submit}
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={mut.isPending} label="CREAR LOTE" icon={<Send className="w-4 h-4" />} />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
 
         <div>
@@ -645,10 +674,8 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
         <Field label="Nota (opcional)">
           <textarea className="coord-input min-h-[64px] resize-y" maxLength={500} value={nota} onChange={(e) => setNota(e.target.value)} placeholder="Instrucciones, fragilidad, prioridad…" />
         </Field>
-
-        <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="CREAR LOTE" icon={<Send className="w-4 h-4" />} />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -673,98 +700,25 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
   )
 }
 
-function ModalShell({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
-  // Lock body scroll y cerrar con Esc mientras el modal vive.
-  useEffect(() => {
-    const prevOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
-    window.addEventListener('keydown', onKey)
-    return () => {
-      document.body.style.overflow = prevOverflow
-      window.removeEventListener('keydown', onKey)
-    }
-  }, [onClose])
-
-  // Portal a document.body para escapar de ancestros con backdrop-filter / transform
-  // que rompen `position: fixed` (CSS spec: cualquier filtro o transform crea un
-  // containing block para fixed descendants).
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#0A1A2A]/80 backdrop-blur-md p-0 sm:p-4 animate-modal-overlay"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-label={title}
-    >
-      <div
-        className={`relative flex flex-col w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] bg-[#152D46] border border-[#2B5F8E]/50 rounded-t-2xl sm:rounded-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] animate-modal-panel overflow-hidden`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#2B5F8E]/30 shrink-0">
-          <h3 className="font-bold text-white text-base">{title}</h3>
-          <button
-            onClick={onClose}
-            aria-label="Cerrar"
-            className="flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-        <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
-      </div>
-      <ModalAnimations />
-    </div>,
-    document.body,
-  )
-}
-
 function ModalActions({ onCancel, isSubmitting, label, icon }: { onCancel: () => void; isSubmitting: boolean; label: string; icon?: React.ReactNode }) {
   return (
-    <div className="sticky bottom-0 -mx-5 -mb-5 mt-2 flex gap-3 px-5 py-4 border-t border-[#2B5F8E]/30 bg-[#152D46]/95 backdrop-blur-sm">
+    <div className="flex gap-3">
       <button
         type="button"
         onClick={onCancel}
-        className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/10 transition"
+        className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/10 transition cursor-pointer"
       >
         Cancelar
       </button>
       <button
         type="submit"
         disabled={isSubmitting}
-        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#0F2337] text-sm font-bold hover:bg-[#C8DCF0] active:scale-[0.98] transition disabled:opacity-70 disabled:cursor-not-allowed"
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#0F2337] text-sm font-bold hover:bg-[#C8DCF0] active:scale-[0.98] transition disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
       >
         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : icon}
         {label}
       </button>
     </div>
-  )
-}
-
-function ModalAnimations() {
-  return (
-    <style>{`
-      @keyframes modal-overlay-in {
-        from { opacity: 0; }
-        to { opacity: 1; }
-      }
-      @keyframes modal-panel-in {
-        from { opacity: 0; transform: translateY(8px) scale(0.98); }
-        to { opacity: 1; transform: translateY(0) scale(1); }
-      }
-      .animate-modal-overlay { animation: modal-overlay-in 160ms ease-out; }
-      .animate-modal-panel { animation: modal-panel-in 200ms cubic-bezier(0.16, 1, 0.3, 1); }
-      @media (max-width: 639px) {
-        @keyframes modal-panel-in-mobile {
-          from { opacity: 0; transform: translateY(40px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-modal-panel { animation: modal-panel-in-mobile 240ms cubic-bezier(0.16, 1, 0.3, 1); }
-      }
-      @media (prefers-reduced-motion: reduce) {
-        .animate-modal-overlay, .animate-modal-panel { animation: none; }
-      }
-    `}</style>
   )
 }
 

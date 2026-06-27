@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import {
   Plus,
   Pencil,
@@ -17,6 +17,7 @@ import {
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_HUBS } from '@/lib/session'
 import { useToast } from '@/components/ui/toast'
+import { FormSheet } from '@/components/ui/form-sheet'
 import type { Centro, HubStatus, TipoCentro } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
@@ -408,10 +409,11 @@ function HubFormModal({
     return initInv
   })
 
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
+  // Dirty tracking: baseline capturada en el primer render (valores iniciales).
+  const snapshot = JSON.stringify({ nombre, direccion, contacto, responsable, tipo, estado, latitud, longitud, inventario })
+  const baselineRef = useRef<string | null>(null)
+  if (baselineRef.current === null) baselineRef.current = snapshot
+  const isDirty = baselineRef.current !== snapshot
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -437,30 +439,35 @@ function HubFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full md:max-w-2xl bg-[#0F2337] border border-[#2B5F8E]/50 rounded-t-2xl md:rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] max-h-[92vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Modal header */}
-        <div className="flex items-center justify-between p-5 border-b border-[#2B5F8E]/30 sticky top-0 bg-[#0F2337] z-10">
-          <h2
-            className="text-white"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.4rem' }}
-          >
-            {title.toUpperCase()}
-          </h2>
+    <FormSheet
+      title={title}
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      size="xl"
+      footer={(requestClose) => (
+        <div className="flex gap-2">
           <button
-            onClick={onClose}
-            className="flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 active:scale-[0.96] transition-[transform,background-color,color] duration-200"
-            aria-label="Cerrar"
+            type="button"
+            onClick={requestClose}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/70 font-semibold text-sm hover:bg-white/10 active:scale-[0.97] transition-[transform,background-color] duration-200 cursor-pointer"
           >
-            <X className="w-4 h-4" />
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-[#0F2337] font-bold text-sm active:scale-[0.97] transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.04em' }}
+          >
+            {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            {initial ? 'GUARDAR CAMBIOS' : 'REGISTRAR CENTRO'}
           </button>
         </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 flex flex-col gap-5">
+      )}
+    >
+      <div className="flex flex-col gap-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="Nombre del Centro" required>
               <input
@@ -654,49 +661,28 @@ function HubFormModal({
             </div>
           </div>
 
-          {/* Action buttons */}
-          <div className="flex gap-2 pt-3 border-t border-[#2B5F8E]/30 mt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/70 font-semibold text-sm hover:bg-white/10 active:scale-[0.97] transition-[transform,background-color] duration-200"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-[#0F2337] font-bold text-sm active:scale-[0.97] transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.04em' }}
-            >
-              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {initial ? 'GUARDAR CAMBIOS' : 'REGISTRAR CENTRO'}
-            </button>
-          </div>
-        </form>
+        <style>{`
+          .input {
+            width: 100%;
+            padding: 0.6rem 0.85rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(43,95,142,0.4);
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 0.875rem;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: border-color 200ms, background-color 200ms;
+          }
+          .input:focus {
+            outline: none;
+            border-color: rgba(74,137,192,0.8);
+            background: rgba(255,255,255,0.06);
+          }
+          .input::placeholder { color: rgba(255,255,255,0.3); }
+          .input option { background: #0F2337; }
+        `}</style>
       </div>
-
-      <style>{`
-        .input {
-          width: 100%;
-          padding: 0.6rem 0.85rem;
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(43,95,142,0.4);
-          border-radius: 0.5rem;
-          color: white;
-          font-size: 0.875rem;
-          font-family: 'DM Sans', system-ui, sans-serif;
-          transition: border-color 200ms, background-color 200ms;
-        }
-        .input:focus {
-          outline: none;
-          border-color: rgba(74,137,192,0.8);
-          background: rgba(255,255,255,0.06);
-        }
-        .input::placeholder { color: rgba(255,255,255,0.3); }
-        .input option { background: #0F2337; }
-      `}</style>
-    </div>
+    </FormSheet>
   )
 }
 

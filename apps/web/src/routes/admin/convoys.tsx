@@ -1,6 +1,6 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import {
   Plus,
   X,
@@ -26,6 +26,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_CONVOYS } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
+import { FormSheet } from '@/components/ui/form-sheet'
 
 export const Route = createFileRoute('/admin/convoys')({ component: ConvoysGate })
 
@@ -433,13 +434,21 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, escorts, vehicles, onC
     setVehicleIds((prev) => (prev.includes(id) ? prev.filter((v) => v !== id) : [...prev, id]))
 
   const canSubmit = origenId && destinoId && escoltaId && vehicleIds.length > 0
+  const isDirty = Boolean(origenId || destinoId || escoltaId || vehicleIds.length)
 
   return (
-    <ModalShell title="Nueva caravana" onClose={onClose}>
-      <form
-        onSubmit={(e) => { e.preventDefault(); if (canSubmit) onSubmit({ origenId, destinoId, escoltaId, vehicleIds }) }}
-        className="p-5 flex flex-col gap-4"
-      >
+    <FormSheet
+      title="Nueva caravana"
+      isDirty={isDirty}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); if (canSubmit) onSubmit({ origenId, destinoId, escoltaId, vehicleIds }) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} disabled={!canSubmit} label="PLANIFICAR" />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <InlineError msg={errorMsg} onDismiss={onDismissError} />}
 
         <Field label="Centro de salida" hint="Solo centros de despacho">
@@ -485,9 +494,8 @@ function PlanConvoyModal({ dispatchHubs, destinationHubs, escorts, vehicles, onC
           )}
         </Field>
 
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} disabled={!canSubmit} label="PLANIFICAR" />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
@@ -504,8 +512,18 @@ function AddVehicleModal({ convoy, vehicles, onClose, onSubmit, isSubmitting, er
 }) {
   const [vehicleId, setVehicleId] = useState('')
   return (
-    <ModalShell title="Agregar vehículo" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); if (vehicleId) onSubmit(vehicleId) }} className="p-5 flex flex-col gap-4">
+    <FormSheet
+      title="Agregar vehículo"
+      isDirty={Boolean(vehicleId)}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={(e) => { e.preventDefault(); if (vehicleId) onSubmit(vehicleId) }}
+      size="md"
+      footer={(requestClose) => (
+        <ModalActions onCancel={requestClose} isSubmitting={isSubmitting} disabled={!vehicleId} label="AGREGAR" />
+      )}
+    >
+      <div className="flex flex-col gap-4">
         {errorMsg && <InlineError msg={errorMsg} onDismiss={onDismissError} />}
         <p className="text-sm text-white/50">
           La caravana tiene <span className="tabular-nums font-semibold text-white/80">{convoy.vehicleIds.length}</span> vehículo
@@ -521,9 +539,8 @@ function AddVehicleModal({ convoy, vehicles, onClose, onSubmit, isSubmitting, er
             </select>
           )}
         </Field>
-        <ModalActions onCancel={onClose} isSubmitting={isSubmitting} disabled={!vehicleId} label="AGREGAR" />
-      </form>
-    </ModalShell>
+      </div>
+    </FormSheet>
   )
 }
 
