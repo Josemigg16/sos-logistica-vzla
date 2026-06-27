@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_HUBS } from '@/lib/session'
+import { useToast } from '@/components/ui/toast'
 import type { Centro, TipoCentro } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
@@ -100,6 +101,7 @@ async function deleteHub(id: string): Promise<string> {
 // --- Main Page Component ---
 function AdminHubsPage() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [editing, setEditing] = useState<Centro | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<Centro | null>(null)
@@ -122,17 +124,22 @@ function AdminHubsPage() {
         return [...prev, created]
       })
       setCreating(false)
+      toast.success('Centro registrado', `"${created.nombre}" está disponible en logística.`)
     },
+    onError: (e: Error) => toast.error('No se pudo registrar el centro', e.message),
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteHub,
     onSuccess: (deletedId) => {
+      const name = deleting?.nombre
       queryClient.setQueryData<Centro[]>(['centros'], (prev = []) =>
         prev.filter((h) => h.id !== deletedId)
       )
       setDeleting(null)
+      toast.success('Centro eliminado', name ? `"${name}" fue dado de baja.` : 'Fue dado de baja.')
     },
+    onError: (e: Error) => toast.error('No se pudo eliminar', e.message),
   })
 
   return (

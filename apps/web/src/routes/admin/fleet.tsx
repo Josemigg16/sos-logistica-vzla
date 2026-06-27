@@ -15,6 +15,7 @@ import {
 import type { PublicVehicleType, PublicVehicle, PublicDriver, VehicleStatus } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_FLEET } from '@/lib/session'
+import { useToast } from '@/components/ui/toast'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 
@@ -317,6 +318,7 @@ function ActionButtons({ onEdit, onDelete }: { onEdit: () => void; onDelete: () 
 
 function VehicleTypesTab() {
   const qc = useQueryClient()
+  const toast = useToast()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<PublicVehicleType | null>(null)
   const [deleting, setDeleting] = useState<PublicVehicleType | null>(null)
@@ -324,12 +326,29 @@ function VehicleTypesTab() {
 
   const { data: types = [], isLoading } = useQuery({ queryKey: ['fleet-vehicle-types'], queryFn: fetchVehicleTypes })
 
-  const onSuccess = (key: string) => { qc.invalidateQueries({ queryKey: [key] }); setCreating(false); setEditing(null); setErrorMsg(null) }
-  const onError = (e: Error) => setErrorMsg(e.message)
+  const closeAll = () => { qc.invalidateQueries({ queryKey: ['fleet-vehicle-types'] }); setCreating(false); setEditing(null); setErrorMsg(null) }
+  const onError = (e: Error) => { setErrorMsg(e.message); toast.error('Hubo un problema', e.message) }
 
-  const createMut = useMutation({ mutationFn: createVehicleType, onSuccess: () => onSuccess('fleet-vehicle-types'), onError })
-  const updateMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: { nombre?: string; descripcion?: string } }) => updateVehicleType(id, d), onSuccess: () => onSuccess('fleet-vehicle-types'), onError })
-  const deleteMut = useMutation({ mutationFn: deleteVehicleType, onSuccess: () => { qc.invalidateQueries({ queryKey: ['fleet-vehicle-types'] }); setDeleting(null) }, onError })
+  const createMut = useMutation({
+    mutationFn: createVehicleType,
+    onSuccess: (t) => { closeAll(); toast.success('Tipo creado', `"${t.nombre}" se agregó a la flota.`) },
+    onError,
+  })
+  const updateMut = useMutation({
+    mutationFn: ({ id, d }: { id: string; d: { nombre?: string; descripcion?: string } }) => updateVehicleType(id, d),
+    onSuccess: (t) => { closeAll(); toast.success('Tipo actualizado', `Se guardaron los cambios de "${t.nombre}".`) },
+    onError,
+  })
+  const deleteMut = useMutation({
+    mutationFn: deleteVehicleType,
+    onSuccess: () => {
+      const name = deleting?.nombre
+      qc.invalidateQueries({ queryKey: ['fleet-vehicle-types'] })
+      setDeleting(null)
+      toast.success('Tipo eliminado', name ? `"${name}" fue dado de baja.` : 'Fue dado de baja.')
+    },
+    onError,
+  })
 
   return (
     <div>
@@ -388,6 +407,7 @@ function VehicleTypeModal({ title, initial, onClose, onSubmit, isSubmitting, err
 
 function VehiclesTab() {
   const qc = useQueryClient()
+  const toast = useToast()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<PublicVehicle | null>(null)
   const [deleting, setDeleting] = useState<PublicVehicle | null>(null)
@@ -397,12 +417,29 @@ function VehiclesTab() {
   const { data: types = [] } = useQuery({ queryKey: ['fleet-vehicle-types'], queryFn: fetchVehicleTypes })
   const { data: drivers = [] } = useQuery({ queryKey: ['fleet-drivers'], queryFn: fetchDrivers })
 
-  const onSuccess = () => { qc.invalidateQueries({ queryKey: ['fleet-vehicles'] }); setCreating(false); setEditing(null); setErrorMsg(null) }
-  const onError = (e: Error) => setErrorMsg(e.message)
+  const closeAll = () => { qc.invalidateQueries({ queryKey: ['fleet-vehicles'] }); setCreating(false); setEditing(null); setErrorMsg(null) }
+  const onError = (e: Error) => { setErrorMsg(e.message); toast.error('Hubo un problema', e.message) }
 
-  const createMut = useMutation({ mutationFn: createVehicle, onSuccess, onError })
-  const updateMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: Parameters<typeof updateVehicle>[1] }) => updateVehicle(id, d), onSuccess, onError })
-  const deleteMut = useMutation({ mutationFn: deleteVehicle, onSuccess: () => { qc.invalidateQueries({ queryKey: ['fleet-vehicles'] }); setDeleting(null) }, onError })
+  const createMut = useMutation({
+    mutationFn: createVehicle,
+    onSuccess: (v) => { closeAll(); toast.success('Vehículo registrado', `"${v.placa}" se sumó a la flota.`) },
+    onError,
+  })
+  const updateMut = useMutation({
+    mutationFn: ({ id, d }: { id: string; d: Parameters<typeof updateVehicle>[1] }) => updateVehicle(id, d),
+    onSuccess: (v) => { closeAll(); toast.success('Vehículo actualizado', `Se guardaron los cambios de "${v.placa}".`) },
+    onError,
+  })
+  const deleteMut = useMutation({
+    mutationFn: deleteVehicle,
+    onSuccess: () => {
+      const placa = deleting?.placa
+      qc.invalidateQueries({ queryKey: ['fleet-vehicles'] })
+      setDeleting(null)
+      toast.success('Vehículo eliminado', placa ? `"${placa}" fue dado de baja.` : 'Fue dado de baja.')
+    },
+    onError,
+  })
 
   const typesMap = Object.fromEntries(types.map((t) => [t.id, t.nombre]))
   const driversMap = Object.fromEntries(drivers.map((d) => [d.id, `${d.nombre} ${d.apellido}`]))
@@ -515,6 +552,7 @@ function VehicleEditModal({ title, vehicle, drivers, onClose, onSubmit, isSubmit
 
 function DriversTab() {
   const qc = useQueryClient()
+  const toast = useToast()
   const [creating, setCreating] = useState(false)
   const [editing, setEditing] = useState<PublicDriver | null>(null)
   const [deleting, setDeleting] = useState<PublicDriver | null>(null)
@@ -522,12 +560,29 @@ function DriversTab() {
 
   const { data: drivers = [], isLoading } = useQuery({ queryKey: ['fleet-drivers'], queryFn: fetchDrivers })
 
-  const onSuccess = () => { qc.invalidateQueries({ queryKey: ['fleet-drivers'] }); setCreating(false); setEditing(null); setErrorMsg(null) }
-  const onError = (e: Error) => setErrorMsg(e.message)
+  const closeAll = () => { qc.invalidateQueries({ queryKey: ['fleet-drivers'] }); setCreating(false); setEditing(null); setErrorMsg(null) }
+  const onError = (e: Error) => { setErrorMsg(e.message); toast.error('Hubo un problema', e.message) }
 
-  const createMut = useMutation({ mutationFn: createDriver, onSuccess, onError })
-  const updateMut = useMutation({ mutationFn: ({ id, d }: { id: string; d: Parameters<typeof updateDriver>[1] }) => updateDriver(id, d), onSuccess, onError })
-  const deleteMut = useMutation({ mutationFn: deleteDriver, onSuccess: () => { qc.invalidateQueries({ queryKey: ['fleet-drivers'] }); setDeleting(null) }, onError })
+  const createMut = useMutation({
+    mutationFn: createDriver,
+    onSuccess: (d) => { closeAll(); toast.success('Chofer registrado', `${d.nombre} ${d.apellido} ya forma parte de la flota.`) },
+    onError,
+  })
+  const updateMut = useMutation({
+    mutationFn: ({ id, d }: { id: string; d: Parameters<typeof updateDriver>[1] }) => updateDriver(id, d),
+    onSuccess: (d) => { closeAll(); toast.success('Chofer actualizado', `Se guardaron los cambios de ${d.nombre} ${d.apellido}.`) },
+    onError,
+  })
+  const deleteMut = useMutation({
+    mutationFn: deleteDriver,
+    onSuccess: () => {
+      const name = deleting ? `${deleting.nombre} ${deleting.apellido}` : null
+      qc.invalidateQueries({ queryKey: ['fleet-drivers'] })
+      setDeleting(null)
+      toast.success('Chofer eliminado', name ? `${name} fue dado de baja.` : 'Fue dado de baja.')
+    },
+    onError,
+  })
 
   return (
     <div>

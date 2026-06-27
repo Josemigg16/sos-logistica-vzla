@@ -3,6 +3,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Search, Inbox, Loader2, Plus, X, Save, Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
+import { useToast } from '@/components/ui/toast'
 import { INVENTORY_CATEGORIES, type ProductMaster } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
@@ -37,6 +38,7 @@ function authHeaders(): HeadersInit {
 
 function AdminCatalogPage() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
@@ -100,6 +102,7 @@ function AdminCatalogPage() {
         return [...prev, created]
       })
       setIsCreateOpen(false)
+      toast.success('Producto creado', `"${created.name}" se agregó al catálogo.`)
     },
     onError: (error: any) => {
       setFormError(error.message || 'Error al guardar el producto')
@@ -130,6 +133,7 @@ function AdminCatalogPage() {
         return prev.map((p) => (p.id === updated.id ? updated : p))
       })
       setEditingProduct(null)
+      toast.success('Cambios guardados', `Se actualizó "${updated.name}".`)
     },
     onError: (error: any) => {
       setFormError(error.message || 'Error al actualizar el producto')
@@ -150,13 +154,15 @@ function AdminCatalogPage() {
       return res.json()
     },
     onSuccess: (_, id) => {
+      const removed = queryClient.getQueryData<ProductMaster[]>(['productos'])?.find((p) => p.id === id)
       queryClient.setQueryData<ProductMaster[]>(['productos'], (prev = []) => {
         return prev.filter((p) => p.id !== id)
       })
       setDeletingProduct(null)
+      toast.success('Producto eliminado', removed ? `"${removed.name}" fue dado de baja del catálogo.` : 'Se eliminó del catálogo.')
     },
     onError: (error: any) => {
-      alert(error.message || 'Error al eliminar el producto')
+      toast.error('No se pudo eliminar', error.message || 'Intentá nuevamente en unos segundos.')
     },
   })
 

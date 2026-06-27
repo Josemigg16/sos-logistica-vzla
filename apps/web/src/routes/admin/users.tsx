@@ -16,6 +16,7 @@ import {
 import type { AdminUserView, RoleName, UserStatus } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_USERS } from '@/lib/session'
+import { useToast } from '@/components/ui/toast'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 
@@ -152,6 +153,7 @@ const ROLE_STYLES: Record<RoleName, string> = {
 function AdminUsersPage() {
   const { user: currentUser } = useAuth()
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [editing, setEditing] = useState<AdminUserView | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<AdminUserView | null>(null)
@@ -166,20 +168,45 @@ function AdminUsersPage() {
 
   const createMutation = useMutation({
     mutationFn: createUser,
-    onSuccess: () => { invalidate(); setCreating(false); setErrorMsg(null) },
-    onError: (err: Error) => setErrorMsg(err.message),
+    onSuccess: (user) => {
+      invalidate()
+      setCreating(false)
+      setErrorMsg(null)
+      toast.success('Usuario creado', `"${user.username}" ya puede iniciar sesión.`)
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message)
+      toast.error('No se pudo crear el usuario', err.message)
+    },
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, draft }: { id: string; draft: UpdateUserDraft }) => updateUser(id, draft),
-    onSuccess: () => { invalidate(); setEditing(null); setErrorMsg(null) },
-    onError: (err: Error) => setErrorMsg(err.message),
+    onSuccess: (user) => {
+      invalidate()
+      setEditing(null)
+      setErrorMsg(null)
+      toast.success('Usuario actualizado', `Se guardaron los cambios de "${user.username}".`)
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message)
+      toast.error('No se pudo actualizar el usuario', err.message)
+    },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteUser,
-    onSuccess: () => { invalidate(); setDeleting(null); setErrorMsg(null) },
-    onError: (err: Error) => setErrorMsg(err.message),
+    onSuccess: () => {
+      const name = deleting?.username
+      invalidate()
+      setDeleting(null)
+      setErrorMsg(null)
+      toast.success('Usuario eliminado', name ? `"${name}" perdió acceso al sistema.` : 'Perdió acceso al sistema.')
+    },
+    onError: (err: Error) => {
+      setErrorMsg(err.message)
+      toast.error('No se pudo eliminar el usuario', err.message)
+    },
   })
 
   return (

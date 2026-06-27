@@ -18,6 +18,7 @@ import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
+import { useToast } from '@/components/ui/toast'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 import { INVENTORY_CATEGORIES } from '@sos/shared'
 
@@ -90,6 +91,7 @@ function authHeaders(): HeadersInit {
 
 function NeedsRegisterPage() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [selectedHubId, setSelectedHubId] = useState<string>('')
   const [tipoInsumo, setTipoInsumo] = useState<string>(INVENTORY_CATEGORIES[0])
   const [meta, setMeta] = useState<number>(0)
@@ -142,10 +144,12 @@ function NeedsRegisterPage() {
       setDescripcion('')
       queryClient.invalidateQueries({ queryKey: ['necesidades'] })
       setTimeout(() => setSuccessMsg(''), 5000)
+      toast.success('Necesidad registrada', `"${tipoInsumo}" ya aparece en el panel público.`)
     },
     onError: (err: Error) => {
       setErrorMsg(err.message)
       setSuccessMsg('')
+      toast.error('No se pudo registrar', err.message)
     },
   })
 

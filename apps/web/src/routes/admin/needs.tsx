@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
+import { useToast } from '@/components/ui/toast'
 import { type ProductMaster } from '@sos/shared'
 
 export const Route = createFileRoute('/admin/needs')({
@@ -135,6 +136,7 @@ async function deleteNeed(id: string): Promise<string> {
 // --- Page ---
 function AdminNeedsPage() {
   const queryClient = useQueryClient()
+  const toast = useToast()
   const [editing, setEditing] = useState<Need | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<Need | null>(null)
@@ -148,17 +150,33 @@ function AdminNeedsPage() {
 
   const createMutation = useMutation({
     mutationFn: createNeed,
-    onSuccess: () => { invalidate(); setCreating(false) },
+    onSuccess: (need) => {
+      invalidate()
+      setCreating(false)
+      toast.success('Necesidad creada', `"${need.nombre}" ya aparece en el panel público.`)
+    },
+    onError: (e: Error) => toast.error('No se pudo crear la necesidad', e.message),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, draft }: { id: string; draft: NeedDraft }) => updateNeed(id, draft),
-    onSuccess: () => { invalidate(); setEditing(null) },
+    onSuccess: (need) => {
+      invalidate()
+      setEditing(null)
+      toast.success('Cambios guardados', `Se actualizó "${need.nombre}".`)
+    },
+    onError: (e: Error) => toast.error('No se pudo guardar', e.message),
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteNeed,
-    onSuccess: () => { invalidate(); setDeleting(null) },
+    onSuccess: () => {
+      const name = deleting?.nombre
+      invalidate()
+      setDeleting(null)
+      toast.success('Necesidad eliminada', name ? `"${name}" dejó de mostrarse en el panel público.` : 'Dejó de mostrarse en el panel público.')
+    },
+    onError: (e: Error) => toast.error('No se pudo eliminar', e.message),
   })
 
   return (

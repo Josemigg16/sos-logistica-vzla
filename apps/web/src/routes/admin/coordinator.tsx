@@ -17,6 +17,8 @@ import { hasAnyRole } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { Map as MapView, MapControls, MapMarker } from '@/components/ui/map'
+import { useToast } from '@/components/ui/toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export const Route = createFileRoute('/admin/coordinator')({ component: CoordinatorGate })
 
@@ -162,6 +164,7 @@ function CoordinatorPage() {
 
 function RegisterHubSection() {
   const qc = useQueryClient()
+  const toast = useToast()
   const [name, setName] = useState('')
   const [address, setAddress] = useState('')
   const [contact, setContact] = useState('')
@@ -172,8 +175,14 @@ function RegisterHubSection() {
 
   const mut = useMutation({
     mutationFn: registerMyHub,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-hub'] }),
-    onError: (e: Error) => setErrorMsg(e.message),
+    onSuccess: (hub) => {
+      qc.invalidateQueries({ queryKey: ['my-hub'] })
+      toast.success('Centro registrado', `"${hub.name}" quedó vinculado a tu cuenta.`)
+    },
+    onError: (e: Error) => {
+      setErrorMsg(e.message)
+      toast.error('No se pudo registrar el centro', e.message)
+    },
   })
 
   const latNum = parseFloat(lat) || 9.5832
@@ -328,8 +337,23 @@ function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose
   const [productId, setProductId] = useState('')
   const [quantityBatches, setQuantityBatches] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const toast = useToast()
   const { data: products = [], isLoading: loadingProducts } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
-  const mut = useMutation({ mutationFn: registerInventoryBatch, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
+  const mut = useMutation({
+    mutationFn: registerInventoryBatch,
+    onSuccess: (batch) => {
+      const product = products.find((p) => p.id === batch.productId)
+      toast.success(
+        'Ingreso registrado',
+        product ? `${batch.quantityBatches} ${batch.quantityBatches === 1 ? 'lote' : 'lotes'} de "${product.name}" sumados al inventario.` : 'El inventario se actualizó.',
+      )
+      onDone()
+    },
+    onError: (e: Error) => {
+      setErrorMsg(e.message)
+      toast.error('No se pudo registrar el ingreso', e.message)
+    },
+  })
 
   const safeProducts = Array.isArray(products) ? products : []
   const grouped = safeProducts.reduce<Record<string, ProductMaster[]>>((acc, p) => {
@@ -389,6 +413,8 @@ function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose
 
 function BatchesHistorySection({ hub }: { hub: PublicHub }) {
   const qc = useQueryClient()
+  const toast = useToast()
+  const [batchToDelete, setBatchToDelete] = useState<PublicInventoryBatch | null>(null)
   const { data: batches = [], isLoading } = useQuery({
     queryKey: ['hub-batches', hub.id],
     queryFn: () => fetchHubBatches(hub.id),
@@ -410,6 +436,12 @@ function BatchesHistorySection({ hub }: { hub: PublicHub }) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['hub-batches', hub.id] })
       qc.invalidateQueries({ queryKey: ['hub-stock', hub.id] })
+      const name = batchToDelete ? productById.get(batchToDelete.productId)?.name : undefined
+      setBatchToDelete(null)
+      toast.success('Ingreso eliminado', name ? `Se ajustó el stock de "${name}".` : 'El stock se ajustó.')
+    },
+    onError: (e: Error) => {
+      toast.error('No se pudo eliminar el ingreso', e.message)
     },
   })
 
@@ -441,11 +473,7 @@ function BatchesHistorySection({ hub }: { hub: PublicHub }) {
                 </span>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (confirm('¿Eliminar este ingreso? El stock se ajustará automáticamente.')) {
-                      removeMut.mutate(b.id)
-                    }
-                  }}
+                  onClick={() => setBatchToDelete(b)}
                   disabled={removeMut.isPending}
                   className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition shrink-0"
                   title="Eliminar ingreso"
@@ -457,6 +485,32 @@ function BatchesHistorySection({ hub }: { hub: PublicHub }) {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!batchToDelete}
+        tone="danger"
+        title="¿Eliminar este ingreso?"
+        description={
+          batchToDelete ? (
+            <>
+              Se removerán{' '}
+              <strong className="text-white">
+                {batchToDelete.quantityBatches} {batchToDelete.quantityBatches === 1 ? 'lote' : 'lotes'}
+              </strong>
+              {' '}de{' '}
+              <strong className="text-white">
+                "{productById.get(batchToDelete.productId)?.name ?? 'este producto'}"
+              </strong>
+              . El stock del centro se ajustará automáticamente.
+            </>
+          ) : null
+        }
+        confirmLabel="Eliminar ingreso"
+        cancelLabel="Cancelar"
+        isPending={removeMut.isPending}
+        onCancel={() => { if (!removeMut.isPending) setBatchToDelete(null) }}
+        onConfirm={() => { if (batchToDelete) removeMut.mutate(batchToDelete.id) }}
+      />
     </section>
   )
 }
@@ -530,6 +584,7 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
   const [hubDestinoId, setHubDestinoId] = useState('')
   const [nota, setNota] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const toast = useToast()
 
   const { data: stockLines = [] } = useQuery({ queryKey: ['hub-stock', hub.id], queryFn: () => fetchHubStock(hub.id) })
   const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
@@ -551,7 +606,20 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
     })
   const byProduct = Object.fromEntries(stocked.map((r) => [r.productId, r]))
 
-  const mut = useMutation({ mutationFn: createLote, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
+  const mut = useMutation({
+    mutationFn: createLote,
+    onSuccess: (lote) => {
+      toast.success(
+        'Lote creado',
+        lote.hubDestinoNombre ? `Listo para envío a "${lote.hubDestinoNombre}".` : 'El lote quedó disponible para transporte.',
+      )
+      onDone()
+    },
+    onError: (e: Error) => {
+      setErrorMsg(e.message)
+      toast.error('No se pudo crear el lote', e.message)
+    },
+  })
 
   const setItem = (i: number, patch: Partial<DraftItem>) => setItems((prev) => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it))
   const addItem = () => setItems((prev) => [...prev, { productId: '', cantidad: '', pesoKg: '' }])

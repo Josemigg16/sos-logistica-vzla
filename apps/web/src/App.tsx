@@ -20,6 +20,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import type { PublicConvoy } from "@sos/shared";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
+import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
 
@@ -68,6 +69,7 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
+  const toast = useToast();
 
   // Estados para la ruta personalizada entre dos puntos
   const [isCustomRoutingMode, setIsCustomRoutingMode] = useState(false);
@@ -733,9 +735,10 @@ export default function App() {
                 setCentros(listData);
               }
               setIsRegistering(false);
+              toast.success('Centro de acopio registrado', 'Tu centro ya aparece en el mapa público.');
             } catch (err) {
               console.error(err);
-              alert("Error al registrar el centro de acopio.");
+              toast.error('No se pudo registrar el centro', 'Verificá los datos e intentá de nuevo.');
             } finally {
               setIsSaving(false);
             }
