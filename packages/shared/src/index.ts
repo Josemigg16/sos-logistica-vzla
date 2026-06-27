@@ -44,4 +44,5 @@ export * from "./operations";
 export * from "./needs";
 export * from "./fleet";
 export * from "./cargo";
+export * from "./inventory-batches";
 

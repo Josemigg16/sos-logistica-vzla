@@ -87,6 +87,32 @@ export const resources = pgTable("resources", {
 });
 
 /**
+ * Lotes de inventario recibidos en un hub. Cada batch es un ingreso atómico
+ * de N "lotes" de un producto del catálogo. El stock por producto en un hub
+ * se calcula como SUM(quantity_batches) GROUP BY product_id.
+ *
+ * `source_hub_id` queda nullable: se llena solo cuando un Shipment confirma
+ * recepción en un destino (oleada 2). Cuando un coordinador registra a mano,
+ * sourceHubId queda en null.
+ */
+export const inventoryBatches = pgTable("inventory_batches", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  hubId: uuid("hub_id")
+    .notNull()
+    .references(() => hubs.id, { onDelete: "cascade" }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "restrict" }),
+  quantityBatches: integer("quantity_batches").notNull(),
+  sourceHubId: uuid("source_hub_id").references(() => hubs.id, {
+    onDelete: "set null",
+  }),
+  receivedAt: timestamp("received_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+/**
  * Lotes de carga embalados en tránsito dentro de un viaje de transporte.
  */
 export const lotesCarga = pgTable("lotes_carga", {
@@ -160,6 +186,23 @@ export const resourcesRelations = relations(resources, ({ one }) => ({
   hub: one(hubs, {
     fields: [resources.hubId],
     references: [hubs.id],
+  }),
+}));
+
+export const inventoryBatchesRelations = relations(inventoryBatches, ({ one }) => ({
+  hub: one(hubs, {
+    fields: [inventoryBatches.hubId],
+    references: [hubs.id],
+    relationName: "inventory_batch_hub",
+  }),
+  product: one(products, {
+    fields: [inventoryBatches.productId],
+    references: [products.id],
+  }),
+  sourceHub: one(hubs, {
+    fields: [inventoryBatches.sourceHubId],
+    references: [hubs.id],
+    relationName: "inventory_batch_source_hub",
   }),
 }));
 

@@ -46,3 +46,15 @@ export class NeedNotFoundError extends ResourceError {
     super(`No se encontró la necesidad ${needId}`, "NEED_NOT_FOUND");
   }
 }
+
+export class InventoryBatchNotFoundError extends ResourceError {
+  constructor(id: string) {
+    super(`No se encontró el lote ${id}`, "INVENTORY_BATCH_NOT_FOUND");
+  }
+}
+
+export class InvalidBatchQuantityError extends ResourceError {
+  constructor() {
+    super("La cantidad de lotes debe ser un entero positivo", "INVALID_BATCH_QUANTITY");
+  }
+}

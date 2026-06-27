@@ -3,13 +3,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
 import {
   Loader2, MapPin, Plus, Package, Boxes, X, AlertTriangle, Trash2,
-  Warehouse, Send, ChevronRight,
+  Warehouse, Send, ChevronRight, History,
 } from 'lucide-react'
 import type {
-  PublicHub, PublicResource, PublicLote, ProductMaster, HubType,
-  InventoryCategoryName, LoteStatus,
+  PublicHub, PublicLote, ProductMaster, HubType,
+  LoteStatus,
+  PublicInventoryBatch, PublicHubStockLine,
 } from '@sos/shared'
-import { INVENTORY_CATEGORIES, HUB_TYPES } from '@sos/shared'
+import { HUB_TYPES } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
@@ -63,17 +64,30 @@ async function registerMyHub(d: {
   if (!res.ok) throw new Error(await readError(res, 'No se pudo registrar el centro'))
   return (await res.json()).hub
 }
-async function fetchHubResources(hubId: string): Promise<PublicResource[]> {
-  const res = await fetch(`${API_URL}/resources/hubs/${hubId}/resources`, { headers: authHeaders() })
+async function fetchHubStock(hubId: string): Promise<PublicHubStockLine[]> {
+  const res = await fetch(`${API_URL}/resources/hubs/${hubId}/stock`, { headers: authHeaders() })
   if (!res.ok) throw new Error('No se pudo cargar el inventario')
-  return (await res.json()).resources
+  return (await res.json()).stock
 }
-async function stockResource(d: {
-  hubId: string; category: InventoryCategoryName; quantity: number; unit: string
-}): Promise<PublicResource> {
-  const res = await fetch(`${API_URL}/resources/resources`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) })
-  if (!res.ok) throw new Error(await readError(res, 'No se pudo actualizar el inventario'))
-  return (await res.json()).resource
+async function fetchHubBatches(hubId: string): Promise<PublicInventoryBatch[]> {
+  const res = await fetch(`${API_URL}/resources/hubs/${hubId}/batches`, { headers: authHeaders() })
+  if (!res.ok) throw new Error('No se pudo cargar el histórico de ingresos')
+  return (await res.json()).batches
+}
+async function registerInventoryBatch(d: {
+  hubId: string; productId: string; quantityBatches: number
+}): Promise<PublicInventoryBatch> {
+  const res = await fetch(`${API_URL}/resources/hubs/${d.hubId}/batches`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ productId: d.productId, quantityBatches: d.quantityBatches }),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'No se pudo registrar el lote'))
+  return (await res.json()).batch
+}
+async function deleteInventoryBatch(id: string): Promise<void> {
+  const res = await fetch(`${API_URL}/resources/batches/${id}`, { method: 'DELETE', headers: authHeaders() })
+  if (!res.ok) throw new Error(await readError(res, 'No se pudo eliminar el lote'))
 }
 async function fetchHubs(): Promise<PublicHub[]> {
   const res = await fetch(`${API_URL}/resources/hubs`, { headers: authHeaders() })
@@ -230,77 +244,196 @@ function HubDashboard({ hub }: { hub: PublicHub }) {
       </div>
 
       <InventorySection hub={hub} />
+      <BatchesHistorySection hub={hub} />
       <LotesSection hub={hub} />
       <InputStyles />
     </div>
   )
 }
 
-// ─── Inventario ────────────────────────────────────────────────────────────────
+// ─── Inventario (stock agregado por producto) ────────────────────────────────
 
 function InventorySection({ hub }: { hub: PublicHub }) {
   const qc = useQueryClient()
   const [adding, setAdding] = useState(false)
-  const { data: resources = [], isLoading } = useQuery({ queryKey: ['hub-resources', hub.id], queryFn: () => fetchHubResources(hub.id) })
+  const { data: stock = [], isLoading } = useQuery({
+    queryKey: ['hub-stock', hub.id],
+    queryFn: () => fetchHubStock(hub.id),
+  })
+
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['hub-stock', hub.id] })
+    qc.invalidateQueries({ queryKey: ['hub-batches', hub.id] })
+  }
 
   return (
     <section className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm p-5">
       <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-2"><Boxes className="w-5 h-5 text-[#4A89C0]" /><h3 className="font-bold text-white">Inventario</h3></div>
-        <button onClick={() => setAdding(true)} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#2B5F8E]/60 text-white text-xs font-semibold hover:bg-[#2B5F8E]/60 active:scale-[0.97] transition">
-          <Plus className="w-3.5 h-3.5" /> Sumar stock
+        <div className="flex items-center gap-2">
+          <Boxes className="w-5 h-5 text-[#4A89C0]" />
+          <h3 className="font-bold text-white">Inventario</h3>
+        </div>
+        <button
+          onClick={() => setAdding(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#2B5F8E]/60 text-white text-xs font-semibold hover:bg-[#2B5F8E]/60 active:scale-[0.97] transition"
+        >
+          <Plus className="w-3.5 h-3.5" /> Registrar ingreso
         </button>
       </div>
 
       {isLoading ? (
         <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[#4A89C0]" /></div>
-      ) : resources.length === 0 ? (
-        <p className="text-sm text-white/40 py-6 text-center">Sin inventario registrado.</p>
+      ) : stock.length === 0 ? (
+        <p className="text-sm text-white/40 py-6 text-center">Sin inventario registrado. Empezá registrando el ingreso de un producto.</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {resources.map((r) => (
-            <div key={r.id} className="rounded-xl border border-[#2B5F8E]/30 bg-[#0F2337]/60 p-3">
-              <p className="text-[11px] text-white/50 truncate">{r.category}</p>
-              <p className="text-lg font-bold text-white">{r.quantity} <span className="text-xs font-normal text-white/50">{r.unit}</span></p>
+          {stock.map((line) => (
+            <div key={line.productId} className="rounded-xl border border-[#2B5F8E]/30 bg-[#0F2337]/60 p-3">
+              <p className="text-[11px] text-white/50 uppercase tracking-wider truncate">{line.category}</p>
+              <p className="text-sm font-semibold text-white/90 truncate">{line.productName}</p>
+              <p className="text-lg font-bold text-white mt-1">
+                {line.totalBatches} <span className="text-xs font-normal text-white/50">{line.totalBatches === 1 ? 'lote' : 'lotes'}</span>
+              </p>
             </div>
           ))}
         </div>
       )}
 
       {adding && (
-        <StockModal
+        <RegisterBatchModal
           hubId={hub.id}
           onClose={() => setAdding(false)}
-          onDone={() => { qc.invalidateQueries({ queryKey: ['hub-resources', hub.id] }); setAdding(false) }}
+          onDone={() => { invalidate(); setAdding(false) }}
         />
       )}
     </section>
   )
 }
 
-function StockModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => void; onDone: () => void }) {
-  const [category, setCategory] = useState<InventoryCategoryName>(INVENTORY_CATEGORIES[0])
-  const [quantity, setQuantity] = useState('')
-  const [unit, setUnit] = useState('kg')
+function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => void; onDone: () => void }) {
+  const [productId, setProductId] = useState('')
+  const [quantityBatches, setQuantityBatches] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
-  const mut = useMutation({ mutationFn: stockResource, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
+  const { data: products = [], isLoading: loadingProducts } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const mut = useMutation({ mutationFn: registerInventoryBatch, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
+
+  const grouped = products.reduce<Record<string, ProductMaster[]>>((acc, p) => {
+    (acc[p.category] ||= []).push(p)
+    return acc
+  }, {})
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setErrorMsg(null)
+    if (!productId) { setErrorMsg('Seleccioná un producto del catálogo.'); return }
+    const n = Number(quantityBatches)
+    if (!Number.isInteger(n) || n <= 0) { setErrorMsg('La cantidad de lotes debe ser un entero positivo.'); return }
+    mut.mutate({ hubId, productId, quantityBatches: n })
+  }
 
   return (
-    <ModalShell title="Sumar stock al inventario" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); setErrorMsg(null); mut.mutate({ hubId, category, quantity: Number(quantity), unit }) }} className="p-5 flex flex-col gap-4">
+    <ModalShell title="Registrar ingreso de lote" onClose={onClose}>
+      <form onSubmit={submit} className="p-5 flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
-        <Field label="Categoría">
-          <select className="coord-input" value={category} onChange={(e) => setCategory(e.target.value as InventoryCategoryName)}>
-            {INVENTORY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-          </select>
+        <Field label="Producto">
+          {loadingProducts ? (
+            <div className="coord-input flex items-center gap-2 text-white/50"><Loader2 className="w-4 h-4 animate-spin" /> Cargando catálogo…</div>
+          ) : (
+            <select required className="coord-input" value={productId} onChange={(e) => setProductId(e.target.value)}>
+              <option value="">Seleccionar producto…</option>
+              {Object.entries(grouped).map(([cat, prods]) => (
+                <optgroup key={cat} label={cat}>
+                  {prods.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </optgroup>
+              ))}
+            </select>
+          )}
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Cantidad"><input required type="number" min="0" className="coord-input" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></Field>
-          <Field label="Unidad"><input required className="coord-input" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="kg, litros…" /></Field>
-        </div>
-        <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="SUMAR" />
+        <Field label="Cantidad de lotes">
+          <input
+            required
+            type="number"
+            min="1"
+            step="1"
+            className="coord-input"
+            value={quantityBatches}
+            onChange={(e) => setQuantityBatches(e.target.value)}
+            placeholder="ej: 10"
+          />
+        </Field>
+        <p className="text-[11px] text-white/40 -mt-1">
+          Un "lote" es la unidad atómica del producto recibido. El stock se calcula como la suma de lotes ingresados.
+        </p>
+        <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="REGISTRAR" />
       </form>
     </ModalShell>
+  )
+}
+
+// ─── Histórico de ingresos ────────────────────────────────────────────────────
+
+function BatchesHistorySection({ hub }: { hub: PublicHub }) {
+  const qc = useQueryClient()
+  const { data: batches = [], isLoading } = useQuery({
+    queryKey: ['hub-batches', hub.id],
+    queryFn: () => fetchHubBatches(hub.id),
+  })
+  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const productById = new Map(products.map((p) => [p.id, p]))
+
+  const removeMut = useMutation({
+    mutationFn: deleteInventoryBatch,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['hub-batches', hub.id] })
+      qc.invalidateQueries({ queryKey: ['hub-stock', hub.id] })
+    },
+  })
+
+  return (
+    <section className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm p-5">
+      <div className="flex items-center gap-2 mb-4">
+        <History className="w-5 h-5 text-[#4A89C0]" />
+        <h3 className="font-bold text-white">Histórico de ingresos</h3>
+      </div>
+
+      {isLoading ? (
+        <div className="py-8 flex justify-center"><Loader2 className="w-5 h-5 animate-spin text-[#4A89C0]" /></div>
+      ) : batches.length === 0 ? (
+        <p className="text-sm text-white/40 py-6 text-center">Todavía no registraste ningún ingreso.</p>
+      ) : (
+        <div className="flex flex-col divide-y divide-[#2B5F8E]/20">
+          {batches.map((b) => {
+            const product = productById.get(b.productId)
+            return (
+              <div key={b.id} className="flex items-center gap-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-white truncate">{product?.name ?? b.productId}</p>
+                  <p className="text-[11px] text-white/40">
+                    {new Date(b.receivedAt).toLocaleString('es-VE', { dateStyle: 'short', timeStyle: 'short' })}
+                  </p>
+                </div>
+                <span className="text-sm font-mono text-white/80 shrink-0">
+                  {b.quantityBatches} {b.quantityBatches === 1 ? 'lote' : 'lotes'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('¿Eliminar este ingreso? El stock se ajustará automáticamente.')) {
+                      removeMut.mutate(b.id)
+                    }
+                  }}
+                  disabled={removeMut.isPending}
+                  className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition shrink-0"
+                  title="Eliminar ingreso"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 

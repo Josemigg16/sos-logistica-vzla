@@ -6,7 +6,7 @@ import { z } from "zod";
  * Las categorías de inventario son labels de UI (en español, por diseño).
  */
 
-export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION"] as const;
+export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION", "ZODI_BASE"] as const;
 export const hubTypeSchema = z.enum(HUB_TYPES);
 export type HubType = z.infer<typeof hubTypeSchema>;
 
