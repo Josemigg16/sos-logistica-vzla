@@ -5,6 +5,7 @@ import {
   Loader2, MapPin, Plus, Package, Boxes, X, AlertTriangle, Trash2,
   Warehouse, Send, ChevronRight, History, Truck,
 } from 'lucide-react'
+import { PackagingRulesButton } from '@/components/packaging-rules-button'
 import type {
   PublicHub, PublicLote, ProductMaster, HubType,
   LoteStatus,
@@ -150,6 +151,7 @@ export function HubDashboard({ hub, canManageVehicles }: HubDashboardProps) {
         </div>
       </div>
 
+      <PackagingRulesButton />
       <InventorySection hub={hub} />
       <BatchesHistorySection hub={hub} />
       <LotesSection hub={hub} canManageVehicles={canManageVehicles} />
