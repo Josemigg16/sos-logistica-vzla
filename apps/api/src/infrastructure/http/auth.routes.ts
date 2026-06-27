@@ -19,7 +19,9 @@ export interface AuthRoutesDeps {
 }
 
 const REFRESH_COOKIE = "refresh_token";
-const REFRESH_PATH = "/auth";
+// La API se monta bajo /api, así que la cookie debe viajar a /api/auth/refresh.
+// Restringimos al path de auth (no a todo /api) para que no se filtre al resto.
+const REFRESH_PATH = "/api/auth";
 
 function setRefreshCookie(c: Context, token: string, expiresAt: Date): void {
   setCookie(c, REFRESH_COOKIE, token, {
