@@ -66,24 +66,35 @@ export async function login(
   return { accessToken: data.accessToken, user: data.user };
 }
 
+let refreshPromise: Promise<string | null> | null = null;
+
 /**
  * Intercambia la cookie de refresh por un access token nuevo.
  * Devuelve `null` si no hay sesión válida o si el backend no responde — el
  * caller lo trata como "no autenticado" sin romper.
  */
 export async function refresh(): Promise<string | null> {
-  let res: Response;
-  try {
-    res = await fetch(`${API_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include",
-    });
-  } catch {
-    return null;
+  if (refreshPromise) {
+    return refreshPromise;
   }
-  if (!res.ok) return null;
-  const data = (await res.json()) as { accessToken: string };
-  return data.accessToken;
+
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) return null;
+      const data = (await res.json()) as { accessToken: string };
+      return data.accessToken;
+    } catch {
+      return null;
+    } finally {
+      refreshPromise = null;
+    }
+  })();
+
+  return refreshPromise;
 }
 
 /** Resuelve el usuario actual a partir de un access token. `null` si no sirve. */
