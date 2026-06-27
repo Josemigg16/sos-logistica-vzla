@@ -32,6 +32,16 @@ function AdminSplash() {
   )
 }
 
+const ROLE_LABELS: Record<string, string> = {
+  ADMIN: 'Administrador',
+  MANAGER: 'Coordinador',
+  ZODI_SENDER: 'ZODI Emisor',
+  ZODI_DESTINATION: 'ZODI Destino',
+  HUB_COORDINATOR: 'Coord. Centro',
+  DRIVER: 'Chofer',
+  VOLUNTEER: 'Voluntario',
+}
+
 function AdminLayout({ user }: { user: SessionUser }) {
   const { logout } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -208,7 +218,7 @@ function SidebarContent({
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold text-white truncate">{user.username}</p>
             <p className="text-[10px] text-[#C8DCF0]/50 font-medium uppercase tracking-wide truncate">
-              {user.role}
+              {ROLE_LABELS[user.role] ?? user.role}
             </p>
           </div>
         </div>
