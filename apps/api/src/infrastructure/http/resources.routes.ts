@@ -3,6 +3,7 @@ import type { Context } from "hono";
 import { createHubSchema, stockResourceSchema } from "@sos/shared";
 import type { RegisterHub } from "../../application/resources/register-hub";
 import type { ListHubs } from "../../application/resources/list-hubs";
+import type { GetHubByCoordinator } from "../../application/resources/get-hub-by-coordinator";
 import type { StockResource } from "../../application/resources/stock-resource";
 import type { ListResourcesByHub } from "../../application/resources/list-resources-by-hub";
 import { ResourceError } from "../../domain/resources/errors";
@@ -11,6 +12,7 @@ import { authentication, type AuthEnv } from "./middleware/authentication";
 export interface ResourceRoutesDeps {
   registerHub: RegisterHub;
   listHubs: ListHubs;
+  getHubByCoordinator: GetHubByCoordinator;
   stockResource: StockResource;
   listResourcesByHub: ListResourcesByHub;
 }
@@ -37,6 +39,47 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
   router.get("/hubs", authentication, async (c) => {
     try {
       return c.json({ hubs: await deps.listHubs.execute() });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // Centro de acopio del coordinador autenticado (o null si aún no lo registró).
+  router.get("/my-hub", authentication, async (c) => {
+    try {
+      const actor = c.get("actor");
+      const hub = await deps.getHubByCoordinator.execute(actor.userId);
+      return c.json({ hub });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
+  // Auto-registro del centro de acopio del coordinador: queda asociado a él.
+  router.post("/my-hub", authentication, async (c) => {
+    const actor = c.get("actor");
+    const parsed = createHubSchema.safeParse(
+      await c.req.json().catch(() => null),
+    );
+    if (!parsed.success) {
+      return c.json(
+        { error: "Datos inválidos", details: parsed.error.flatten() },
+        400,
+      );
+    }
+    try {
+      const existing = await deps.getHubByCoordinator.execute(actor.userId);
+      if (existing) {
+        return c.json(
+          { error: "Ya tienes un centro de acopio registrado", code: "HUB_ALREADY_EXISTS" },
+          409,
+        );
+      }
+      const hub = await deps.registerHub.execute({
+        ...parsed.data,
+        coordinatorId: actor.userId,
+      });
+      return c.json({ hub }, 201);
     } catch (error) {
       return mapError(c, error);
     }

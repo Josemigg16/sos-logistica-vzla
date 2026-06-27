@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./db";
 import { hubs } from "./schema";
 import type { HubRepository } from "../../domain/resources/repositories/hub.repository";
@@ -23,6 +23,15 @@ function toDomain(row: HubRow): Hub {
 export class DrizzleHubRepository implements HubRepository {
   async findById(id: string): Promise<Hub | null> {
     const [row] = await db.select().from(hubs).where(eq(hubs.id, id)).limit(1);
+    return row ? toDomain(row) : null;
+  }
+
+  async findByCoordinator(coordinatorId: string): Promise<Hub | null> {
+    const [row] = await db
+      .select()
+      .from(hubs)
+      .where(eq(hubs.coordinatorId, coordinatorId))
+      .limit(1);
     return row ? toDomain(row) : null;
   }
 
@@ -56,7 +65,8 @@ export class DrizzleHubRepository implements HubRepository {
           type: values.type,
           latitude: values.latitude,
           longitude: values.longitude,
-          coordinatorId: values.coordinatorId,
+          // Preserva el coordinador si el upsert no trae uno (ej. edición admin).
+          coordinatorId: sql`coalesce(${values.coordinatorId}, ${hubs.coordinatorId})`,
         },
       });
   }

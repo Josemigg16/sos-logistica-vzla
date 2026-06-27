@@ -19,6 +19,13 @@ export class InMemoryUserRepository implements UserRepository {
     return null;
   }
 
+  async findByCedula(cedula: string): Promise<User | null> {
+    for (const user of this.byId.values()) {
+      if (user.cedula === cedula) return user;
+    }
+    return null;
+  }
+
   async findAll(): Promise<User[]> {
     return Array.from(this.byId.values());
   }
