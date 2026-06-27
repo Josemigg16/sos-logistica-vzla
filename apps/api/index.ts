@@ -4,6 +4,8 @@ import { centroSchema, type Centro } from "@sos/shared";
 import { join } from "path";
 import { createIdentityModule } from "./src/infrastructure/identity.module";
 import { createIncidentsModule } from "./src/infrastructure/incidents.module";
+import { createResourcesModule } from "./src/infrastructure/resources.module";
+import { createOperationsModule } from "./src/infrastructure/operations.module";
 
 const app = new Hono();
 
@@ -21,6 +23,12 @@ app.route("/auth", createIdentityModule().routes);
 
 // Bounded context `incidents` — registro de desastres bajo /incidents.
 app.route("/incidents", createIncidentsModule().routes);
+
+// Bounded context `resources` — inventario y centros de acopio bajo /resources.
+app.route("/resources", createResourcesModule().routes);
+
+// Bounded context `operations` — coordinación de respuesta bajo /operations.
+app.route("/operations", createOperationsModule().routes);
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
 const NEEDS_FILE_PATH = join(import.meta.dir, "data", "needs.json");
