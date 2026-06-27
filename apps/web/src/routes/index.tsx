@@ -589,11 +589,12 @@ function NecesidadesPage() {
                   theme="dark"
                   className="w-full h-full"
                 >
-                  {(centrosData as unknown as Array<{ id: string; coordenadas: [number, number]; tipo: string }>).map((c) => (
+                  {(centrosData as unknown as Array<{ id: string; coordenadas: [number, number]; tipo: string; isInformal?: boolean }>).map((c) => (
                     <MapMarker
                       key={c.id}
                       coordinates={c.coordenadas}
                       color={
+                        c.isInformal ? '#f59e0b' :
                         c.tipo === 'acopio' ? '#3b82f6' :
                         c.tipo === 'salida' ? '#ef4444' :
                         c.tipo === 'destino' ? '#22c55e' :

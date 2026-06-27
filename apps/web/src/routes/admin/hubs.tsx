@@ -267,7 +267,18 @@ function HubRow({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => void; on
           <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${tipoInfo?.color ?? ''}`}>
             {tipoInfo?.label ?? hub.tipo}
           </span>
-          <StatusBadge estado={hub.estado} />
+          <div className="flex flex-wrap gap-1">
+            <StatusBadge estado={hub.estado} />
+            {hub.isInformal ? (
+              <span className="inline-block px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wide border border-amber-500/30 bg-amber-500/10 text-amber-300">
+                Informal
+              </span>
+            ) : (
+              <span className="inline-block px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wide border border-blue-500/30 bg-blue-500/10 text-blue-300">
+                Interno
+              </span>
+            )}
+          </div>
         </div>
       </td>
       <td className="px-5 py-4">
@@ -311,6 +322,15 @@ function HubMobileCard({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => v
             {tipoInfo?.label ?? hub.tipo}
           </span>
           <StatusBadge estado={hub.estado} />
+          {hub.isInformal ? (
+            <span className="inline-block px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wide border border-amber-500/30 bg-amber-500/10 text-amber-300">
+              Informal
+            </span>
+          ) : (
+            <span className="inline-block px-2 py-0.5 rounded-md text-[9px] font-semibold uppercase tracking-wide border border-blue-500/30 bg-blue-500/10 text-blue-300">
+              Interno
+            </span>
+          )}
         </div>
       </div>
 
@@ -383,6 +403,7 @@ function HubFormModal({
   const [responsable, setResponsable] = useState(initial?.responsable ?? '')
   const [tipo, setTipo] = useState<TipoCentro>(initial?.tipo ?? 'acopio')
   const [estado, setEstado] = useState<HubStatus>(initial?.estado ?? 'ACTIVO')
+  const [isInformal, setIsInformal] = useState<boolean>(initial?.isInformal ?? false)
 
   // Coordenadas iniciales (centro de Portuguesa o del centro seleccionado)
   const [latitud, setLatitud] = useState<string>(initial?.coordenadas ? initial.coordenadas[1].toString() : '9.5832')
@@ -399,7 +420,7 @@ function HubFormModal({
   })
 
   // Dirty tracking: baseline capturada en el primer render (valores iniciales).
-  const snapshot = JSON.stringify({ nombre, direccion, contacto, responsable, tipo, estado, latitud, longitud, inventario })
+  const snapshot = JSON.stringify({ nombre, direccion, contacto, responsable, tipo, estado, latitud, longitud, inventario, isInformal })
   const baselineRef = useRef<string | null>(null)
   if (baselineRef.current === null) baselineRef.current = snapshot
   const isDirty = baselineRef.current !== snapshot
@@ -422,6 +443,7 @@ function HubFormModal({
       estado,
       coordenadas: [lng, lat],
       inventario,
+      isInformal,
       verificacion: initial?.verificacion,
       metadata: initial?.metadata,
     })
@@ -484,6 +506,38 @@ function HubFormModal({
               </select>
             </Field>
           </div>
+
+          <Field label="Tipo de Registro / Clasificación">
+            <div className="flex items-center gap-6 p-4 rounded-xl border border-[#2B5F8E]/30 bg-[#152D46]/20">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="isInformal"
+                  checked={!isInformal}
+                  onChange={() => setIsInformal(false)}
+                  className="w-4 h-4 text-blue-500 bg-white/5 border-white/20 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">Interno (Con Usuario)</span>
+                  <span className="text-[10px] text-white/40 mt-0.5">Requiere un coordinador con credenciales de acceso</span>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="radio"
+                  name="isInformal"
+                  checked={isInformal}
+                  onChange={() => setIsInformal(true)}
+                  className="w-4 h-4 text-blue-500 bg-white/5 border-white/20 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                />
+                <div className="flex flex-col">
+                  <span className="text-xs font-bold text-white uppercase tracking-wide">Informal (Informativo)</span>
+                  <span className="text-[10px] text-white/40 mt-0.5">Punto en el mapa de carácter meramente informativo</span>
+                </div>
+              </label>
+            </div>
+          </Field>
 
           <Field label="Estado operativo">
             <div className="grid grid-cols-2 gap-2">

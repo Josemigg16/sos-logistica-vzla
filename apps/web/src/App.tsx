@@ -41,6 +41,7 @@ interface Centro {
   tipo: "acopio" | "salida" | "destino";
   estado?: "ACTIVO" | "INACTIVO";
   inventario: Record<string, number>;
+  isInformal?: boolean;
   verificacion?: {
     imagenes: string[];
     fecha: string;
@@ -364,8 +365,11 @@ export default function App() {
             />
           )}
           {filteredCentros.map(c => {
-            const getMarkerColor = (tipo: Centro["tipo"]) => {
-              switch (tipo) {
+            const getMarkerColor = (centroObj: Centro) => {
+              if (centroObj.isInformal) {
+                return "#f59e0b"; // Naranja / Amber para informal
+              }
+              switch (centroObj.tipo) {
                 case "acopio":
                   return "#3b82f6"; // Azul
                 case "salida":
@@ -382,7 +386,7 @@ export default function App() {
                 key={c.id}
                 coordinates={c.coordenadas}
                 onClick={() => handleSelectCentro(c)}
-                color={getMarkerColor(c.tipo)}
+                color={getMarkerColor(c)}
                 active={selectedId === c.id}
               />
             );
@@ -397,7 +401,11 @@ export default function App() {
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2.5">
               <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
-              <span className="text-[11px] font-medium text-foreground">Centros de Acopios</span>
+              <span className="text-[11px] font-medium text-foreground">Hub Interno (Acopio)</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+              <span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
+              <span className="text-[11px] font-medium text-foreground">Hub Informal (Informativo)</span>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
@@ -526,7 +534,18 @@ export default function App() {
             {/* Cabecera del Centro */}
             <div className="flex items-start justify-between">
               <div>
-                <h2 className="text-base font-bold text-foreground tracking-tight leading-snug text-balance">{selectedCentro.nombre}</h2>
+                <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                  <h2 className="text-base font-bold text-foreground tracking-tight leading-snug text-balance">{selectedCentro.nombre}</h2>
+                  {selectedCentro.isInformal ? (
+                    <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-400">
+                      Informal
+                    </span>
+                  ) : (
+                    <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold border border-blue-500/30 bg-blue-500/10 text-blue-400">
+                      Interno
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-col gap-1 mt-1 text-muted-foreground">
                   <div className="flex items-center gap-1.5">
                     <MapPin className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
@@ -843,18 +862,33 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
 
         {/* Leyenda de puntos */}
         <div className="px-5 pb-4">
-          <div className="flex items-center gap-4 p-3 rounded-xl bg-secondary/40 border border-border/60">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)]" />
-              <span className="text-[10px] text-foreground font-medium">Acopio</span>
+          <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-secondary/40 border border-border/60">
+            <div className="flex items-start gap-2">
+              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)]" />
+              <div>
+                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Acopio</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                  Puntos donde la comunidad entrega donaciones y suministros.
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
-              <span className="text-[10px] text-foreground font-medium">Salida ZODI</span>
+            <div className="flex items-start gap-2">
+              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
+              <div>
+                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Salida ZODI</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                  Sitios donde se concentran los insumos acopiados para despacharlos hacia los puntos de llegada (destinos verdes).
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
-              <span className="text-[10px] text-foreground font-medium">Destino</span>
+            <div className="flex items-start gap-2">
+              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
+              <div>
+                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Destino</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                  Puntos de llegada donde se recibe y distribuye la ayuda a la población afectada.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -974,7 +1008,8 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
       responsable,
       tipo: "acopio",
       coordenadas: [lng, lat],
-    });
+      isInformal: true,
+    } as any);
   };
 
   const lng = parseFloat(longitud) || -69.2216;
