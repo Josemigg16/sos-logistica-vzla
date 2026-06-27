@@ -13,6 +13,10 @@ interface MapProps {
   onClick?: (lngLat: [number, number]) => void;
 }
 
+const isValidLngLat = (lng: number, lat: number) => {
+  return typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+};
+
 export function Map({ center, zoom, theme = "dark", children, className, onClick }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
@@ -24,10 +28,14 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
       ? "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
       : "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
+    const safeCenter: [number, number] = isValidLngLat(center[0], center[1])
+      ? center
+      : [-69.2216, 9.5832];
+
     const mapInstance = new maplibregl.Map({
       container: containerRef.current,
       style: styleUrl,
-      center: center,
+      center: safeCenter,
       zoom: zoom,
       attributionControl: false,
     });
@@ -57,8 +65,10 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
   useEffect(() => {
     if (!map) return;
     if (lastCenter.current[0] !== center[0] || lastCenter.current[1] !== center[1]) {
-      map.flyTo({ center, duration: 1000 });
-      lastCenter.current = center;
+      if (isValidLngLat(center[0], center[1])) {
+        map.flyTo({ center, duration: 1000 });
+        lastCenter.current = center;
+      }
     }
   }, [center, map]);
 
@@ -125,7 +135,7 @@ export function MapMarker({ coordinates, onClick, color = "#22c55e", active = fa
   const markerRef = useRef<maplibregl.Marker | null>(null);
 
   useEffect(() => {
-    if (!map) return;
+    if (!map || !isValidLngLat(coordinates[0], coordinates[1])) return;
 
     // Crear un elemento HTML personalizado para el marcador con animación de pulso
     const el = document.createElement("div");
@@ -191,7 +201,8 @@ export function MapRoute({ coordinates, color = "#10b981" }: MapRouteProps) {
   const { map } = useContext(MapContext);
 
   useEffect(() => {
-    if (!map || coordinates.length < 2) return;
+    const validCoords = coordinates.filter(c => isValidLngLat(c[0], c[1]));
+    if (!map || validCoords.length < 2) return;
 
     let isMounted = true;
     let geometryData: any = null;
@@ -235,7 +246,7 @@ export function MapRoute({ coordinates, color = "#10b981" }: MapRouteProps) {
 
     const fetchRoute = async () => {
       try {
-        const coordsString = coordinates.map((c) => `${c[0]},${c[1]}`).join(";");
+        const coordsString = validCoords.map((c) => `${c[0]},${c[1]}`).join(";");
         const url = `https://router.project-osrm.org/route/v1/driving/${coordsString}?geometries=geojson&overview=full`;
         const res = await fetch(url);
         if (!res.ok) throw new Error("Error fetching route from OSRM");
