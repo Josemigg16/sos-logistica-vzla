@@ -91,7 +91,7 @@ function PublicNeedsRegisterPage() {
   const { data: centers = [] } = useQuery<Center[]>({
     queryKey: ['centros'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/centros`)
+      const res = await fetch(`${API_URL}/centros`)
       if (!res.ok) throw new Error('API error')
       const all = await res.json()
       return all.filter((c: Center) => c.tipo === 'acopio')
@@ -102,7 +102,7 @@ function PublicNeedsRegisterPage() {
   const { data: catalogProducts = [] } = useQuery<Product[]>({
     queryKey: ['productos'],
     queryFn: async () => {
-      const res = await fetch(`${API_URL}/api/productos`)
+      const res = await fetch(`${API_URL}/productos`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },
@@ -113,7 +113,7 @@ function PublicNeedsRegisterPage() {
     queryKey: ['necesidades', selectedHubId],
     queryFn: async () => {
       if (!selectedHubId) return []
-      const res = await fetch(`${API_URL}/api/necesidades?hubId=${selectedHubId}`)
+      const res = await fetch(`${API_URL}/necesidades?hubId=${selectedHubId}`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },
@@ -132,7 +132,7 @@ function PublicNeedsRegisterPage() {
   // Submit Need Mutation
   const createNeedMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const res = await fetch(`${API_URL}/api/necesidades`, {
+      const res = await fetch(`${API_URL}/necesidades`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
