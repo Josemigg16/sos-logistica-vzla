@@ -5,7 +5,7 @@ import { Loader2, Plus, X, AlertTriangle, Warehouse } from 'lucide-react'
 import type { PublicHub, HubType } from '@sos/shared'
 import { HUB_TYPES } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole } from '@/lib/session'
+import { hasAnyRole, ROLES_VERIFY_HUBS } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
 import { Map as MapView, MapControls, MapMarker } from '@/components/ui/map'
 import { useToast } from '@/components/ui/toast'
@@ -15,6 +15,7 @@ import {
   HUB_TYPE_LABELS,
   authHeaders,
 } from '@/components/hub-dashboard'
+import { HubPendingVerification } from '@/components/hub-pending-verification'
 
 export const Route = createFileRoute('/admin/coordinator')({ component: CoordinatorGate })
 
@@ -75,6 +76,8 @@ function CoordinatorPage() {
         <div className="flex items-center justify-center py-24"><Loader2 className="w-7 h-7 animate-spin text-[#4A89C0]" /></div>
       ) : !hub ? (
         <RegisterHubSection />
+      ) : hub.status === 'INACTIVO' && !hasAnyRole(user, ...ROLES_VERIFY_HUBS) ? (
+        <HubPendingVerification hubName={hub.name} variant="edit-locked" />
       ) : (
         <HubDashboard hub={hub} canManageVehicles={canManageVehicles} />
       )}

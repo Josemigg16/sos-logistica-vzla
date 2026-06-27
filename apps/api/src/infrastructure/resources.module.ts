@@ -10,6 +10,7 @@ import { RegisterInventoryBatch } from "../application/resources/register-invent
 import { ListInventoryBatchesByHub } from "../application/resources/list-inventory-batches-by-hub";
 import { GetHubStockSummary } from "../application/resources/get-hub-stock-summary";
 import { DeleteInventoryBatch } from "../application/resources/delete-inventory-batch";
+import { ChangeHubStatus } from "../application/resources/change-hub-status";
 import { DrizzleHubRepository } from "./persistence/drizzle-hub.repository";
 import { DrizzleResourceRepository } from "./persistence/drizzle-resource.repository";
 import { DrizzleProductRepository } from "./persistence/drizzle-product.repository";
@@ -36,6 +37,7 @@ export function createResourcesModule() {
     listInventoryBatchesByHub: new ListInventoryBatchesByHub(batches),
     getHubStockSummary: new GetHubStockSummary(hubs, products, batches),
     deleteInventoryBatch: new DeleteInventoryBatch(batches),
+    changeHubStatus: new ChangeHubStatus(hubs),
   };
 
   return {

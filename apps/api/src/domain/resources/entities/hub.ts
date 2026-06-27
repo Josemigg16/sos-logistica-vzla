@@ -59,6 +59,14 @@ export class Hub {
     return this.props.status === "ACTIVO";
   }
 
+  activate(): void {
+    this.props.status = "ACTIVO";
+  }
+
+  deactivate(): void {
+    this.props.status = "INACTIVO";
+  }
+
   toPublic(): PublicHub {
     return {
       id: this.props.id,

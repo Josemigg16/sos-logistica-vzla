@@ -27,6 +27,7 @@ import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
 import { getToken } from "@/lib/auth/token-store";
+import { HubPendingVerification } from "@/components/hub-pending-verification";
 import isotipo from "@/assets/branding/white-isotipo-blue-background.webp";
 
 
@@ -38,6 +39,7 @@ interface Centro {
   responsable: string;
   coordenadas: [number, number];
   tipo: "acopio" | "salida" | "destino";
+  estado?: "ACTIVO" | "INACTIVO";
   inventario: Record<string, number>;
   verificacion?: {
     imagenes: string[];
@@ -73,6 +75,9 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [clickedCoordinates, setClickedCoordinates] = useState<[number, number] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  // Nombre del centro recién registrado en el flujo público. Cuando está seteado,
+  // se muestra la pantalla de verificación pendiente (llamar a soporte).
+  const [pendingVerificationHubName, setPendingVerificationHubName] = useState<string | null>(null);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
     return !localStorage.getItem("map_welcome_seen");
@@ -209,14 +214,22 @@ export default function App() {
     }
   }, []);
 
+  // Centros visibles en el mapa público: solo los activos. Los inactivos están
+  // pendientes de verificación por SOS Logística y no se exponen al público.
+  // (Los hubs del JSON seed sin `estado` se consideran ACTIVO por compatibilidad).
+  const publicCentros = useMemo(
+    () => centros.filter((c) => c.estado !== "INACTIVO"),
+    [centros],
+  );
+
   // Filtrar centros según búsqueda
   const filteredCentros = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return centros.filter(c =>
+    return publicCentros.filter(c =>
       c.nombre.toLowerCase().includes(term) ||
       c.direccion.toLowerCase().includes(term)
     );
-  }, [centros, searchTerm]);
+  }, [publicCentros, searchTerm]);
 
   const handleSelectCentro = (centro: Centro) => {
     setSelectedId(centro.id);
@@ -747,18 +760,22 @@ export default function App() {
                 headers,
                 body: JSON.stringify({
                   ...data,
+                  // Los centros propuestos desde el mapa público arrancan inactivos
+                  // hasta que un coordinador interno de SOS Logística los verifique.
+                  estado: "INACTIVO",
                   inventario: {}, // Se registra sin inventario inicial
                 }),
               });
               if (!res.ok) throw new Error("Fallo al guardar");
-              // Volver a cargar la lista
+              // Volver a cargar la lista (los inactivos no aparecen en el mapa, pero
+              // mantenemos el estado fresco por si admin entra después).
               const listRes = await fetch(`${API_URL}/centros`);
               if (listRes.ok) {
                 const listData = await listRes.json();
                 setCentros(listData);
               }
               setIsRegistering(false);
-              toast.success('Centro de acopio registrado', 'Tu centro ya aparece en el mapa público.');
+              setPendingVerificationHubName(data.nombre);
             } catch (err) {
               console.error(err);
               toast.error('No se pudo registrar el centro', 'Verifica los datos e intenta de nuevo.');
@@ -766,6 +783,13 @@ export default function App() {
               setIsSaving(false);
             }
           }}
+        />
+      )}
+
+      {pendingVerificationHubName && (
+        <PostRegisterVerificationOverlay
+          hubName={pendingVerificationHubName}
+          onClose={() => setPendingVerificationHubName(null)}
         />
       )}
     </div>
@@ -1156,5 +1180,47 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
         </div>
       </div>
     </>
+  );
+}
+
+interface PostRegisterVerificationOverlayProps {
+  hubName: string;
+  onClose: () => void;
+}
+
+function PostRegisterVerificationOverlay({ hubName, onClose }: PostRegisterVerificationOverlayProps) {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A1A2A]/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="relative w-full max-w-xl animate-in zoom-in-95 duration-300"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="rounded-2xl bg-[#0F2337]/95 border border-[#2B5F8E]/50 shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-1">
+          <HubPendingVerification hubName={hubName} variant="post-register" />
+          <div className="px-6 pb-5 pt-1 flex justify-center">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white/80 text-xs font-semibold tracking-wide transition-colors active:scale-[0.97]"
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
