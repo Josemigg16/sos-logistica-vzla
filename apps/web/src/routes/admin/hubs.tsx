@@ -60,7 +60,7 @@ function authHeaders(): HeadersInit {
 // --- API Client ---
 async function fetchHubs(): Promise<Centro[]> {
   try {
-    const res = await fetch(`${API_URL}/api/centros`)
+    const res = await fetch(`${API_URL}/centros`)
     if (!res.ok) throw new Error('API error')
     return res.json()
   } catch {
@@ -77,7 +77,7 @@ async function tryFetch(input: RequestInfo, init?: RequestInit): Promise<Respons
 }
 
 async function createHub(hub: Centro): Promise<Centro> {
-  const res = await tryFetch(`${API_URL}/api/centros`, {
+  const res = await tryFetch(`${API_URL}/centros`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(hub),
@@ -90,7 +90,7 @@ async function createHub(hub: Centro): Promise<Centro> {
 }
 
 async function deleteHub(id: string): Promise<string> {
-  await tryFetch(`${API_URL}/api/centros/${id}`, {
+  await tryFetch(`${API_URL}/centros/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   })

@@ -116,4 +116,12 @@ describe("Auth e2e (HTTP)", () => {
     });
     expect(reuse.status).toBe(401);
   });
+
+  test("la cookie de refresh se restringe al path /api/auth", async () => {
+    // La API se sirve bajo /api: la cookie debe limitar su Path a /api/auth, o
+    // el navegador no la mandaría a /api/auth/refresh y la sesión no se renueva.
+    const { app } = await buildAuthApp();
+    const { res } = await loginAdmin(app);
+    expect(res.headers.get("set-cookie")).toContain("Path=/api/auth");
+  });
 });

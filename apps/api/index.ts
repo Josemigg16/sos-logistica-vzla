@@ -74,18 +74,21 @@ app.use(
   }),
 );
 
-// Bounded context `identity` — autenticación bajo /auth.
-app.route("/auth", createIdentityModule().routes);
+// Toda la API cuelga de /api: un solo prefijo para que el nginx la sirva
+// same-origin bajo /api y el frontend hable contra una sola base.
 
-// Bounded context `resources` — hubs y stock de insumos bajo /resources.
-app.route("/resources", createResourcesModule().routes);
+// Bounded context `identity` — autenticación bajo /api/auth.
+app.route("/api/auth", createIdentityModule().routes);
 
-// Bounded context `operations` — planificación de viajes y caravanas bajo /operations.
-app.route("/operations", createOperationsModule().routes);
+// Bounded context `resources` — hubs y stock de insumos bajo /api/resources.
+app.route("/api/resources", createResourcesModule().routes);
+
+// Bounded context `operations` — planificación de viajes bajo /api/operations.
+app.route("/api/operations", createOperationsModule().routes);
 
 // --- Endpoints del Servidor ---
 
-app.get("/health", (c) =>
+app.get("/api/health", (c) =>
   c.json({ status: "ok", service: "sos-api", ts: new Date().toISOString() })
 );
 

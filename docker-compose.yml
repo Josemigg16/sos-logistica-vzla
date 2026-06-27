@@ -34,7 +34,7 @@ services:
     ports:
       - "127.0.0.1:${API_PORT:-8081}:3000"
     healthcheck:
-      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "bun", "-e", "fetch('http://localhost:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -44,7 +44,9 @@ services:
       context: .
       dockerfile: docker/web.Dockerfile
       args:
-        VITE_API_URL: ${VITE_API_URL:-http://localhost:8081}
+        # Same-origin: la web pega a /api y el nginx del host la reenvía a la api.
+        # Al ser relativo, la MISMA imagen sirve dev/test/prod sin rebuild por dominio.
+        VITE_API_URL: ${VITE_API_URL:-/api}
     restart: unless-stopped
     depends_on:
       - api

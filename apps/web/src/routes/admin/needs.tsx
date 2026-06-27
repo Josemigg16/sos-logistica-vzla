@@ -198,7 +198,7 @@ function authHeaders(): HeadersInit {
 
 async function fetchNeeds(): Promise<Need[]> {
   try {
-    const res = await fetch(`${API_URL}/api/necesidades`)
+    const res = await fetch(`${API_URL}/necesidades`)
     if (!res.ok) throw new Error('API error')
     return res.json()
   } catch {
@@ -216,7 +216,7 @@ async function tryFetch(input: RequestInfo, init?: RequestInit): Promise<Respons
 }
 
 async function createNeed(draft: NeedDraft): Promise<Need> {
-  const res = await tryFetch(`${API_URL}/api/necesidades`, {
+  const res = await tryFetch(`${API_URL}/necesidades`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(draft),
@@ -231,7 +231,7 @@ async function createNeed(draft: NeedDraft): Promise<Need> {
 }
 
 async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
-  const res = await tryFetch(`${API_URL}/api/necesidades/${id}`, {
+  const res = await tryFetch(`${API_URL}/necesidades/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(draft),
@@ -245,7 +245,7 @@ async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
 }
 
 async function deleteNeed(id: string): Promise<string> {
-  await tryFetch(`${API_URL}/api/necesidades/${id}`, {
+  await tryFetch(`${API_URL}/necesidades/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   })
