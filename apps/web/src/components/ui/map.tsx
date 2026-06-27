@@ -215,7 +215,10 @@ export function MapMarker({
     el.className = "relative flex items-center justify-center cursor-pointer";
     el.style.width = active ? "32px" : "24px";
     el.style.height = active ? "32px" : "24px";
-    el.style.transition = "all 0.3s ease";
+    // Transicionar SOLO tamaño — nunca 'all', porque MapLibre posiciona el
+    // marcador vía transform y un transition: all lo haría arrastrarse con
+    // delay detrás del mapa al moverse.
+    el.style.transition = "width 0.3s ease, height 0.3s ease";
 
     // Efecto de pulso
     const pulse = document.createElement("div");
