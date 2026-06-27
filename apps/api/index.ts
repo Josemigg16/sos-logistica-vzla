@@ -8,7 +8,7 @@ import {
   type Centro,
   INVENTORY_CATEGORIES,
 } from "@sos/shared";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and, ne } from "drizzle-orm";
 import { db } from "./src/infrastructure/persistence/db";
 import { hubs, resources, products, needs } from "./src/infrastructure/persistence/schema/resources.schema";
 import { createIdentityModule } from "./src/infrastructure/identity.module";
@@ -103,6 +103,78 @@ app.post("/api/productos", async (c) => {
   } catch (error) {
     console.error("Error al crear producto en la DB:", error);
     return c.json({ error: "Error interno del servidor al crear producto" }, 500);
+  }
+});
+
+// Actualizar un producto existente en el catálogo maestro
+app.put("/api/productos/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const body = await c.req.json();
+    const { name, category, unit, description } = body;
+
+    // Validaciones básicas
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      return c.json({ error: "El nombre es requerido y debe ser texto" }, 400);
+    }
+    if (!category || !INVENTORY_CATEGORIES.includes(category as any)) {
+      return c.json({ error: `La categoría debe ser una de: ${INVENTORY_CATEGORIES.join(", ")}` }, 400);
+    }
+    if (!unit || typeof unit !== "string" || unit.trim().length === 0) {
+      return c.json({ error: "La unidad de medida es requerida y debe ser texto" }, 400);
+    }
+
+    // Verificar si el nombre ya existe en otro producto
+    const existing = await db
+      .select()
+      .from(products)
+      .where(and(eq(products.name, name.trim()), ne(products.id, id)))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return c.json({ error: "Ya existe otro producto con este nombre en el catálogo" }, 409);
+    }
+
+    const [updatedProduct] = await db
+      .update(products)
+      .set({
+        name: name.trim(),
+        category: category as any,
+        unit: unit.trim(),
+        description: (description || "").trim(),
+      })
+      .where(eq(products.id, id))
+      .returning();
+
+    if (!updatedProduct) {
+      return c.json({ error: "Producto no encontrado" }, 404);
+    }
+
+    return c.json(updatedProduct);
+  } catch (error) {
+    console.error("Error al actualizar producto en la DB:", error);
+    return c.json({ error: "Error interno del servidor al actualizar producto" }, 500);
+  }
+});
+
+// Eliminar un producto del catálogo maestro
+app.delete("/api/productos/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+
+    const [deletedProduct] = await db
+      .delete(products)
+      .where(eq(products.id, id))
+      .returning();
+
+    if (!deletedProduct) {
+      return c.json({ error: "Producto no encontrado" }, 404);
+    }
+
+    return c.json({ success: true, deleted: deletedProduct });
+  } catch (error) {
+    console.error("Error al eliminar producto de la DB:", error);
+    return c.json({ error: "Error interno del servidor al eliminar producto" }, 500);
   }
 });
 

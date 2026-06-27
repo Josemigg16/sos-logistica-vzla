@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Search, Inbox, Loader2, Plus, X, Save } from 'lucide-react'
+import { Search, Inbox, Loader2, Plus, X, Save, Pencil, Trash2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { INVENTORY_CATEGORIES, type ProductMaster } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
@@ -40,12 +40,16 @@ function AdminCatalogPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [newName, setNewName] = useState('')
-  const [newCategory, setNewCategory] = useState(INVENTORY_CATEGORIES[0])
-  const [newUnit, setNewUnit] = useState('')
-  const [newDescription, setNewDescription] = useState('')
+  // Modals States
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+  const [editingProduct, setEditingProduct] = useState<ProductMaster | null>(null)
+  const [deletingProduct, setDeletingProduct] = useState<ProductMaster | null>(null)
+
+  // Form States (Shared for Create/Edit)
+  const [name, setName] = useState('')
+  const [category, setCategory] = useState(INVENTORY_CATEGORIES[0])
+  const [unit, setUnit] = useState('')
+  const [description, setDescription] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
 
   const { data: products = [], isLoading } = useQuery<ProductMaster[]>({
@@ -57,6 +61,27 @@ function AdminCatalogPage() {
     },
   })
 
+  // Open Create Modal
+  const openCreate = () => {
+    setName('')
+    setCategory(INVENTORY_CATEGORIES[0])
+    setUnit('')
+    setDescription('')
+    setFormError(null)
+    setIsCreateOpen(true)
+  }
+
+  // Open Edit Modal
+  const openEdit = (prod: ProductMaster) => {
+    setEditingProduct(prod)
+    setName(prod.name)
+    setCategory(prod.category)
+    setUnit(prod.unit)
+    setDescription(prod.description)
+    setFormError(null)
+  }
+
+  // Create Mutation
   const createProductMutation = useMutation({
     mutationFn: async (newProduct: Omit<ProductMaster, 'id'>) => {
       const res = await fetch(`${API_URL}/productos`, {
@@ -74,16 +99,64 @@ function AdminCatalogPage() {
       queryClient.setQueryData<ProductMaster[]>(['productos'], (prev = []) => {
         return [...prev, created]
       })
-      setIsModalOpen(false)
-      // Reset form
-      setNewName('')
-      setNewCategory(INVENTORY_CATEGORIES[0])
-      setNewUnit('')
-      setNewDescription('')
-      setFormError(null)
+      setIsCreateOpen(false)
     },
     onError: (error: any) => {
       setFormError(error.message || 'Error al guardar el producto')
+    },
+  })
+
+  // Edit Mutation
+  const updateProductMutation = useMutation({
+    mutationFn: async (updated: ProductMaster) => {
+      const res = await fetch(`${API_URL}/productos/${updated.id}`, {
+        method: 'PUT',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          name: updated.name,
+          category: updated.category,
+          unit: updated.unit,
+          description: updated.description,
+        }),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al actualizar producto')
+      }
+      return res.json()
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData<ProductMaster[]>(['productos'], (prev = []) => {
+        return prev.map((p) => (p.id === updated.id ? updated : p))
+      })
+      setEditingProduct(null)
+    },
+    onError: (error: any) => {
+      setFormError(error.message || 'Error al actualizar el producto')
+    },
+  })
+
+  // Delete Mutation
+  const deleteProductMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`${API_URL}/productos/${id}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al eliminar producto')
+      }
+      return res.json()
+    },
+    onSuccess: (_, id) => {
+      queryClient.setQueryData<ProductMaster[]>(['productos'], (prev = []) => {
+        return prev.filter((p) => p.id !== id)
+      })
+      setDeletingProduct(null)
+    },
+    onError: (error: any) => {
+      alert(error.message || 'Error al eliminar el producto')
     },
   })
 
@@ -97,24 +170,47 @@ function AdminCatalogPage() {
     })
   }, [products, searchTerm, selectedCategory])
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCreateSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
 
-    if (!newName.trim()) {
+    if (!name.trim()) {
       setFormError('El nombre del producto es requerido')
       return
     }
-    if (!newUnit.trim()) {
+    if (!unit.trim()) {
       setFormError('La unidad de medida es requerida')
       return
     }
 
     createProductMutation.mutate({
-      name: newName.trim(),
-      category: newCategory,
-      unit: newUnit.trim(),
-      description: newDescription.trim(),
+      name: name.trim(),
+      category,
+      unit: unit.trim(),
+      description: description.trim(),
+    })
+  }
+
+  const handleEditSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingProduct) return
+    setFormError(null)
+
+    if (!name.trim()) {
+      setFormError('El nombre del producto es requerido')
+      return
+    }
+    if (!unit.trim()) {
+      setFormError('La unidad de medida es requerida')
+      return
+    }
+
+    updateProductMutation.mutate({
+      id: editingProduct.id,
+      name: name.trim(),
+      category,
+      unit: unit.trim(),
+      description: description.trim(),
     })
   }
 
@@ -143,7 +239,7 @@ function AdminCatalogPage() {
         </div>
         <div>
           <button
-            onClick={() => setIsModalOpen(true)}
+            onClick={openCreate}
             className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 shadow-lg active:scale-95 cursor-pointer border border-blue-500/20"
           >
             <Plus className="w-4 h-4" />
@@ -213,7 +309,7 @@ function AdminCatalogPage() {
           {filteredProducts.map((prod) => (
             <div
               key={prod.id}
-              className="p-5 rounded-2xl border border-[#2B5F8E]/30 bg-[#152D46]/50 backdrop-blur-sm flex flex-col justify-between hover:border-[#4A89C0]/50 transition-all duration-300"
+              className="p-5 rounded-2xl border border-[#2B5F8E]/30 bg-[#152D46]/50 backdrop-blur-sm flex flex-col justify-between hover:border-[#4A89C0]/50 transition-all duration-300 group"
             >
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2.5">
@@ -235,8 +331,27 @@ function AdminCatalogPage() {
                 >
                   {prod.category}
                 </span>
+
+                {/* Acciones Editar / Eliminar */}
+                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <button
+                    onClick={() => openEdit(prod)}
+                    className="p-1 text-white/40 hover:text-white hover:bg-white/5 rounded transition-all duration-200 cursor-pointer"
+                    title="Editar producto"
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    onClick={() => setDeletingProduct(prod)}
+                    className="p-1 text-red-500/50 hover:text-red-400 hover:bg-red-500/10 rounded transition-all duration-200 cursor-pointer"
+                    title="Eliminar producto"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
                 <span className="text-[9px] text-white/20 font-mono">
-                  {prod.id}
+                  {prod.id.slice(0, 8)}...
                 </span>
               </div>
             </div>
@@ -245,7 +360,7 @@ function AdminCatalogPage() {
       )}
 
       {/* Modal / Dialog de Creación de Producto */}
-      {isModalOpen && (
+      {isCreateOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
           <div className="relative w-full max-w-lg bg-[#0F2337] border border-[#2B5F8E]/50 rounded-2xl shadow-2xl p-6 overflow-hidden">
             {/* Header Modal */}
@@ -255,7 +370,7 @@ function AdminCatalogPage() {
               </h2>
               <button
                 onClick={() => {
-                  setIsModalOpen(false)
+                  setIsCreateOpen(false)
                   setFormError(null)
                 }}
                 className="text-white/50 hover:text-white transition-colors duration-200 cursor-pointer"
@@ -265,7 +380,7 @@ function AdminCatalogPage() {
             </div>
 
             {/* Formulario */}
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleCreateSubmit} className="space-y-4">
               {formError && (
                 <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex gap-2 items-center">
                   <span className="font-semibold">Error:</span> {formError}
@@ -280,8 +395,8 @@ function AdminCatalogPage() {
                   type="text"
                   required
                   placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
                 />
               </div>
@@ -292,8 +407,8 @@ function AdminCatalogPage() {
                     Categoría
                   </label>
                   <select
-                    value={newCategory}
-                    onChange={(e) => setNewCategory(e.target.value as any)}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
                     className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
                   >
                     {INVENTORY_CATEGORIES.map((cat) => (
@@ -312,8 +427,8 @@ function AdminCatalogPage() {
                     type="text"
                     required
                     placeholder="Ej. litros, kg, unidades, paquetes"
-                    value={newUnit}
-                    onChange={(e) => setNewUnit(e.target.value)}
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
                     className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
                   />
                 </div>
@@ -326,8 +441,8 @@ function AdminCatalogPage() {
                 <textarea
                   rows={3}
                   placeholder="Detalles sobre el suministro, especificaciones o empaque..."
-                  value={newDescription}
-                  onChange={(e) => setNewDescription(e.target.value)}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
                 />
               </div>
@@ -337,7 +452,7 @@ function AdminCatalogPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    setIsModalOpen(false)
+                    setIsCreateOpen(false)
                     setFormError(null)
                   }}
                   className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
@@ -366,7 +481,161 @@ function AdminCatalogPage() {
           </div>
         </div>
       )}
+
+      {/* Modal / Dialog de Edición de Producto */}
+      {editingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-[#0F2337] border border-[#2B5F8E]/50 rounded-2xl shadow-2xl p-6 overflow-hidden">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#2B5F8E]/20 mb-4">
+              <h2 className="text-white font-bold text-base tracking-tight uppercase">
+                Editar Producto
+              </h2>
+              <button
+                onClick={() => {
+                  setEditingProduct(null)
+                  setFormError(null)
+                }}
+                className="text-white/50 hover:text-white transition-colors duration-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              {formError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex gap-2 items-center">
+                  <span className="font-semibold">Error:</span> {formError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                  Nombre del Producto
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                    Categoría
+                  </label>
+                  <select
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
+                  >
+                    {INVENTORY_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                    Unidad de Medida
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. litros, kg, unidades, paquetes"
+                    value={unit}
+                    onChange={(e) => setUnit(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                  Descripción
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Detalles sobre el suministro, especificaciones o empaque..."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#2B5F8E]/20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingProduct(null)
+                    setFormError(null)
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateProductMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
+                >
+                  {updateProductMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Guardar Cambios
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal / Dialog de Confirmación de Eliminación */}
+      {deletingProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
+          <div className="relative w-full max-w-md bg-[#0F2337] border border-red-500/35 rounded-2xl shadow-2xl p-6 overflow-hidden">
+            <h2 className="text-white font-bold text-base uppercase tracking-wide mb-3 flex items-center gap-2">
+              ¿Eliminar Producto del Catálogo?
+            </h2>
+            <p className="text-xs text-white/60 leading-relaxed mb-6">
+              Esta acción dará de baja al producto <strong className="text-white">"{deletingProduct.name}"</strong> del catálogo maestro. Asegurate de que no existan dependencias o registros de necesidades activos vinculados a este producto.
+            </p>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingProduct(null)}
+                className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={deleteProductMutation.isPending}
+                onClick={() => deleteProductMutation.mutate(deletingProduct.id)}
+                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:bg-red-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
+              >
+                {deleteProductMutation.isPending ? 'Eliminando...' : 'Sí, Eliminar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
-
