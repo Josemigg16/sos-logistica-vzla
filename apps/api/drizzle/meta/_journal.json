@@ -50,6 +50,13 @@
       "when": 1782547603733,
       "tag": "0006_bizarre_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782950400000,
+      "tag": "0007_remove_zodi_base",
+      "breakpoints": true
     }
   ]
 }

@@ -13,6 +13,7 @@ function toDomain(row: HubRow): Hub {
     address: row.address,
     contact: row.contact,
     type: row.type,
+    status: row.status,
     latitude: row.latitude,
     longitude: row.longitude,
     coordinatorId: row.coordinatorId ?? null,
@@ -48,6 +49,7 @@ export class DrizzleHubRepository implements HubRepository {
       address: pub.address,
       contact: pub.contact,
       type: pub.type,
+      status: pub.status,
       latitude: pub.latitude,
       longitude: pub.longitude,
       coordinatorId: pub.coordinatorId,
@@ -63,6 +65,7 @@ export class DrizzleHubRepository implements HubRepository {
           address: values.address,
           contact: values.contact,
           type: values.type,
+          status: values.status,
           latitude: values.latitude,
           longitude: values.longitude,
           // Preserva el coordinador si el upsert no trae uno (ej. edición admin).

@@ -1,4 +1,4 @@
-import type { HubType, PublicHub } from "@sos/shared";
+import type { HubStatus, HubType, PublicHub } from "@sos/shared";
 
 export interface HubProps {
   id: string;
@@ -6,6 +6,7 @@ export interface HubProps {
   address: string;
   contact: string;
   type: HubType;
+  status: HubStatus;
   latitude: number;
   longitude: number;
   coordinatorId: string | null;
@@ -29,11 +30,17 @@ export class Hub {
     address: string;
     contact: string;
     type: HubType;
+    status?: HubStatus;
     latitude: number;
     longitude: number;
     coordinatorId?: string | null;
   }): Hub {
-    return new Hub({ ...input, coordinatorId: input.coordinatorId ?? null, createdAt: new Date() });
+    return new Hub({
+      ...input,
+      status: input.status ?? "ACTIVO",
+      coordinatorId: input.coordinatorId ?? null,
+      createdAt: new Date(),
+    });
   }
 
   get id(): string {
@@ -45,6 +52,12 @@ export class Hub {
   get type(): HubType {
     return this.props.type;
   }
+  get status(): HubStatus {
+    return this.props.status;
+  }
+  get isActive(): boolean {
+    return this.props.status === "ACTIVO";
+  }
 
   toPublic(): PublicHub {
     return {
@@ -53,6 +66,7 @@ export class Hub {
       address: this.props.address,
       contact: this.props.contact,
       type: this.props.type,
+      status: this.props.status,
       latitude: this.props.latitude,
       longitude: this.props.longitude,
       coordinatorId: this.props.coordinatorId,

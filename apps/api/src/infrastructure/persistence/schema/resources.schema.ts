@@ -9,12 +9,13 @@ import {
   text,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { HUB_TYPES, INVENTORY_CATEGORIES } from "@sos/shared";
+import { HUB_STATUSES, HUB_TYPES, INVENTORY_CATEGORIES } from "@sos/shared";
 import { users } from "./users.schema";
 import { viajes, vehiculos, operations } from "./operations.schema";
 
 // --- ENUMS ---
 export const hubTypeEnum = pgEnum("hub_type", HUB_TYPES);
+export const hubStatusEnum = pgEnum("hub_status", HUB_STATUSES);
 export const inventoryCategoryEnum = pgEnum("inventory_category", INVENTORY_CATEGORIES);
 export const estadoLoteEnum = pgEnum("estado_lote", ["EMBALADO", "EN_TRANSITO", "ENTREGADO"]);
 export const accionCargaEnum = pgEnum("accion_carga", ["RECEPCION", "EMBALAJE", "DESPACHO", "ENTREGA", "TRASPASO"]);
@@ -61,6 +62,7 @@ export const hubs = pgTable("hubs", {
   address: varchar("address", { length: 255 }).notNull(),
   contact: varchar("contact", { length: 120 }).notNull(),
   type: hubTypeEnum("type").notNull(),
+  status: hubStatusEnum("status").notNull().default("ACTIVO"),
   latitude: doublePrecision("latitude").notNull(),
   longitude: doublePrecision("longitude").notNull(),
   coordinatorId: uuid("coordinator_id").references(() => users.id, { onDelete: "set null" }),

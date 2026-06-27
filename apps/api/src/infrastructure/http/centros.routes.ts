@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { centroSchema, type Centro, type HubType } from "@sos/shared";
+import { centroSchema, type Centro, type HubStatus, type HubType } from "@sos/shared";
 import type { ListHubs } from "../../application/resources/list-hubs";
 import type { ListResourcesByHub } from "../../application/resources/list-resources-by-hub";
 import type { UpsertHub } from "../../application/resources/upsert-hub";
@@ -59,7 +59,7 @@ function mapError(c: Context, error: unknown) {
 // ---------- helpers ----------
 
 async function buildCentroFromHub(
-  hub: { id: string; name: string; address: string; contact: string; type: HubType; longitude: number; latitude: number },
+  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number },
   listResourcesByHub: ListResourcesByHub,
 ): Promise<Centro> {
   const resources = await listResourcesByHub.execute(hub.id);
@@ -76,6 +76,7 @@ async function buildCentroFromHub(
     responsable: "Coordinador de Centro",
     coordenadas: [hub.longitude, hub.latitude],
     tipo: HUB_TYPE_TO_TIPO[hub.type],
+    estado: hub.status,
     inventario,
   };
 }
@@ -127,6 +128,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
         address: centro.direccion,
         contact: centro.contacto,
         type: TIPO_TO_HUB_TYPE[centro.tipo],
+        status: centro.estado,
         latitude: centro.coordenadas[1],
         longitude: centro.coordenadas[0],
       });

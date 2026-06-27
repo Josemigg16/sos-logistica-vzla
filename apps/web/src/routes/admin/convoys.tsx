@@ -267,8 +267,8 @@ function AdminConvoysPage() {
 
       {planning && (
         <PlanConvoyModal
-          dispatchHubs={hubs.filter((h) => h.type === 'DISPATCH')}
-          destinationHubs={hubs.filter((h) => h.type === 'DESTINATION')}
+          dispatchHubs={hubs.filter((h) => h.type === 'DISPATCH' && h.status === 'ACTIVO')}
+          destinationHubs={hubs.filter((h) => h.type === 'DESTINATION' && h.status === 'ACTIVO')}
           escorts={escorts}
           vehicles={vehicles}
           onClose={() => setPlanning(false)}

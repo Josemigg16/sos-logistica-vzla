@@ -145,7 +145,7 @@ try {
       },
     });
 
-  // Base ZODI / Llegada (ZODI_BASE)
+  // Base General ZODI Portuguesa (centro de destino/llegada)
   await db
     .insert(hubs)
     .values({
@@ -153,7 +153,7 @@ try {
       name: "Base General ZODI Portuguesa",
       address: "Fuerte Los Teques, Sector Comando ZODI, Portuguesa",
       contact: "0416-8889900",
-      type: "ZODI_BASE",
+      type: "DESTINATION",
       latitude: 9.0012,
       longitude: -69.0012,
     })
@@ -163,7 +163,7 @@ try {
         name: "Base General ZODI Portuguesa",
         address: "Fuerte Los Teques, Sector Comando ZODI, Portuguesa",
         contact: "0416-8889900",
-        type: "ZODI_BASE",
+        type: "DESTINATION",
       },
     });
   console.log("✅ Centros de acopio (Periférico, Destino y ZODI) sembrados.");
