@@ -109,7 +109,7 @@ export default function App() {
   }, [activeImageUrl]);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/centros`)
+    fetch(`${API_URL}/centros`)
       .then((res) => {
         if (!res.ok) throw new Error("API response not OK");
         return res.json();
@@ -634,7 +634,7 @@ export default function App() {
           onSubmit={async (data) => {
             setIsSaving(true);
             try {
-              const res = await fetch(`${API_URL}/api/centros`, {
+              const res = await fetch(`${API_URL}/centros`, {
                 method: "POST",
                 headers: {
                   "Content-Type": "application/json",
@@ -646,7 +646,7 @@ export default function App() {
               });
               if (!res.ok) throw new Error("Fallo al guardar");
               // Volver a cargar la lista
-              const listRes = await fetch(`${API_URL}/api/centros`);
+              const listRes = await fetch(`${API_URL}/centros`);
               if (listRes.ok) {
                 const listData = await listRes.json();
                 setCentros(listData);

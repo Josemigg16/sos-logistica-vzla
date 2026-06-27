@@ -89,13 +89,13 @@ function authHeaders(): HeadersInit {
 }
 
 async function fetchNeeds(): Promise<Need[]> {
-  const res = await fetch(`${API_URL}/api/needs`)
+  const res = await fetch(`${API_URL}/needs`)
   if (!res.ok) throw new Error('No se pudieron cargar las necesidades')
   return res.json()
 }
 
 async function createNeed(draft: NeedDraft): Promise<Need> {
-  const res = await fetch(`${API_URL}/api/needs`, {
+  const res = await fetch(`${API_URL}/needs`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(draft),
@@ -105,7 +105,7 @@ async function createNeed(draft: NeedDraft): Promise<Need> {
 }
 
 async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
-  const res = await fetch(`${API_URL}/api/needs/${id}`, {
+  const res = await fetch(`${API_URL}/needs/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(draft),
@@ -115,7 +115,7 @@ async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
 }
 
 async function deleteNeed(id: string): Promise<string> {
-  const res = await fetch(`${API_URL}/api/needs/${id}`, {
+  const res = await fetch(`${API_URL}/needs/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   })

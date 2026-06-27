@@ -354,7 +354,7 @@ function RotatingMessage({ hasCovered }: { hasCovered: boolean }) {
 
 // --- Main page ---
 function NecesidadesPage() {
-  const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+  const apiUrl = import.meta.env.VITE_API_URL ?? '/api'
   const [filter, setFilter] = useState<'TODAS' | 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'>('TODAS')
   const [mounted, setMounted] = useState(false)
 
@@ -367,7 +367,7 @@ function NecesidadesPage() {
   const { data, isLoading } = useQuery<Necesidad[]>({
     queryKey: ['necesidades'],
     queryFn: async () => {
-      const res = await fetch(`${apiUrl}/api/needs`)
+      const res = await fetch(`${apiUrl}/needs`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },

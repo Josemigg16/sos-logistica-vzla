@@ -46,7 +46,7 @@ function AdminDashboard() {
         <AdminSectionCard
           to="/admin/hubs"
           icon={<MapPin className="w-6 h-6" />}
-          title="Centros de Acopio"
+          title="Logistica"
           description="Registrar nuevos puntos y actualizar sus inventarios."
           stat="Gestionar puntos"
         />

@@ -174,7 +174,7 @@ function SidebarContent({
           <nav className="flex flex-col gap-1">
             <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
             <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
-            <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Centros de acopio" />
+            <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Logistica" />
           </nav>
       </div>
 
