@@ -8,8 +8,8 @@ COPY packages/shared/package.json packages/shared/
 RUN bun install --frozen-lockfile
 COPY packages ./packages
 COPY apps/web ./apps/web
-# Vite inlines env at build time. Point this at the public API URL.
-ARG VITE_API_URL=http://localhost:8081
+# Vite inlines env at build time. Same-origin: /api lo reenvía el nginx del host.
+ARG VITE_API_URL=/api
 ENV VITE_API_URL=$VITE_API_URL
 RUN bun --filter @sos/web build
 

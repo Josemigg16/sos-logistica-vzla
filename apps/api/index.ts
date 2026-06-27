@@ -1,8 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { join } from "path";
-import { centroSchema, type Centro } from "@sos/shared";
-import { eq, sql } from "drizzle-orm";
+import {
+  centroSchema,
+  type Centro,
+} from "@sos/shared";
+import { eq, sql, desc } from "drizzle-orm";
 import { db } from "./src/infrastructure/persistence/db";
 import { hubs, resources, products, needs } from "./src/infrastructure/persistence/schema/resources.schema";
 import { createIdentityModule } from "./src/infrastructure/identity.module";
@@ -12,20 +15,6 @@ import { createOperationsModule } from "./src/infrastructure/operations.module";
 const app = new Hono();
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
-const NEEDS_FILE_PATH = join(import.meta.dir, "data", "needs.json");
-
-interface NeedRecord {
-  id: string;
-  nombre: string;
-  categoria: string;
-  unidad: string;
-  meta: number;
-  recibido: number;
-  prioridad: string;
-  descripcion: string;
-  fechaNecesidad: string;
-  ultimaActualizacion: string;
-}
 
 async function readCentros(): Promise<Centro[]> {
   try {
@@ -40,25 +29,6 @@ async function readCentros(): Promise<Centro[]> {
 async function writeCentros(data: Centro[]): Promise<boolean> {
   try {
     await Bun.write(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readNeeds(): Promise<NeedRecord[]> {
-  try {
-    const file = Bun.file(NEEDS_FILE_PATH);
-    if (!await file.exists()) return [];
-    return await file.json();
-  } catch {
-    return [];
-  }
-}
-
-async function writeNeeds(data: NeedRecord[]): Promise<boolean> {
-  try {
-    await Bun.write(NEEDS_FILE_PATH, JSON.stringify(data, null, 2));
     return true;
   } catch {
     return false;
@@ -85,18 +55,21 @@ app.get("/api/productos", async (c) => {
   }
 });
 
-// Bounded context `identity` — autenticación bajo /auth.
-app.route("/auth", createIdentityModule().routes);
+// Toda la API cuelga de /api: un solo prefijo para que el nginx la sirva
+// same-origin bajo /api y el frontend hable contra una sola base.
 
-// Bounded context `resources` — hubs y stock de insumos bajo /resources.
-app.route("/resources", createResourcesModule().routes);
+// Bounded context `identity` — autenticación bajo /api/auth.
+app.route("/api/auth", createIdentityModule().routes);
 
-// Bounded context `operations` — planificación de viajes y caravanas bajo /operations.
-app.route("/operations", createOperationsModule().routes);
+// Bounded context `resources` — hubs y stock de insumos bajo /api/resources.
+app.route("/api/resources", createResourcesModule().routes);
+
+// Bounded context `operations` — planificación de viajes bajo /api/operations.
+app.route("/api/operations", createOperationsModule().routes);
 
 // --- Endpoints del Servidor ---
 
-app.get("/health", (c) =>
+app.get("/api/health", (c) =>
   c.json({ status: "ok", service: "sos-api", ts: new Date().toISOString() })
 );
 
@@ -230,7 +203,7 @@ app.delete("/api/centros/:id", async (c) => {
 
 // --- Needs (necesidades) — public read + admin CRUD, persistido en base de datos relacional ---
 
-app.get("/api/necesidades", async (c) => {
+const getNeedsHandler = async (c) => {
   try {
     const hubId = c.req.query("hubId");
     let query = db
@@ -258,7 +231,7 @@ app.get("/api/necesidades", async (c) => {
       query = query.where(eq(needs.hubId, hubId)) as any;
     }
 
-    const list = await query;
+    const list = await query.orderBy(desc(needs.createdAt));
     const formatted = list.map((n) => ({
       ...n,
       fechaNecesidad: n.fechaNecesidad ? n.fechaNecesidad.toISOString().split("T")[0] : null,
@@ -268,9 +241,12 @@ app.get("/api/necesidades", async (c) => {
     console.error("Error al obtener necesidades:", error);
     return c.json({ error: "Error al obtener necesidades" }, 500);
   }
-});
+};
 
-app.post("/api/necesidades", async (c) => {
+app.get("/api/necesidades", getNeedsHandler);
+app.get("/api/needs", getNeedsHandler);
+
+const postNeedsHandler = async (c) => {
   try {
     const body = await c.req.json();
     if (!body.hubId || !body.nombre || !body.categoria || !body.meta || !body.prioridad) {
@@ -334,9 +310,12 @@ app.post("/api/necesidades", async (c) => {
     console.error("Error al crear necesidad:", error);
     return c.json({ error: "Error interno en el servidor" }, 500);
   }
-});
+};
 
-app.put("/api/necesidades/:id", async (c) => {
+app.post("/api/necesidades", postNeedsHandler);
+app.post("/api/needs", postNeedsHandler);
+
+const putNeedsHandler = async (c) => {
   try {
     const id = c.req.param("id");
     const body = await c.req.json();
@@ -394,9 +373,12 @@ app.put("/api/necesidades/:id", async (c) => {
     console.error("Error al actualizar necesidad:", error);
     return c.json({ error: "Error interno en el servidor" }, 500);
   }
-});
+};
 
-app.delete("/api/necesidades/:id", async (c) => {
+app.put("/api/necesidades/:id", putNeedsHandler);
+app.put("/api/needs/:id", putNeedsHandler);
+
+const deleteNeedsHandler = async (c) => {
   try {
     const id = c.req.param("id");
     const deleted = await db.delete(needs).where(eq(needs.id, id)).returning();
@@ -408,7 +390,10 @@ app.delete("/api/necesidades/:id", async (c) => {
     console.error("Error al eliminar necesidad:", error);
     return c.json({ error: "Error interno en el servidor" }, 500);
   }
-});
+};
+
+app.delete("/api/necesidades/:id", deleteNeedsHandler);
+app.delete("/api/needs/:id", deleteNeedsHandler);
 
 const port = Number(process.env.PORT ?? 8081);
 

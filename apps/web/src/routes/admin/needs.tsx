@@ -82,119 +82,11 @@ function todayIso(): string {
   return new Date().toISOString().split('T')[0]
 }
 
-function todayPlus(days: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
-}
-
-// Same mocks as the public home — used as placeholderData when API is unreachable
-const MOCK_NEEDS: Need[] = [
-  {
-    id: 'nec-001',
-    nombre: 'Agua potable',
-    categoria: 'Víveres',
-    unidad: 'litros',
-    meta: 10000,
-    recibido: 3200,
-    prioridad: 'CRITICA',
-    descripcion: 'Agua purificada para consumo humano en zonas sin servicio.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    fechaNecesidad: todayPlus(0),
-  },
-  {
-    id: 'nec-002',
-    nombre: 'Acetaminofén 500mg',
-    categoria: 'Medicamentos',
-    unidad: 'tabletas',
-    meta: 50000,
-    recibido: 18000,
-    prioridad: 'CRITICA',
-    descripcion: 'Analgésico esencial para centros de atención médica improvisados.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    fechaNecesidad: todayPlus(1),
-  },
-  {
-    id: 'nec-003',
-    nombre: 'Arroz blanco',
-    categoria: 'Víveres',
-    unidad: 'kg',
-    meta: 5000,
-    recibido: 2800,
-    prioridad: 'ALTA',
-    descripcion: 'Alimento base para raciones diarias en albergues.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    fechaNecesidad: todayPlus(1),
-  },
-  {
-    id: 'nec-004',
-    nombre: 'Pañales desechables',
-    categoria: 'Artículos para bebés y grupos vulnerables',
-    unidad: 'unidades',
-    meta: 8000,
-    recibido: 1100,
-    prioridad: 'CRITICA',
-    descripcion: 'Tallas medianas y grandes para bebés en albergues.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 200).toISOString(),
-    fechaNecesidad: todayPlus(0),
-  },
-  {
-    id: 'nec-005',
-    nombre: 'Frazadas / mantas',
-    categoria: 'Abrigo y refugio',
-    unidad: 'unidades',
-    meta: 3000,
-    recibido: 2200,
-    prioridad: 'MEDIA',
-    descripcion: 'Para familias evacuadas en zonas altas con bajas temperaturas.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    fechaNecesidad: todayPlus(3),
-  },
-  {
-    id: 'nec-006',
-    nombre: 'Jabón de baño',
-    categoria: 'Higiene personal',
-    unidad: 'unidades',
-    meta: 6000,
-    recibido: 4500,
-    prioridad: 'MEDIA',
-    descripcion: 'Barras de jabón para higiene personal en albergues.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    fechaNecesidad: todayPlus(4),
-  },
-  {
-    id: 'nec-007',
-    nombre: 'Linternas y pilas',
-    categoria: 'Herramientas',
-    unidad: 'kits',
-    meta: 1500,
-    recibido: 320,
-    prioridad: 'ALTA',
-    descripcion: 'Kits de iluminación para zonas sin electricidad.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    fechaNecesidad: todayPlus(2),
-  },
-  {
-    id: 'nec-008',
-    nombre: 'Cloro / desinfectante',
-    categoria: 'Productos de limpieza',
-    unidad: 'litros',
-    meta: 2000,
-    recibido: 1600,
-    prioridad: 'BAJA',
-    descripcion: 'Desinfectante para limpieza de espacios colectivos.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    fechaNecesidad: todayPlus(7),
-  },
-]
-
 function getPct(received: number, goal: number) {
   return Math.min(Math.round((received / goal) * 100), 100)
 }
 
-// --- API client with offline fallback ---
-// If the backend is unreachable, mutations fall back to local-only operations.
-// The cache (TanStack Query) becomes the source of truth for the session.
+// --- API client ---
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 
@@ -205,58 +97,37 @@ function authHeaders(): HeadersInit {
 }
 
 async function fetchNeeds(): Promise<Need[]> {
-  try {
-    const res = await fetch(`${API_URL}/api/necesidades`)
-    if (!res.ok) throw new Error('API error')
-    return res.json()
-  } catch {
-    // Offline: return mocks so the admin can still be exercised
-    return MOCK_NEEDS
-  }
-}
-
-async function tryFetch(input: RequestInfo, init?: RequestInit): Promise<Response | null> {
-  try {
-    return await fetch(input, init)
-  } catch {
-    return null
-  }
+  const res = await fetch(`${API_URL}/needs`)
+  if (!res.ok) throw new Error('No se pudieron cargar las necesidades')
+  return res.json()
 }
 
 async function createNeed(draft: NeedDraft): Promise<Need> {
-  const res = await tryFetch(`${API_URL}/api/necesidades`, {
+  const res = await fetch(`${API_URL}/needs`, {
     method: 'POST',
     headers: authHeaders(),
     body: JSON.stringify(draft),
   })
-  if (res?.ok) return res.json()
-  // Offline fallback — build the record on the client
-  return {
-    ...draft,
-    id: `local-${Date.now()}`,
-    ultimaActualizacion: new Date().toISOString(),
-  }
+  if (!res.ok) throw new Error('No se pudo crear la necesidad')
+  return res.json()
 }
 
 async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
-  const res = await tryFetch(`${API_URL}/api/necesidades/${id}`, {
+  const res = await fetch(`${API_URL}/needs/${id}`, {
     method: 'PUT',
     headers: authHeaders(),
     body: JSON.stringify(draft),
   })
-  if (res?.ok) return res.json()
-  return {
-    ...draft,
-    id,
-    ultimaActualizacion: new Date().toISOString(),
-  }
+  if (!res.ok) throw new Error('No se pudo actualizar la necesidad')
+  return res.json()
 }
 
 async function deleteNeed(id: string): Promise<string> {
-  await tryFetch(`${API_URL}/api/necesidades/${id}`, {
+  const res = await fetch(`${API_URL}/needs/${id}`, {
     method: 'DELETE',
     headers: authHeaders(),
   })
+  if (!res.ok) throw new Error('No se pudo eliminar la necesidad')
   return id
 }
 
@@ -270,38 +141,23 @@ function AdminNeedsPage() {
   const { data: needs = [], isLoading } = useQuery({
     queryKey: ['necesidades'],
     queryFn: fetchNeeds,
-    placeholderData: MOCK_NEEDS,
-    // Keep cache as source of truth so local mutations survive even if the API is down
-    staleTime: Infinity,
   })
 
-  // Cache-first updates: works with or without backend
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ['necesidades'] })
+
   const createMutation = useMutation({
     mutationFn: createNeed,
-    onSuccess: (created) => {
-      queryClient.setQueryData<Need[]>(['necesidades'], (prev = []) => [...prev, created])
-      setCreating(false)
-    },
+    onSuccess: () => { invalidate(); setCreating(false) },
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, draft }: { id: string; draft: NeedDraft }) => updateNeed(id, draft),
-    onSuccess: (updated) => {
-      queryClient.setQueryData<Need[]>(['necesidades'], (prev = []) =>
-        prev.map((n) => (n.id === updated.id ? updated : n)),
-      )
-      setEditing(null)
-    },
+    onSuccess: () => { invalidate(); setEditing(null) },
   })
 
   const deleteMutation = useMutation({
     mutationFn: deleteNeed,
-    onSuccess: (deletedId) => {
-      queryClient.setQueryData<Need[]>(['necesidades'], (prev = []) =>
-        prev.filter((n) => n.id !== deletedId),
-      )
-      setDeleting(null)
-    },
+    onSuccess: () => { invalidate(); setDeleting(null) },
   })
 
   return (

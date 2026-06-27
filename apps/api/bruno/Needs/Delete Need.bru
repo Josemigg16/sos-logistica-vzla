@@ -1,21 +1,25 @@
 meta {
-  name: Delete Necesidad
+  name: Delete Need
   type: http
   seq: 4
 }
 
 delete {
-  url: {{baseUrl}}/api/necesidades/nec-001
+  url: {{baseUrl}}/api/needs/:id
   body: none
   auth: none
 }
 
+params:path {
+  id: 00000000-0000-0000-0000-000000000000
+}
+
 docs {
-  Elimina una necesidad por `id`. Es un borrado duro — el registro se quita
-  de `data/needs.json` y deja de mostrarse en el panel público.
+  Elimina una necesidad por `id` (UUID). Borrado duro: el registro se quita
+  de la tabla `needs` de Postgres y deja de mostrarse en el panel público.
 
   Respuesta 200: `{ ok: true }`.
-  Errores: 404 si el `id` no existe · 500 error al guardar.
+  Errores: 404 si el `id` no existe.
 
   Nota operativa: cuando una necesidad ya fue cubierta y no hay riesgo de
   reactivación a corto plazo, eliminarla evita ruido en el panel público.

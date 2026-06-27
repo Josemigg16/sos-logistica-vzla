@@ -1,11 +1,11 @@
 meta {
-  name: Create Necesidad
+  name: Create Need
   type: http
   seq: 2
 }
 
 post {
-  url: {{baseUrl}}/api/necesidades
+  url: {{baseUrl}}/api/needs
   body: json
   auth: none
 }
@@ -24,23 +24,24 @@ body:json {
 }
 
 docs {
-  Crea una necesidad nueva. El servidor genera el `id` (`nec-{timestamp}`)
-  y la marca con `ultimaActualizacion = now()`. Persiste a `data/needs.json`.
+  Crea una necesidad nueva. El servidor genera el `id` (UUID v4) y la marca
+  con `ultimaActualizacion = now()`. Persiste a la tabla `needs` de Postgres.
+  Validación con Zod (`createNeedSchema`).
 
   Campos requeridos:
-  - `nombre`: string
+  - `nombre`: string (1-160 chars)
   - `categoria`: una de las categorías de inventario (`Víveres`, `Medicamentos`,
     `Higiene personal`, `Productos de limpieza`, `Abrigo y refugio`,
     `Herramientas`, `Artículos para bebés y grupos vulnerables`)
-  - `unidad`: string (litros, kg, unidades, kits…)
-  - `meta`: número entero positivo
+  - `unidad`: string (1-40 chars)
+  - `meta`: entero positivo
   - `prioridad`: `CRITICA` | `ALTA` | `MEDIA` | `BAJA`
-  - `fechaNecesidad`: `YYYY-MM-DD` — fecha para cuando se necesita
+  - `fechaNecesidad`: `YYYY-MM-DD`
 
   Campos opcionales:
-  - `recibido`: número (default 0)
-  - `descripcion`: string
+  - `recibido`: entero ≥ 0 (default 0)
+  - `descripcion`: string (≤ 500 chars, default "")
 
-  Respuesta 201: el registro creado con `id` y `ultimaActualizacion`.
-  Errores: 400 datos inválidos · 500 error al guardar.
+  Respuesta 201: el registro creado.
+  Errores: 400 datos inválidos (incluye `details` con errores de Zod por campo).
 }
