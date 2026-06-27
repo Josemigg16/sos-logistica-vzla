@@ -1,4 +1,4 @@
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { loginSchema } from "@sos/shared";
 import { Eye, EyeOff, Loader2, Lock, LogIn, User } from "lucide-react";
@@ -181,10 +181,31 @@ function LoginPage() {
               </>
             )}
           </button>
+
+          <div className="mt-6 flex items-center gap-3">
+            <span className="h-px flex-1 bg-[#2B5F8E]/30" />
+            <span className="text-[10px] uppercase tracking-wider text-white/35">o</span>
+            <span className="h-px flex-1 bg-[#2B5F8E]/30" />
+          </div>
+
+          <Link
+            to="/register"
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-[#4A89C0]/50 bg-transparent px-6 py-3 font-bold uppercase tracking-wide text-[#C8DCF0] transition-[transform,background-color,border-color] duration-150 hover:border-[#4A89C0] hover:bg-[#2B5F8E]/25 active:scale-[0.97]"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontStyle: "italic",
+              fontSize: "1.05rem",
+              letterSpacing: "0.05em",
+              transitionTimingFunction: EASE_OUT,
+            }}
+          >
+            <User className="h-5 w-5" strokeWidth={2.5} />
+            <span>Crear cuenta</span>
+          </Link>
         </form>
 
         <p className="mt-6 text-center text-[11px] leading-relaxed text-white/30">
-          Solo personal autorizado. Si no tienes cuenta, contacta a tu coordinación.
+          ¿Aún no estás registrado? Pulsa "Crear cuenta" para comenzar.
         </p>
       </div>
 
