@@ -1,0 +1,37 @@
+meta {
+  name: Update Necesidad
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/necesidades/nec-001
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "recibido": 5200,
+    "prioridad": "ALTA",
+    "fechaNecesidad": "2026-06-28"
+  }
+}
+
+docs {
+  Actualiza una necesidad existente por `id` (path param). Acepta actualización
+  parcial — solo los campos enviados se modifican. El `id` se preserva y
+  `ultimaActualizacion` se renueva automáticamente.
+
+  Campos editables:
+  - `nombre`, `categoria`, `unidad`, `descripcion`: string
+  - `meta`, `recibido`: número
+  - `prioridad`: `CRITICA` | `ALTA` | `MEDIA` | `BAJA`
+  - `fechaNecesidad`: `YYYY-MM-DD`
+
+  Respuesta 200: el registro completo actualizado.
+  Errores: 404 si el `id` no existe · 400 datos inválidos · 500 error al guardar.
+
+  Caso de uso típico: subir `recibido` cuando llegan donaciones, ajustar
+  `prioridad` o `fechaNecesidad` cuando cambia el contexto.
+}
