@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon } from 'lucide-react'
+import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole, ROLES_MANAGE_USERS } from '@/lib/session'
+import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET } from '@/lib/session'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
@@ -10,6 +10,7 @@ export const Route = createFileRoute('/admin/')({
 function AdminDashboard() {
   const { user } = useAuth()
   const canManageUsers = hasAnyRole(user, ...ROLES_MANAGE_USERS)
+  const canManageFleet = hasAnyRole(user, ...ROLES_MANAGE_FLEET)
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto lg:mx-0">
       {/* Header */}
@@ -54,6 +55,15 @@ function AdminDashboard() {
           description="Registrar nuevos puntos y actualizar sus inventarios."
           stat="Gestionar puntos"
         />
+        {canManageFleet && (
+          <AdminSectionCard
+            to="/admin/fleet"
+            icon={<Truck className="w-6 h-6" />}
+            title="Flota"
+            description="Gestionar choferes, vehículos y tipos de unidades."
+            stat="Gestionar flota"
+          />
+        )}
         {canManageUsers && (
           <AdminSectionCard
             to="/admin/users"
