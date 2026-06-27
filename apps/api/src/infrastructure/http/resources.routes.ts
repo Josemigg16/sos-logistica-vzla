@@ -19,6 +19,7 @@ export interface ResourceRoutesDeps {
 
 const ERROR_STATUS: Record<string, 404 | 409> = {
   HUB_NOT_FOUND: 404,
+  PRODUCT_NOT_FOUND: 404,
   INSUFFICIENT_STOCK: 409,
 };
 

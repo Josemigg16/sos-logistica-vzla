@@ -6,10 +6,9 @@ import {
   Warehouse, Send, ChevronRight,
 } from 'lucide-react'
 import type {
-  PublicHub, PublicResource, PublicLote, ProductMaster, HubType,
-  InventoryCategoryName, LoteStatus,
+  PublicHub, PublicResource, PublicLote, ProductMaster, HubType, LoteStatus,
 } from '@sos/shared'
-import { INVENTORY_CATEGORIES, HUB_TYPES } from '@sos/shared'
+import { HUB_TYPES } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
@@ -69,7 +68,7 @@ async function fetchHubResources(hubId: string): Promise<PublicResource[]> {
   return (await res.json()).resources
 }
 async function stockResource(d: {
-  hubId: string; category: InventoryCategoryName; quantity: number; unit: string
+  hubId: string; productId: string; quantity: number
 }): Promise<PublicResource> {
   const res = await fetch(`${API_URL}/resources/resources`, { method: 'POST', headers: authHeaders(), body: JSON.stringify(d) })
   if (!res.ok) throw new Error(await readError(res, 'No se pudo actualizar el inventario'))
@@ -260,7 +259,8 @@ function InventorySection({ hub }: { hub: PublicHub }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {resources.map((r) => (
             <div key={r.id} className="rounded-xl border border-[#2B5F8E]/30 bg-[#0F2337]/60 p-3">
-              <p className="text-[11px] text-white/50 truncate">{r.category}</p>
+              <p className="text-sm font-semibold text-white truncate">{r.productName || r.category}</p>
+              <p className="text-[10px] text-white/40 truncate mb-1">{r.category}</p>
               <p className="text-lg font-bold text-white">{r.quantity} <span className="text-xs font-normal text-white/50">{r.unit}</span></p>
             </div>
           ))}
@@ -279,25 +279,34 @@ function InventorySection({ hub }: { hub: PublicHub }) {
 }
 
 function StockModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => void; onDone: () => void }) {
-  const [category, setCategory] = useState<InventoryCategoryName>(INVENTORY_CATEGORIES[0])
+  const [productId, setProductId] = useState('')
   const [quantity, setQuantity] = useState('')
-  const [unit, setUnit] = useState('kg')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+
+  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const selected = products.find((p) => p.id === productId)
+
   const mut = useMutation({ mutationFn: stockResource, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
 
   return (
     <ModalShell title="Sumar stock al inventario" onClose={onClose}>
-      <form onSubmit={(e) => { e.preventDefault(); setErrorMsg(null); mut.mutate({ hubId, category, quantity: Number(quantity), unit }) }} className="p-5 flex flex-col gap-4">
+      <form onSubmit={(e) => { e.preventDefault(); setErrorMsg(null); mut.mutate({ hubId, productId, quantity: Number(quantity) }) }} className="p-5 flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
-        <Field label="Categoría">
-          <select className="coord-input" value={category} onChange={(e) => setCategory(e.target.value as InventoryCategoryName)}>
-            {INVENTORY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+        <Field label="Producto">
+          <select required className="coord-input" value={productId} onChange={(e) => setProductId(e.target.value)}>
+            <option value="">Seleccionar producto…</option>
+            {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
         </Field>
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Cantidad"><input required type="number" min="0" className="coord-input" value={quantity} onChange={(e) => setQuantity(e.target.value)} /></Field>
-          <Field label="Unidad"><input required className="coord-input" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="kg, litros…" /></Field>
-        </div>
+        {selected && (
+          <div className="flex items-center gap-2 text-[11px] text-white/50">
+            <span className="px-2 py-0.5 rounded-md bg-[#2B5F8E]/20">{selected.category}</span>
+            <span>Unidad: <span className="text-white/70 font-medium">{selected.unit}</span></span>
+          </div>
+        )}
+        <Field label={`Cantidad${selected ? ` (${selected.unit})` : ''}`}>
+          <input required type="number" min="1" className="coord-input" value={quantity} onChange={(e) => setQuantity(e.target.value)} placeholder="ej: 50" />
+        </Field>
         <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="SUMAR" />
       </form>
     </ModalShell>
@@ -374,8 +383,12 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
   const [nota, setNota] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const { data: stock = [] } = useQuery({ queryKey: ['hub-resources', hub.id], queryFn: () => fetchHubResources(hub.id) })
   const { data: hubs = [] } = useQuery({ queryKey: ['hubs-all'], queryFn: fetchHubs })
+
+  // Solo productos efectivamente en stock del centro.
+  const stocked = stock.filter((r) => r.productId && r.quantity > 0)
+  const byProduct = Object.fromEntries(stocked.map((r) => [r.productId as string, r]))
 
   const mut = useMutation({ mutationFn: createLote, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
 
@@ -402,20 +415,31 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
 
         <div>
           <label className="block text-[11px] font-semibold uppercase tracking-wider text-white/50 mb-2">Productos del lote</label>
-          <div className="flex flex-col gap-2">
-            {items.map((it, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <select className="coord-input flex-1" value={it.productId} onChange={(e) => setItem(i, { productId: e.target.value })}>
-                  <option value="">Seleccionar producto…</option>
-                  {products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-                </select>
-                <input type="number" min="1" className="coord-input w-20" placeholder="Cant." value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
-                <input type="number" min="0" step="any" className="coord-input w-24" placeholder="Peso kg" value={it.pesoKg} onChange={(e) => setItem(i, { pesoKg: e.target.value })} />
-                <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition"><Trash2 className="w-4 h-4" /></button>
+          {stocked.length === 0 ? (
+            <p className="text-sm text-white/40 rounded-lg border border-dashed border-[#2B5F8E]/40 px-3 py-4 text-center">
+              No hay productos en tu inventario. Sumá stock antes de armar un lote.
+            </p>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2">
+                {items.map((it, i) => {
+                  const sel = it.productId ? byProduct[it.productId] : undefined
+                  return (
+                    <div key={i} className="grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto] gap-2 items-center">
+                      <select className="coord-input" style={{ minWidth: 0 }} value={it.productId} onChange={(e) => setItem(i, { productId: e.target.value })}>
+                        <option value="">Seleccionar producto…</option>
+                        {stocked.map((r) => <option key={r.id} value={r.productId as string}>{r.productName} ({r.quantity} {r.unit})</option>)}
+                      </select>
+                      <input type="number" min="1" max={sel?.quantity} className="coord-input" style={{ minWidth: 0 }} placeholder="Cant." value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
+                      <input type="number" min="0" step="any" className="coord-input" style={{ minWidth: 0 }} placeholder="Peso kg" value={it.pesoKg} onChange={(e) => setItem(i, { pesoKg: e.target.value })} />
+                      <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition"><Trash2 className="w-4 h-4" /></button>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
-          </div>
-          <button type="button" onClick={addItem} className="mt-2 flex items-center gap-1 text-xs text-[#4A89C0] hover:text-[#C8DCF0] transition"><Plus className="w-3.5 h-3.5" /> Agregar producto</button>
+              <button type="button" onClick={addItem} className="mt-2 flex items-center gap-1 text-xs text-[#4A89C0] hover:text-[#C8DCF0] transition"><Plus className="w-3.5 h-3.5" /> Agregar producto</button>
+            </>
+          )}
         </div>
 
         <Field label="Centro de destino (opcional)">

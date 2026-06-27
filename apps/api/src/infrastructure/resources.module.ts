@@ -8,6 +8,7 @@ import { ReplaceHubInventory } from "../application/resources/replace-hub-invent
 import { DeleteHub } from "../application/resources/delete-hub";
 import { DrizzleHubRepository } from "./persistence/drizzle-hub.repository";
 import { DrizzleResourceRepository } from "./persistence/drizzle-resource.repository";
+import { DrizzleProductRepository } from "./persistence/drizzle-product.repository";
 import { createResourceRoutes } from "./http/resources.routes";
 import { createCentrosRoutes } from "./http/centros.routes";
 
@@ -17,12 +18,13 @@ import { createCentrosRoutes } from "./http/centros.routes";
 export function createResourcesModule() {
   const hubs = new DrizzleHubRepository();
   const resources = new DrizzleResourceRepository();
+  const products = new DrizzleProductRepository();
 
   const useCases = {
     registerHub: new RegisterHub(hubs),
     listHubs: new ListHubs(hubs),
     getHubByCoordinator: new GetHubByCoordinator(hubs),
-    stockResource: new StockResource(hubs, resources),
+    stockResource: new StockResource(hubs, resources, products),
     listResourcesByHub: new ListResourcesByHub(resources),
   };
 

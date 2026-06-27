@@ -62,7 +62,8 @@ async function buildCentroFromHub(
   const resources = await listResourcesByHub.execute(hub.id);
   const inventario: Record<string, number> = {};
   for (const r of resources) {
-    inventario[r.category] = r.quantity;
+    // Inventario por producto: acumulamos el total por categoría para el panel público.
+    inventario[r.category] = (inventario[r.category] ?? 0) + r.quantity;
   }
   return {
     id: hub.id,

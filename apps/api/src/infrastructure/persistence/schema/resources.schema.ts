@@ -78,6 +78,7 @@ export const resources = pgTable("resources", {
   hubId: uuid("hub_id")
     .notNull()
     .references(() => hubs.id, { onDelete: "cascade" }),
+  productId: uuid("product_id").references(() => products.id, { onDelete: "set null" }),
   category: inventoryCategoryEnum("category").notNull(),
   quantity: integer("quantity").notNull().default(0),
   unit: varchar("unit", { length: 40 }).notNull(),
