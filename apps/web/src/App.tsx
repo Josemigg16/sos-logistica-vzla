@@ -65,7 +65,6 @@ export default function App() {
   const [centros, setCentros] = useState<Centro[]>(centrosData as unknown as Centro[]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
@@ -215,29 +214,14 @@ export default function App() {
     }
   }, []);
 
-  // Categorías de inventario disponibles
-  const categorias = [
-    "Víveres",
-    "Herramientas",
-    "Higiene personal",
-    "Medicamentos",
-    "Productos de limpieza",
-    "Abrigo y refugio",
-    "Artículos para bebés y grupos vulnerables"
-  ];
-
-  // Filtrar centros según búsqueda y categoría seleccionada
+  // Filtrar centros según búsqueda
   const filteredCentros = useMemo(() => {
-    return centros.filter(c => {
-      const matchesSearch = c.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            c.direccion.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchesCategory = !selectedCategoryFilter || 
-                               (c.inventario[selectedCategoryFilter] && c.inventario[selectedCategoryFilter] > 30); // Consideramos que lo tiene si stock > 30%
-      
-      return matchesSearch && matchesCategory;
-    });
-  }, [centros, searchTerm, selectedCategoryFilter]);
+    const term = searchTerm.toLowerCase();
+    return centros.filter(c =>
+      c.nombre.toLowerCase().includes(term) ||
+      c.direccion.toLowerCase().includes(term)
+    );
+  }, [centros, searchTerm]);
 
   const handleSelectCentro = (centro: Centro) => {
     setSelectedId(centro.id);
@@ -494,33 +478,6 @@ export default function App() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-card/90 border border-border text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:border-emerald-500/50 shadow-lg backdrop-blur-md transition-all duration-300"
           />
-        </div>
-
-        {/* Filtros rápidos de categorías horizontal scrollable */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar -mx-1 px-1">
-          <button
-            onClick={() => setSelectedCategoryFilter(null)}
-            className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors duration-200 border active:scale-[0.96] transition-transform ${
-              !selectedCategoryFilter
-                ? "bg-[#2B5F8E] text-white border-[#4A89C0]/60 shadow-lg shadow-[#2B5F8E]/30 font-semibold"
-                : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
-            }`}
-          >
-            Todos
-          </button>
-          {categorias.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategoryFilter(selectedCategoryFilter === cat ? null : cat)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-medium whitespace-nowrap transition-colors duration-200 border active:scale-[0.96] transition-transform ${
-                selectedCategoryFilter === cat
-                  ? "bg-[#2B5F8E] text-white border-[#4A89C0]/60 shadow-lg shadow-[#2B5F8E]/30 font-semibold"
-                  : "bg-card/90 text-muted-foreground border-border hover:text-foreground"
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
         </div>
 
         {/* INDICACIONES DE RUTA PERSONALIZADA */}
