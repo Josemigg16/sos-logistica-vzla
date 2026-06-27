@@ -843,18 +843,33 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
 
         {/* Leyenda de puntos */}
         <div className="px-5 pb-4">
-          <div className="flex items-center gap-4 p-3 rounded-xl bg-secondary/40 border border-border/60">
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)]" />
-              <span className="text-[10px] text-foreground font-medium">Acopio</span>
+          <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-secondary/40 border border-border/60">
+            <div className="flex items-start gap-2">
+              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)]" />
+              <div>
+                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Acopio</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                  Puntos donde la comunidad entrega donaciones y suministros.
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
-              <span className="text-[10px] text-foreground font-medium">Salida ZODI</span>
+            <div className="flex items-start gap-2">
+              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
+              <div>
+                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Salida ZODI</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                  Sitios donde se concentran los insumos acopiados para despacharlos hacia los puntos de llegada (destinos verdes).
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
-              <span className="text-[10px] text-foreground font-medium">Destino</span>
+            <div className="flex items-start gap-2">
+              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
+              <div>
+                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Destino</p>
+                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                  Puntos de llegada donde se recibe y distribuye la ayuda a la población afectada.
+                </p>
+              </div>
             </div>
           </div>
         </div>
