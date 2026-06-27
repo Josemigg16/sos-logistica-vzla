@@ -1,0 +1,19 @@
+meta {
+  name: Get Assignments
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/operations/:operationId/assignments
+  body: none
+  auth: bearer
+}
+
+params:path {
+  operationId: f83a8b41-e94c-4735-8ea1-60a61474ea47
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

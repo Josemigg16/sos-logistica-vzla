@@ -1,0 +1,15 @@
+meta {
+  name: Get Hubs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/resources/hubs
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}

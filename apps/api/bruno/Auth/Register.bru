@@ -1,7 +1,7 @@
 meta {
   name: Register
   type: http
-  seq: 4
+  seq: 2
 }
 
 post {
@@ -16,21 +16,9 @@ auth:bearer {
 
 body:json {
   {
-    "username": "coordinador1",
+    "username": "coordinador_guanare",
     "password": "changeme123",
     "role": "HUB_COORDINATOR",
-    "email": "coordinador1@example.com"
+    "email": "guanare@sos.org"
   }
-}
-
-docs {
-  Alta de usuarios. Solo ADMIN — requiere access token de un usuario con rol ADMIN.
-  Valida contra `registerSchema`:
-  - `username`: string, 3-64 chars
-  - `password`: string, 8-128 chars
-  - `role`: uno de ADMIN | MANAGER | ZODI_SENDER | ZODI_DESTINATION | HUB_COORDINATOR | DRIVER | VOLUNTEER
-  - `email`: opcional, email válido
-
-  Respuesta 201: `{ user }`.
-  Errores: 400 datos inválidos · 401 sin token · 403 rol insuficiente · 409 USERNAME_TAKEN.
 }

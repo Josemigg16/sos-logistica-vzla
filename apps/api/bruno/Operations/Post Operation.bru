@@ -1,0 +1,23 @@
+meta {
+  name: Post Operation
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/operations
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "name": "Caravana de Suministros Portuguesa-La Guaira",
+    "incidentId": "00000000-0000-0000-0000-000000000001",
+    "zone": "Autopista Regional del Centro / CCS / La Guaira"
+  }
+}
