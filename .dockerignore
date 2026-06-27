@@ -4,7 +4,8 @@ node_modules
 .git
 .gitignore
 .env
-**/.env
+apps/api/.env
+apps/api/.env.*
 .claude
 .agents
 .kilocode

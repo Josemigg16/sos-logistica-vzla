@@ -310,23 +310,6 @@ export default function App() {
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           <button
-            onClick={() => {
-              setShowSupplyRoute(prev => !prev);
-              if (!showSupplyRoute) {
-                setMapCenter([-68.0044, 10.1804]);
-                setMapZoom(8);
-              }
-            }}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0 ${
-              showSupplyRoute 
-                ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-md shadow-emerald-500/20" 
-                : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
-            }`}
-            title="Mostrar ruta inteligente de distribución"
-          >
-            <Layers className={`w-4 h-4 ${showSupplyRoute ? "animate-pulse" : ""}`} />
-          </button>
-          <button
             onClick={() => setShowWelcomeModal(true)}
             className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
             title="¿Cómo usar el mapa?"
