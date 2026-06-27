@@ -1,5 +1,3 @@
-#!/usr/bin/env sh
-#
 # Se ejecuta automáticamente después de `git pull` (merge).
 # Mantiene a todos los devs sincronizados: instala dependencias y corre
 # migraciones SOLO si esos archivos cambiaron en el pull.

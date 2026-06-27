@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "prepare": "git config core.hooksPath .githooks",
+    "prepare": "husky",
     "dev": "bun --filter '*' dev",
     "dev:api": "bun --filter @sos/api dev",
     "dev:web": "bun --filter @sos/web dev",
@@ -19,6 +19,7 @@
     "db:studio": "bun --filter @sos/api db:studio"
   },
   "devDependencies": {
+    "husky": "^9.1.7",
     "typescript": "^5"
   }
 }
