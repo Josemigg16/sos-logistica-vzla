@@ -1,15 +1,8 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import {
-  BookOpen,
-  Search,
-  Layers,
-  Inbox,
-  Loader2,
-} from 'lucide-react'
+import { Search, Inbox, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole } from '@/lib/session'
 import { INVENTORY_CATEGORIES, type ProductMaster } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 

@@ -12,11 +12,10 @@ import {
   AlertCircle,
   CheckCircle2,
   Inbox,
-  Search,
 } from 'lucide-react'
 import { API_URL } from '@/lib/auth/config'
 import logotipo from '@/assets/branding/white-logotipo.webp'
-import { INVENTORY_CATEGORIES } from '@sos/shared'
+import { INVENTORY_CATEGORIES, type InventoryCategoryName } from '@sos/shared'
 
 export const Route = createFileRoute('/needs-register')({
   component: PublicNeedsRegisterPage,
@@ -73,7 +72,9 @@ function PublicNeedsRegisterPage() {
   const [itemQuery, setItemQuery] = useState('')
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
   const [isCreatingCustomProduct, setIsCreatingCustomProduct] = useState(false)
-  const [customCategory, setCustomCategory] = useState(INVENTORY_CATEGORIES[0])
+  const [customCategory, setCustomCategory] = useState<InventoryCategoryName>(
+    INVENTORY_CATEGORIES[0]
+  )
   const [showSuggestions, setShowSuggestions] = useState(false)
 
   const [meta, setMeta] = useState<number>(0)
@@ -87,7 +88,7 @@ function PublicNeedsRegisterPage() {
   const [errorMsg, setErrorMsg] = useState('')
 
   // 1. Fetch Centers (filter to 'acopio' / collection centers)
-  const { data: centers = [], isLoading: loadingCenters } = useQuery<Center[]>({
+  const { data: centers = [] } = useQuery<Center[]>({
     queryKey: ['centros'],
     queryFn: async () => {
       const res = await fetch(`${API_URL}/api/centros`)
@@ -98,7 +99,7 @@ function PublicNeedsRegisterPage() {
   })
 
   // 2. Fetch Catalog Products
-  const { data: catalogProducts = [], isLoading: loadingProducts } = useQuery<Product[]>({
+  const { data: catalogProducts = [] } = useQuery<Product[]>({
     queryKey: ['productos'],
     queryFn: async () => {
       const res = await fetch(`${API_URL}/api/productos`)
@@ -381,7 +382,9 @@ function PublicNeedsRegisterPage() {
                           </label>
                           <select
                             value={customCategory}
-                            onChange={(e) => setCustomCategory(e.target.value)}
+                            onChange={(e) =>
+                              setCustomCategory(e.target.value as InventoryCategoryName)
+                            }
                             className="w-full px-2 py-1.5 rounded-lg bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-xs text-white focus:outline-none cursor-pointer"
                           >
                             {INVENTORY_CATEGORIES.map((cat) => (
