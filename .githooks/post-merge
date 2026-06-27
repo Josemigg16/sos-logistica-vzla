@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+#
+# Se ejecuta automáticamente después de `git pull` (merge).
+# Mantiene a todos los devs sincronizados: instala dependencias y corre
+# migraciones SOLO si esos archivos cambiaron en el pull.
+#
+# NOTA: usa `grep` (no `rg`) a propósito — un hook tiene que correr en la
+# máquina de cualquier dev sin asumir herramientas instaladas. grep es universal.
+
+# ¿Cambió algún archivo que matchee el patrón entre el HEAD previo y el actual?
+changed() {
+  git diff --name-only "HEAD@{1}" HEAD 2>/dev/null | grep -q "$1"
+}
+
+# --- Dependencias ---
+if changed "bun.lock"; then
+  echo "📦 El lockfile cambió → corriendo 'bun install'..."
+  bun install
+fi
+
+# --- Migraciones de base de datos ---
+if changed "apps/api/drizzle/"; then
+  echo "🗄️  Migraciones nuevas detectadas → corriendo 'bun db:migrate'..."
+  if bun db:migrate; then
+    echo "✅ Base de datos sincronizada."
+  else
+    echo ""
+    echo "⚠️  Falló la migración. ¿Está levantada la DB?"
+    echo "    Probá: docker compose up -d db   y luego   bun db:migrate"
+  fi
+fi
