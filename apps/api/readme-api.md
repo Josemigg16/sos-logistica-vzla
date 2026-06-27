@@ -65,7 +65,7 @@ A nivel de base de datos, las caravanas (`operations`) requieren asociarse a un 
 
 Mapea la gestión de identidades y roles unificados.
 
-#### `POST /auth/register` (Privado — Requiere rol ADMIN)
+#### `POST /auth/register` (Público)
 Crea una nueva cuenta de usuario.
 *   **Cuerpo (JSON)**:
     ```json

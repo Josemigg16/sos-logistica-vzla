@@ -82,8 +82,8 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
     return c.json({ ok: true });
   });
 
-  // Alta de usuarios: solo ADMIN. La primera cuenta se crea con el seed.
-  router.post("/register", authentication, requireRole("ADMIN"), async (c) => {
+  // Alta de usuarios público (signup) para facilitar el registro de choferes, voluntarios, etc.
+  router.post("/register", async (c) => {
     const parsed = registerSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);

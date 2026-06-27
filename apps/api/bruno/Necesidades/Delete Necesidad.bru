@@ -1,0 +1,24 @@
+meta {
+  name: Delete Necesidad
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/necesidades/nec-001
+  body: none
+  auth: none
+}
+
+docs {
+  Elimina una necesidad por `id`. Es un borrado duro — el registro se quita
+  de `data/needs.json` y deja de mostrarse en el panel público.
+
+  Respuesta 200: `{ ok: true }`.
+  Errores: 404 si el `id` no existe · 500 error al guardar.
+
+  Nota operativa: cuando una necesidad ya fue cubierta y no hay riesgo de
+  reactivación a corto plazo, eliminarla evita ruido en el panel público.
+  Si todavía puede volver a hacer falta, conviene actualizarla en vez de
+  eliminarla.
+}

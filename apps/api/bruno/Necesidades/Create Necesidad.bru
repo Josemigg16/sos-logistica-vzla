@@ -1,0 +1,46 @@
+meta {
+  name: Create Necesidad
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/necesidades
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "nombre": "Agua potable",
+    "categoria": "Víveres",
+    "unidad": "litros",
+    "meta": 10000,
+    "recibido": 0,
+    "prioridad": "CRITICA",
+    "descripcion": "Agua purificada para consumo humano en zonas sin servicio.",
+    "fechaNecesidad": "2026-06-27"
+  }
+}
+
+docs {
+  Crea una necesidad nueva. El servidor genera el `id` (`nec-{timestamp}`)
+  y la marca con `ultimaActualizacion = now()`. Persiste a `data/needs.json`.
+
+  Campos requeridos:
+  - `nombre`: string
+  - `categoria`: una de las categorías de inventario (`Víveres`, `Medicamentos`,
+    `Higiene personal`, `Productos de limpieza`, `Abrigo y refugio`,
+    `Herramientas`, `Artículos para bebés y grupos vulnerables`)
+  - `unidad`: string (litros, kg, unidades, kits…)
+  - `meta`: número entero positivo
+  - `prioridad`: `CRITICA` | `ALTA` | `MEDIA` | `BAJA`
+  - `fechaNecesidad`: `YYYY-MM-DD` — fecha para cuando se necesita
+
+  Campos opcionales:
+  - `recibido`: número (default 0)
+  - `descripcion`: string
+
+  Respuesta 201: el registro creado con `id` y `ultimaActualizacion`.
+  Errores: 400 datos inválidos · 500 error al guardar.
+}
