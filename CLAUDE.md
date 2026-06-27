@@ -97,10 +97,14 @@ en código (es una sigla institucional, como `FBI`).
 
 | Skill | Path | Cuándo aplicar |
 |-------|------|---------------|
+| **CRUD Module** | `.claude/skills/crud-module/` | **SIEMPRE** al crear entidades, módulos o endpoints — es el patrón estándar del proyecto |
 | Clean Architecture | `.claude/skills/clean-architecture/` | Cualquier decisión de estructura, dependencias, capas |
 | Domain-Driven Design | `.claude/skills/domain-driven-design/` | Modelado de entidades, naming, módulos, eventos |
 
 Ante una duda de arquitectura: leer la skill antes de escribir código.
+
+> **La skill `crud-module` es la fuente de verdad del patrón de implementación.**
+> Toda entidad nueva sigue sus 11 capas sin excepción.
 
 ---
 
