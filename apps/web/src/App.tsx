@@ -76,7 +76,7 @@ interface GeneratedCredentials {
 }
 
 export default function App() {
-  const { loginWithToken } = useAuth();
+  const { loginWithToken, user } = useAuth();
   const navigate = useNavigate();
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     const saved = localStorage.getItem("theme");
@@ -814,7 +814,7 @@ export default function App() {
 
               setIsRegistering(false);
 
-              if (token) {
+              if (user) {
                 // Ya tiene sesión — el hub quedó asociado a su cuenta, ir al portal.
                 navigate({ to: "/admin" });
               } else {
@@ -1307,7 +1307,7 @@ function GeneratedPasswordModal({ telefono, password, onClose }: GeneratedPasswo
           <CheckCircle2 className="mb-3 h-12 w-12 text-emerald-400" strokeWidth={1.5} />
           <h2 className="text-xl font-bold text-white">¡Centro registrado!</h2>
           <p className="mt-1 text-sm text-white/60">
-            Se creó tu cuenta de coordinador. Guardá esta contraseña — solo se muestra una vez.
+            Se creó tu cuenta de coordinador. Guarda esta contraseña — solo se muestra una vez.
           </p>
         </div>
 
