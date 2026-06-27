@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, Navigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon, ArrowLeftRight } from 'lucide-react'
+import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon, ArrowLeftRight, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
 import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
@@ -186,7 +186,10 @@ function SidebarContent({
               <NavLink to="/admin/convoys" icon={<RouteIcon className="w-4 h-4" />} label="Caravanas" />
             )}
             {hasAnyRole(user, ...ROLES_MANAGE_USERS) && (
-              <NavLink to="/admin/users" icon={<UsersIcon className="w-4 h-4" />} label="Usuarios" />
+              <>
+                <NavLink to="/admin/users" icon={<UsersIcon className="w-4 h-4" />} label="Usuarios" />
+                <NavLink to="/admin/settings" icon={<SettingsIcon className="w-4 h-4" />} label="Ajustes" />
+              </>
             )}
           </nav>
       </div>

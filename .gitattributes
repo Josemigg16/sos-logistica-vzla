@@ -1,1 +1,4 @@
 apps/web/src/routeTree.gen.ts -text
+
+# Los git hooks DEBEN tener line endings LF, o se rompen en Linux/Mac.
+.githooks/* text eol=lf
