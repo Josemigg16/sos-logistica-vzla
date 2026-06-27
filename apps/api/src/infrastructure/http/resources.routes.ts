@@ -128,7 +128,7 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  router.post("/resources", authentication, async (c) => {
+  router.post("/", authentication, async (c) => {
     const parsed = stockResourceSchema.safeParse(
       await c.req.json().catch(() => null),
     );

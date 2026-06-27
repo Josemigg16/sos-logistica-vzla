@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, Link, Navigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Warehouse } from 'lucide-react'
+import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
-import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB } from '@/lib/session'
+import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
 export const Route = createFileRoute('/admin')({
@@ -181,6 +181,9 @@ function SidebarContent({
             <NavLink to="/admin/catalog" icon={<BookOpen className="w-4 h-4" />} label="Catálogo" />
             {hasAnyRole(user, ...ROLES_MANAGE_FLEET) && (
               <NavLink to="/admin/fleet" icon={<Truck className="w-4 h-4" />} label="Flota" />
+            )}
+            {hasAnyRole(user, ...ROLES_MANAGE_CONVOYS) && (
+              <NavLink to="/admin/convoys" icon={<RouteIcon className="w-4 h-4" />} label="Caravanas" />
             )}
             {hasAnyRole(user, ...ROLES_MANAGE_USERS) && (
               <NavLink to="/admin/users" icon={<UsersIcon className="w-4 h-4" />} label="Usuarios" />

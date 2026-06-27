@@ -6,6 +6,7 @@ import type { CancelConvoy } from "../../application/convoys/cancel-convoy";
 import type { CompleteConvoy } from "../../application/convoys/complete-convoy";
 import type { GetConvoy } from "../../application/convoys/get-convoy";
 import type { ListConvoys } from "../../application/convoys/list-convoys";
+import type { ListEscorts } from "../../application/convoys/list-escorts";
 import type { PlanConvoy } from "../../application/convoys/plan-convoy";
 import type { StartConvoy } from "../../application/convoys/start-convoy";
 import { ConvoyDomainError, ConvoyError } from "../../domain/convoys/errors";
@@ -13,6 +14,7 @@ import { authentication, requireRole, type AuthEnv } from "./middleware/authenti
 
 export interface ConvoysRoutesDeps {
   listConvoys: ListConvoys;
+  listEscorts: ListEscorts;
   getConvoy: GetConvoy;
   planConvoy: PlanConvoy;
   startConvoy: StartConvoy;
@@ -56,6 +58,15 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
     }
   });
 
+  router.get("/escorts", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
+    try {
+      const escorts = await deps.listEscorts.execute();
+      return c.json({ escorts });
+    } catch (error) {
+      return mapError(c, error);
+    }
+  });
+
   router.get("/:id", async (c) => {
     try {
       const convoy = await deps.getConvoy.execute({ id: c.req.param("id") });
@@ -65,7 +76,7 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  router.post("/", authentication, requireRole("ZODI_SENDER"), async (c) => {
+  router.post("/", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     const parsed = createConvoySchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
@@ -79,7 +90,7 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  router.post("/:id/dispatch", authentication, requireRole("ZODI_SENDER"), async (c) => {
+  router.post("/:id/dispatch", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     try {
       const convoy = await deps.startConvoy.execute({ id: c.req.param("id") });
       return c.json({ convoy });
@@ -88,7 +99,7 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  router.post("/:id/complete", authentication, requireRole("ZODI_SENDER"), async (c) => {
+  router.post("/:id/complete", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     try {
       const convoy = await deps.completeConvoy.execute({ id: c.req.param("id") });
       return c.json({ convoy });
@@ -97,7 +108,7 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  router.post("/:id/cancel", authentication, requireRole("ZODI_SENDER"), async (c) => {
+  router.post("/:id/cancel", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     try {
       const convoy = await deps.cancelConvoy.execute({ id: c.req.param("id") });
       return c.json({ convoy });
@@ -106,7 +117,7 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  router.post("/:id/vehicles", authentication, requireRole("ZODI_SENDER"), async (c) => {
+  router.post("/:id/vehicles", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     const parsed = addVehicleSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);

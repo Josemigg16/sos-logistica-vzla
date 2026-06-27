@@ -26,6 +26,13 @@ export const ROLES_MANAGE_FLEET: RoleName[] = ['ADMIN', 'MANAGER', 'HUB_COORDINA
 /** Roles autorizados para coordinar un centro de acopio (hub + lotes). */
 export const ROLES_COORDINATE_HUB: RoleName[] = ['HUB_COORDINATOR', 'ADMIN', 'MANAGER']
 
+/**
+ * Roles autorizados para gestionar caravanas (convoys). El backend restringe
+ * la planificación, despacho, completado y cancelación a `ZODI_SENDER`, y el
+ * selector de escolta solo es accesible para ese rol.
+ */
+export const ROLES_MANAGE_CONVOYS: RoleName[] = ['ZODI_SENDER', 'ADMIN']
+
 /** Roles autorizados para entrar al panel admin (vista). */
 export const ROLES_VIEW_ADMIN: RoleName[] = [
   'ADMIN',

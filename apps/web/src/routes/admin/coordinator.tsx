@@ -18,7 +18,6 @@ import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import { Map as MapView, MapControls, MapMarker } from '@/components/ui/map'
 import { useToast } from '@/components/ui/toast'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 export const Route = createFileRoute('/admin/coordinator')({ component: CoordinatorGate })
 
@@ -94,6 +93,18 @@ async function registerInventoryBatch(d: {
   if (!res.ok) throw new Error(await readError(res, 'No se pudo registrar el lote'))
   return (await res.json()).batch
 }
+async function addStockResource(d: {
+  hubId: string; productId: string; quantity: number
+}): Promise<PublicResource> {
+  const res = await fetch(`${API_URL}/resources`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(d),
+  })
+  if (!res.ok) throw new Error(await readError(res, 'No se pudo registrar el stock'))
+  return (await res.json()).resource
+}
+
 async function deleteInventoryBatch(id: string): Promise<void> {
   const res = await fetch(`${API_URL}/resources/batches/${id}`, { method: 'DELETE', headers: authHeaders() })
   if (!res.ok) throw new Error(await readError(res, 'No se pudo eliminar el lote'))
@@ -280,11 +291,12 @@ function InventorySection({ hub }: { hub: PublicHub }) {
   const qc = useQueryClient()
   const [adding, setAdding] = useState(false)
   const { data: stock = [], isLoading } = useQuery({
-    queryKey: ['hub-stock', hub.id],
-    queryFn: () => fetchHubStock(hub.id),
+    queryKey: ['hub-resources', hub.id],
+    queryFn: () => fetchHubResources(hub.id),
   })
 
   const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ['hub-resources', hub.id] })
     qc.invalidateQueries({ queryKey: ['hub-stock', hub.id] })
     qc.invalidateQueries({ queryKey: ['hub-batches', hub.id] })
   }
@@ -311,11 +323,11 @@ function InventorySection({ hub }: { hub: PublicHub }) {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {stock.map((line) => (
-            <div key={line.productId} className="rounded-xl border border-[#2B5F8E]/30 bg-[#0F2337]/60 p-3">
+            <div key={line.id} className="rounded-xl border border-[#2B5F8E]/30 bg-[#0F2337]/60 p-3">
               <p className="text-[11px] text-white/50 uppercase tracking-wider truncate">{line.category}</p>
               <p className="text-sm font-semibold text-white/90 truncate">{line.productName}</p>
               <p className="text-lg font-bold text-white mt-1">
-                {line.totalBatches} <span className="text-xs font-normal text-white/50">{line.totalBatches === 1 ? 'lote' : 'lotes'}</span>
+                {line.quantity} <span className="text-xs font-normal text-white/50">{line.unit}</span>
               </p>
             </div>
           ))}
@@ -323,7 +335,7 @@ function InventorySection({ hub }: { hub: PublicHub }) {
       )}
 
       {adding && (
-        <RegisterBatchModal
+        <StockModal
           hubId={hub.id}
           onClose={() => setAdding(false)}
           onDone={() => { invalidate(); setAdding(false) }}
@@ -333,29 +345,31 @@ function InventorySection({ hub }: { hub: PublicHub }) {
   )
 }
 
-function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => void; onDone: () => void }) {
+function StockModal({ hubId, onClose, onDone }: { hubId: string; onClose: () => void; onDone: () => void }) {
   const [productId, setProductId] = useState('')
-  const [quantityBatches, setQuantityBatches] = useState('')
+  const [quantity, setQuantity] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const toast = useToast()
   const { data: products = [], isLoading: loadingProducts } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
   const mut = useMutation({
-    mutationFn: registerInventoryBatch,
-    onSuccess: (batch) => {
-      const product = products.find((p) => p.id === batch.productId)
+    mutationFn: addStockResource,
+    onSuccess: (resource) => {
+      const product = products.find((p) => p.id === resource.productId)
       toast.success(
-        'Ingreso registrado',
-        product ? `${batch.quantityBatches} ${batch.quantityBatches === 1 ? 'lote' : 'lotes'} de "${product.name}" sumados al inventario.` : 'El inventario se actualizó.',
+        'Stock sumado',
+        product ? `Se agregaron ${resource.quantity} ${product.unit} de "${product.name}" al inventario.` : 'El inventario se actualizó.',
       )
       onDone()
     },
     onError: (e: Error) => {
       setErrorMsg(e.message)
-      toast.error('No se pudo registrar el ingreso', e.message)
+      toast.error('No se pudo registrar el stock', e.message)
     },
   })
 
   const safeProducts = Array.isArray(products) ? products : []
+  const selected = safeProducts.find((p) => p.id === productId)
+
   const grouped = safeProducts.reduce<Record<string, ProductMaster[]>>((acc, p) => {
     (acc[p.category] ||= []).push(p)
     return acc
@@ -365,13 +379,13 @@ function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose
     e.preventDefault()
     setErrorMsg(null)
     if (!productId) { setErrorMsg('Seleccioná un producto del catálogo.'); return }
-    const n = Number(quantityBatches)
-    if (!Number.isInteger(n) || n <= 0) { setErrorMsg('La cantidad de lotes debe ser un entero positivo.'); return }
-    mut.mutate({ hubId, productId, quantityBatches: n })
+    const n = Number(quantity)
+    if (!Number.isInteger(n) || n <= 0) { setErrorMsg('La cantidad debe ser un entero positivo.'); return }
+    mut.mutate({ hubId, productId, quantity: n })
   }
 
   return (
-    <ModalShell title="Registrar ingreso de lote" onClose={onClose}>
+    <ModalShell title="Sumar stock al inventario" onClose={onClose}>
       <form onSubmit={submit} className="p-5 flex flex-col gap-4">
         {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
         <Field label="Producto">
@@ -388,22 +402,24 @@ function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose
             </select>
           )}
         </Field>
-        <Field label="Cantidad de lotes">
+        {selected && (
+          <div className="flex items-center gap-2 text-[11px] text-white/50">
+            <span className="px-2 py-0.5 rounded-md bg-[#2B5F8E]/20">{selected.category}</span>
+            <span>Unidad: <span className="text-white/70 font-medium">{selected.unit}</span></span>
+          </div>
+        )}
+        <Field label={`Cantidad${selected ? ` (${selected.unit})` : ''}`}>
           <input
             required
             type="number"
             min="1"
-            step="1"
             className="coord-input"
-            value={quantityBatches}
-            onChange={(e) => setQuantityBatches(e.target.value)}
-            placeholder="ej: 10"
+            value={quantity}
+            onChange={(e) => setQuantity(e.target.value)}
+            placeholder="ej: 50"
           />
         </Field>
-        <p className="text-[11px] text-white/40 -mt-1">
-          Un "lote" es la unidad atómica del producto recibido. El stock se calcula como la suma de lotes ingresados.
-        </p>
-        <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="REGISTRAR" />
+        <ModalActions onCancel={onClose} isSubmitting={mut.isPending} label="SUMAR" />
       </form>
     </ModalShell>
   )
@@ -412,9 +428,6 @@ function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose
 // ─── Histórico de ingresos ────────────────────────────────────────────────────
 
 function BatchesHistorySection({ hub }: { hub: PublicHub }) {
-  const qc = useQueryClient()
-  const toast = useToast()
-  const [batchToDelete, setBatchToDelete] = useState<PublicInventoryBatch | null>(null)
   const { data: batches = [], isLoading } = useQuery({
     queryKey: ['hub-batches', hub.id],
     queryFn: () => fetchHubBatches(hub.id),
@@ -430,20 +443,6 @@ function BatchesHistorySection({ hub }: { hub: PublicHub }) {
     }
     return map
   }, [products])
-
-  const removeMut = useMutation({
-    mutationFn: deleteInventoryBatch,
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['hub-batches', hub.id] })
-      qc.invalidateQueries({ queryKey: ['hub-stock', hub.id] })
-      const name = batchToDelete ? productById.get(batchToDelete.productId)?.name : undefined
-      setBatchToDelete(null)
-      toast.success('Ingreso eliminado', name ? `Se ajustó el stock de "${name}".` : 'El stock se ajustó.')
-    },
-    onError: (e: Error) => {
-      toast.error('No se pudo eliminar el ingreso', e.message)
-    },
-  })
 
   return (
     <section className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm p-5">
@@ -469,48 +468,13 @@ function BatchesHistorySection({ hub }: { hub: PublicHub }) {
                   </p>
                 </div>
                 <span className="text-sm font-mono text-white/80 shrink-0">
-                  {b.quantityBatches} {b.quantityBatches === 1 ? 'lote' : 'lotes'}
+                  {b.quantityBatches} {product?.unit ?? 'unidades'}
                 </span>
-                <button
-                  type="button"
-                  onClick={() => setBatchToDelete(b)}
-                  disabled={removeMut.isPending}
-                  className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition shrink-0"
-                  title="Eliminar ingreso"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
               </div>
             )
           })}
         </div>
       )}
-
-      <ConfirmDialog
-        open={!!batchToDelete}
-        tone="danger"
-        title="¿Eliminar este ingreso?"
-        description={
-          batchToDelete ? (
-            <>
-              Se removerán{' '}
-              <strong className="text-white">
-                {batchToDelete.quantityBatches} {batchToDelete.quantityBatches === 1 ? 'lote' : 'lotes'}
-              </strong>
-              {' '}de{' '}
-              <strong className="text-white">
-                "{productById.get(batchToDelete.productId)?.name ?? 'este producto'}"
-              </strong>
-              . El stock del centro se ajustará automáticamente.
-            </>
-          ) : null
-        }
-        confirmLabel="Eliminar ingreso"
-        cancelLabel="Cancelar"
-        isPending={removeMut.isPending}
-        onCancel={() => { if (!removeMut.isPending) setBatchToDelete(null) }}
-        onConfirm={() => { if (batchToDelete) removeMut.mutate(batchToDelete.id) }}
-      />
     </section>
   )
 }
@@ -577,34 +541,21 @@ function LoteCard({ lote }: { lote: PublicLote }) {
   )
 }
 
-interface DraftItem { productId: string; cantidad: string; pesoKg: string }
+interface DraftItem { productId: string; cantidad: string }
 
 function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: () => void; onDone: () => void }) {
-  const [items, setItems] = useState<DraftItem[]>([{ productId: '', cantidad: '', pesoKg: '' }])
+  const [items, setItems] = useState<DraftItem[]>([{ productId: '', cantidad: '' }])
   const [hubDestinoId, setHubDestinoId] = useState('')
   const [nota, setNota] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
   const toast = useToast()
 
-  const { data: stockLines = [] } = useQuery({ queryKey: ['hub-stock', hub.id], queryFn: () => fetchHubStock(hub.id) })
-  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const { data: stock = [] } = useQuery({ queryKey: ['hub-resources', hub.id], queryFn: () => fetchHubResources(hub.id) })
   const { data: hubs = [] } = useQuery({ queryKey: ['hubs-all'], queryFn: fetchHubs })
 
-  const productMap = Object.fromEntries(products.map((p) => [p.id, p]))
-
-  // Solo productos efectivamente en stock del centro (basado en la agregación de lotes).
-  const stocked = stockLines
-    .filter((line) => line.totalBatches > 0)
-    .map((line) => {
-      return {
-        id: line.productId,
-        productId: line.productId,
-        productName: line.productName,
-        quantity: line.totalBatches,
-        unit: line.totalBatches === 1 ? 'lote' : 'lotes',
-      }
-    })
-  const byProduct = Object.fromEntries(stocked.map((r) => [r.productId, r]))
+  // Solo productos efectivamente en stock del centro.
+  const stocked = stock.filter((r) => r.productId && r.quantity > 0)
+  const byProduct = Object.fromEntries(stocked.map((r) => [r.productId as string, r]))
 
   const mut = useMutation({
     mutationFn: createLote,
@@ -622,7 +573,7 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
   })
 
   const setItem = (i: number, patch: Partial<DraftItem>) => setItems((prev) => prev.map((it, idx) => idx === i ? { ...it, ...patch } : it))
-  const addItem = () => setItems((prev) => [...prev, { productId: '', cantidad: '', pesoKg: '' }])
+  const addItem = () => setItems((prev) => [...prev, { productId: '', cantidad: '' }])
   const removeItem = (i: number) => setItems((prev) => prev.filter((_, idx) => idx !== i))
 
   const submit = (e: React.FormEvent) => {
@@ -630,12 +581,12 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
     setErrorMsg(null)
     const validItems = items
       .filter((it) => it.productId && Number(it.cantidad) > 0)
-      .map((it) => ({ productId: it.productId, cantidad: Number(it.cantidad), pesoKg: it.pesoKg ? Number(it.pesoKg) : undefined }))
+      .map((it) => ({ productId: it.productId, cantidad: Number(it.cantidad) }))
     if (validItems.length === 0) { setErrorMsg('Agregá al menos un producto con cantidad.'); return }
     mut.mutate({ hubOrigenId: hub.id, hubDestinoId: hubDestinoId || undefined, nota: nota || undefined, items: validItems })
   }
 
-  const destinos = hubs.filter((h) => h.id !== hub.id)
+  const destinos = hubs.filter((h) => h.id !== hub.id && h.type === 'DESTINATION')
 
   return (
     <ModalShell title="Nuevo lote" onClose={onClose} wide>
@@ -654,13 +605,12 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
                 {items.map((it, i) => {
                   const sel = it.productId ? byProduct[it.productId] : undefined
                   return (
-                    <div key={i} className="grid grid-cols-[minmax(0,1fr)_4.5rem_5.5rem_auto] gap-2 items-center">
+                    <div key={i} className="grid grid-cols-[minmax(0,1fr)_6.5rem_auto] gap-2 items-center">
                       <select className="coord-input" style={{ minWidth: 0 }} value={it.productId} onChange={(e) => setItem(i, { productId: e.target.value })}>
                         <option value="">Seleccionar producto…</option>
                         {stocked.map((r) => <option key={r.id} value={r.productId as string}>{r.productName} ({r.quantity} {r.unit})</option>)}
                       </select>
-                      <input type="number" min="1" max={sel?.quantity} className="coord-input" style={{ minWidth: 0 }} placeholder="Lotes" value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
-                      <input type="number" min="0" step="any" className="coord-input" style={{ minWidth: 0 }} placeholder="Peso kg" value={it.pesoKg} onChange={(e) => setItem(i, { pesoKg: e.target.value })} />
+                      <input type="number" min="1" max={sel?.quantity} className="coord-input" style={{ minWidth: 0 }} placeholder="Cant." value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
                       <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition"><Trash2 className="w-4 h-4" /></button>
                     </div>
                   )

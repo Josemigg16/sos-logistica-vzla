@@ -7,6 +7,7 @@ import { CancelConvoy } from "../../application/convoys/cancel-convoy";
 import { CompleteConvoy } from "../../application/convoys/complete-convoy";
 import { GetConvoy } from "../../application/convoys/get-convoy";
 import { ListConvoys } from "../../application/convoys/list-convoys";
+import { ListEscorts } from "../../application/convoys/list-escorts";
 import { PlanConvoy } from "../../application/convoys/plan-convoy";
 import { StartConvoy } from "../../application/convoys/start-convoy";
 import { config } from "../../config";
@@ -39,6 +40,7 @@ function buildContext(): TestContext {
   const users = new InMemoryUserRepository();
   const routes = createConvoysRoutes({
     listConvoys: new ListConvoys(convoys),
+    listEscorts: new ListEscorts(users),
     getConvoy: new GetConvoy(convoys),
     planConvoy: new PlanConvoy(convoys, hubs, users),
     startConvoy: new StartConvoy(convoys),
@@ -168,6 +170,41 @@ describe("convoys routes", () => {
     expect(await res.json()).toMatchObject({ code: "CONVOY_NOT_FOUND" });
   });
 
+  test("GET /convoys/escorts requires authentication", async () => {
+    const res = await ctx.app.request("/convoys/escorts");
+
+    expect(res.status).toBe(401);
+  });
+
+  test("GET /convoys/escorts requires ZODI_SENDER role", async () => {
+    const res = await ctx.app.request("/convoys/escorts", {
+      headers: await authHeader("MANAGER"),
+    });
+
+    expect(res.status).toBe(403);
+  });
+
+  test("GET /convoys/escorts returns only ZODI_SENDER users", async () => {
+    await seedPlanningContext(ctx);
+    await ctx.users.save(
+      User.register({
+        id: "66666666-6666-6666-6666-666666666666",
+        username: "manager",
+        credential: Credential.fromHash("hash"),
+        role: Role.create("MANAGER"),
+        email: "manager@example.com",
+      }),
+    );
+
+    const res = await ctx.app.request("/convoys/escorts", {
+      headers: await authHeader("ZODI_SENDER"),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.escorts).toEqual([{ id: ESCORT_ID, username: "zodi-sender" }]);
+  });
+
   test("POST /convoys requires authentication", async () => {
     const res = await ctx.app.request("/convoys", { method: "POST" });
 
@@ -217,6 +254,47 @@ describe("convoys routes", () => {
       vehicleIds: [VEHICLE_ID],
       status: "PLANIFICADO",
     });
+  });
+
+  test("POST /convoys also allows ADMIN as superuser", async () => {
+    await seedPlanningContext(ctx);
+
+    const res = await ctx.app.request("/convoys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await authHeader("ADMIN")) },
+      body: JSON.stringify({
+        origenId: ORIGIN_ID,
+        destinoId: DESTINATION_ID,
+        escoltaId: ESCORT_ID,
+        vehicleIds: [VEHICLE_ID],
+      }),
+    });
+
+    expect(res.status).toBe(201);
+  });
+
+  test("POST /convoys/:id/dispatch also allows ADMIN", async () => {
+    const convoy = makeConvoy("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+    await ctx.convoys.save(convoy);
+
+    const res = await ctx.app.request(`/convoys/${convoy.id}/dispatch`, {
+      method: "POST",
+      headers: await authHeader("ADMIN"),
+    });
+
+    expect(res.status).toBe(200);
+  });
+
+  test("GET /convoys/escorts also allows ADMIN", async () => {
+    await seedPlanningContext(ctx);
+
+    const res = await ctx.app.request("/convoys/escorts", {
+      headers: await authHeader("ADMIN"),
+    });
+
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as any;
+    expect(body.escorts).toEqual([{ id: ESCORT_ID, username: "zodi-sender" }]);
   });
 
   test("POST /convoys/:id/dispatch starts a planned convoy", async () => {
