@@ -593,7 +593,11 @@ function HubFormModal({
                 <MapControls />
                 <MapMarker
                   coordinates={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
-                  color="#22c55e"
+                  color={
+                    tipo === 'salida' ? '#ef4444' :
+                    tipo === 'destino' ? '#22c55e' :
+                    '#3b82f6' // acopio
+                  }
                   active={true}
                 />
               </Map>

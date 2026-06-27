@@ -110,6 +110,11 @@ function RegisterHubSection() {
   const latNum = parseFloat(lat) || 9.5832
   const lngNum = parseFloat(lng) || -69.2216
 
+  const markerColor =
+    type === 'DISPATCH' ? '#ef4444' :
+    type === 'DESTINATION' ? '#22c55e' :
+    '#3b82f6' // COLLECTION
+
   return (
     <div className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm p-6 max-w-2xl">
       <div className="flex items-center gap-2 mb-1">
@@ -153,7 +158,7 @@ function RegisterHubSection() {
             className="w-full h-full"
           >
             <MapControls />
-            <MapMarker coordinates={[lngNum, latNum]} color="#22c55e" active />
+            <MapMarker coordinates={[lngNum, latNum]} color={markerColor} active />
           </MapView>
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-[#0F2337]/90 text-[10px] text-white/70 border border-[#2B5F8E]/40 pointer-events-none">
             Hacé clic en el mapa para marcar la ubicación
