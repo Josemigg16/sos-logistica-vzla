@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Warehouse } from 'lucide-react'
+import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB } from '@/lib/session'
+import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
@@ -12,6 +12,7 @@ function AdminDashboard() {
   const canManageUsers = hasAnyRole(user, ...ROLES_MANAGE_USERS)
   const canManageFleet = hasAnyRole(user, ...ROLES_MANAGE_FLEET)
   const canCoordinateHub = hasAnyRole(user, ...ROLES_COORDINATE_HUB)
+  const canManageConvoys = hasAnyRole(user, ...ROLES_MANAGE_CONVOYS)
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto lg:mx-0">
       {/* Header */}
@@ -72,6 +73,15 @@ function AdminDashboard() {
             title="Flota"
             description="Gestionar choferes, vehículos y tipos de unidades."
             stat="Gestionar flota"
+          />
+        )}
+        {canManageConvoys && (
+          <AdminSectionCard
+            to="/admin/convoys"
+            icon={<RouteIcon className="w-6 h-6" />}
+            title="Caravanas"
+            description="Planificar, despachar y seguir las caravanas escoltadas ZODI."
+            stat="Coordinar caravanas"
           />
         )}
         {canManageUsers && (

@@ -3,6 +3,7 @@ import { CancelConvoy } from "../application/convoys/cancel-convoy";
 import { CompleteConvoy } from "../application/convoys/complete-convoy";
 import { GetConvoy } from "../application/convoys/get-convoy";
 import { ListConvoys } from "../application/convoys/list-convoys";
+import { ListEscorts } from "../application/convoys/list-escorts";
 import { PlanConvoy } from "../application/convoys/plan-convoy";
 import { StartConvoy } from "../application/convoys/start-convoy";
 import { createConvoysRoutes } from "./http/convoys.routes";
@@ -20,6 +21,7 @@ export function createConvoysModule() {
 
   const useCases = {
     listConvoys: new ListConvoys(convoys),
+    listEscorts: new ListEscorts(users),
     getConvoy: new GetConvoy(convoys),
     planConvoy: new PlanConvoy(convoys, hubs, users),
     startConvoy: new StartConvoy(convoys),

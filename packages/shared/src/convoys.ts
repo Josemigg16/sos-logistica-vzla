@@ -40,3 +40,13 @@ export interface PublicConvoy {
   createdAt: string;
   updatedAt: string;
 }
+
+/**
+ * Escolta candidato para planificar una caravana: un usuario con rol
+ * `ZODI_SENDER`. Vista mínima para poblar el selector de escolta sin exponer
+ * el resto del perfil del usuario.
+ */
+export interface PublicEscort {
+  id: string;
+  username: string;
+}
