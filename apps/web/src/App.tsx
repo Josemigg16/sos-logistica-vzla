@@ -272,24 +272,7 @@ export default function App() {
     setIsDetailsExpanded(true); // Mostrar panel expandido al seleccionar
   };
 
-  // Color de estado del stock
-  const getStockColor = (level: number) => {
-    if (level >= 75) return "bg-[#4A89C0]";
-    if (level >= 40) return "bg-[#2B5F8E]";
-    return "bg-[#C8DCF0]";
-  };
 
-  const getStockTextColor = (level: number) => {
-    if (level >= 75) return "text-[#4A89C0]";
-    if (level >= 40) return "text-[#C8DCF0]";
-    return "text-white";
-  };
-
-  const getStockLabel = (level: number) => {
-    if (level >= 75) return "Abastecido";
-    if (level >= 40) return "Limitado";
-    return "Bajo Mínimo";
-  };
 
   return (
     <div className="mapa-layout relative flex flex-col select-none bg-background text-foreground transition-colors duration-300 antialiased">
@@ -683,32 +666,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* Inventario por Categorías */}
-              <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Package className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inventario Disponible</h3>
-                </div>
 
-                <div className="flex flex-col gap-3">
-                  {Object.entries(selectedCentro.inventario).map(([categoria, nivel]) => (
-                    <div key={categoria} className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between text-xs font-medium">
-                        <span className="text-foreground text-[11px]">{categoria}</span>
-                        <span className={`text-[10px] font-bold ${getStockTextColor(nivel)}`}>
-                          <span className="tabular-nums font-mono">{nivel}%</span> • {getStockLabel(nivel)}
-                        </span>
-                      </div>
-                      <div className="w-full h-2 rounded-full bg-secondary overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${getStockColor(nivel)}`}
-                          style={{ width: `${nivel}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
               {/* Verificación de Carga Útil */}
               {selectedCentro.verificacion && (
@@ -950,7 +908,7 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
             <div>
               <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Toca un marcador</p>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Ve el inventario, contacto y estado de cada centro de acopio.
+                Ve las necesidades, contacto y estado de cada centro de acopio.
               </p>
             </div>
           </div>
@@ -962,7 +920,7 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
             <div>
               <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Busca y filtra</p>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
-                Encuentra centros por nombre o filtra por categoría de suministros disponibles.
+                Encuentra centros por nombre o filtra por tipo de centro.
               </p>
             </div>
           </div>
