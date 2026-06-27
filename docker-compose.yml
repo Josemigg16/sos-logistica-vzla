@@ -27,6 +27,7 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-sos}:${POSTGRES_PASSWORD:-sos}@db:5432/${POSTGRES_DB:-sos_logistica}
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:8080}
     depends_on:
       db:
         condition: service_healthy
