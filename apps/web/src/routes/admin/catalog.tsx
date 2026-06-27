@@ -73,27 +73,32 @@ function AdminCatalogPage() {
 
   // Create Mutation
   const createProductMutation = useMutation({
-    mutationFn: async (newProduct: Omit<ProductMaster, 'id'>) => {
-      const res = await fetch(`${API_URL}/productos`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify(newProduct),
-      })
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}))
-        throw new Error(errorData.error || 'Error al crear producto')
+    mutationFn: async (newProducts: Omit<ProductMaster, 'id'>[]) => {
+      const createdList: ProductMaster[] = []
+      for (const prod of newProducts) {
+        const res = await fetch(`${API_URL}/productos`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify(prod),
+        })
+        if (!res.ok) {
+          const errorData = await res.json().catch(() => ({}))
+          throw new Error(errorData.error || `Error al crear el producto "${prod.name}"`)
+        }
+        const data = await res.json()
+        createdList.push(data)
       }
-      return res.json()
+      return createdList
     },
-    onSuccess: (created) => {
+    onSuccess: (createdList) => {
       queryClient.setQueryData<ProductMaster[]>(['productos'], (prev = []) => {
-        return [...prev, created]
+        return [...prev, ...createdList]
       })
       setIsCreateOpen(false)
-      toast.success('Producto creado', `"${created.name}" se agregó al catálogo.`)
+      toast.success('Productos creados', `${createdList.length} producto(s) agregados al catálogo.`)
     },
     onError: (error: any) => {
-      setServerError(error.message || 'Error al guardar el producto')
+      setServerError(error.message || 'Error al guardar los productos')
     },
   })
 
@@ -384,6 +389,13 @@ interface ProductFormValues {
   description: string
 }
 
+interface DraftProduct {
+  name: string
+  category: typeof INVENTORY_CATEGORIES[number]
+  unit: string
+  description: string
+}
+
 interface ProductFormSheetProps {
   title: string
   submitLabel: string
@@ -393,7 +405,7 @@ interface ProductFormSheetProps {
   serverError: string | null
   isSubmitting: boolean
   onClose: () => void
-  onSubmit: (values: ProductFormValues) => void
+  onSubmit: (values: any) => void
 }
 
 function ProductFormSheet({
@@ -405,41 +417,94 @@ function ProductFormSheet({
   onClose,
   onSubmit,
 }: ProductFormSheetProps) {
+  // Estado para modo Edición (único producto)
   const [name, setName] = useState(initial?.name ?? '')
   const [category, setCategory] = useState<typeof INVENTORY_CATEGORIES[number]>(
     initial?.category ?? INVENTORY_CATEGORIES[0],
   )
   const [unit, setUnit] = useState(initial?.unit ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
+
+  // Estado para modo Creación (múltiples productos)
+  const [productsList, setProductsList] = useState<DraftProduct[]>([
+    { name: '', category: INVENTORY_CATEGORIES[0], unit: '', description: '' }
+  ])
+
   const [validationError, setValidationError] = useState<string | null>(null)
 
-  // Dirty tracking: comparo el snapshot actual contra el baseline inicial.
-  const snapshot = JSON.stringify({ name, category, unit, description })
+  // Dirty tracking
+  const editSnapshot = JSON.stringify({ name, category, unit, description })
+  const createSnapshot = JSON.stringify(productsList)
+  
   const baselineRef = useRef<string | null>(null)
-  if (baselineRef.current === null) baselineRef.current = snapshot
-  const isDirty = baselineRef.current !== snapshot
+  if (baselineRef.current === null) {
+    baselineRef.current = initial ? editSnapshot : createSnapshot
+  }
+  const isDirty = initial 
+    ? baselineRef.current !== editSnapshot
+    : productsList.length > 1 || productsList[0].name !== '' || productsList[0].unit !== '' || productsList[0].description !== ''
 
   const formError = validationError ?? serverError
+
+  const addProductRow = () => {
+    setProductsList((prev) => [
+      ...prev,
+      { name: '', category: INVENTORY_CATEGORIES[0], unit: '', description: '' }
+    ])
+  }
+
+  const removeProductRow = (index: number) => {
+    setProductsList((prev) => prev.filter((_, idx) => idx !== index))
+  }
+
+  const updateProductRow = (index: number, patch: Partial<DraftProduct>) => {
+    setProductsList((prev) => prev.map((item, idx) => idx === index ? { ...item, ...patch } : item))
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setValidationError(null)
 
-    if (!name.trim()) {
-      setValidationError('El nombre del producto es requerido')
-      return
-    }
-    if (!unit.trim()) {
-      setValidationError('La unidad de medida es requerida')
-      return
-    }
+    if (initial) {
+      // Modo Edición
+      if (!name.trim()) {
+        setValidationError('El nombre del producto es requerido')
+        return
+      }
+      if (!unit.trim()) {
+        setValidationError('La unidad de medida es requerida')
+        return
+      }
 
-    onSubmit({
-      name: name.trim(),
-      category,
-      unit: unit.trim(),
-      description: description.trim(),
-    })
+      onSubmit({
+        name: name.trim(),
+        category,
+        unit: unit.trim(),
+        description: description.trim(),
+      })
+    } else {
+      // Modo Creación (Múltiple)
+      for (let i = 0; i < productsList.length; i++) {
+        const prod = productsList[i]
+        if (!prod.name.trim()) {
+          setValidationError(`Producto #${i + 1}: El nombre es requerido`)
+          return
+        }
+        if (!prod.unit.trim()) {
+          setValidationError(`Producto #${i + 1}: La unidad de medida es requerida`)
+          return
+        }
+      }
+
+      onSubmit(
+        productsList.map((prod) => ({
+          name: prod.name.trim(),
+          category: prod.category,
+          unit: prod.unit.trim(),
+          description: prod.description.trim(),
+        }))
+      )
+    }
   }
 
   return (
@@ -486,65 +551,162 @@ function ProductFormSheet({
           </div>
         )}
 
-        <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-            Nombre del Producto
-          </label>
-          <input
-            type="text"
-            required
-            placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
-          />
-        </div>
+        {initial ? (
+          // Vista única de edición
+          <div className="flex flex-col gap-4">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                Nombre del Producto
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-              Categoría
-            </label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value as any)}
-              className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                  Categoría
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as any)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
+                >
+                  {INVENTORY_CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                  Unidad de Medida
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. litros, kg, unidades, paquetes"
+                  value={unit}
+                  onChange={(e) => setUnit(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                Descripción
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Detalles sobre el suministro, especificaciones o empaque..."
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
+              />
+            </div>
+          </div>
+        ) : (
+          // Vista múltiple de creación
+          <div className="flex flex-col gap-6 max-h-[60vh] overflow-y-auto pr-1">
+            {productsList.map((prod, idx) => (
+              <div key={idx} className="relative p-5 rounded-2xl border border-[#2B5F8E]/30 bg-[#152D46]/30 flex flex-col gap-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-[#C8DCF0]/80 uppercase tracking-wider">
+                    Producto #{idx + 1}
+                  </span>
+                  {productsList.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => removeProductRow(idx)}
+                      className="p-1 text-red-500/50 hover:text-red-400 hover:bg-red-500/10 rounded transition-all duration-200 cursor-pointer"
+                      title="Eliminar este producto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                    Nombre del Producto
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
+                    value={prod.name}
+                    onChange={(e) => updateProductRow(idx, { name: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                      Categoría
+                    </label>
+                    <select
+                      value={prod.category}
+                      onChange={(e) => updateProductRow(idx, { category: e.target.value as any })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
+                    >
+                      {INVENTORY_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                      Unidad de Medida
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej. litros, kg, unidades, paquetes"
+                      value={prod.unit}
+                      onChange={(e) => updateProductRow(idx, { unit: e.target.value })}
+                      className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                    Descripción
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Detalles sobre el suministro, especificaciones o empaque..."
+                    value={prod.description}
+                    onChange={(e) => updateProductRow(idx, { description: e.target.value })}
+                    className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
+                  />
+                </div>
+              </div>
+            ))}
+
+            <button
+              type="button"
+              onClick={addProductRow}
+              className="flex items-center justify-center gap-2 py-3 rounded-xl border border-dashed border-[#2B5F8E]/40 bg-[#152D46]/20 hover:bg-[#1E4A6E]/40 text-[#C8DCF0]/80 text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
             >
-              {INVENTORY_CATEGORIES.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
+              <Plus className="w-4 h-4" />
+              Añadir otro producto
+            </button>
           </div>
-
-          <div>
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-              Unidad de Medida
-            </label>
-            <input
-              type="text"
-              required
-              placeholder="Ej. litros, kg, unidades, paquetes"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
-            Descripción
-          </label>
-          <textarea
-            rows={3}
-            placeholder="Detalles sobre el suministro, especificaciones o empaque..."
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
-          />
-        </div>
+        )}
       </div>
     </FormSheet>
   )
