@@ -41,4 +41,5 @@ export * from "./identity";
 export * from "./incidents";
 export * from "./resources";
 export * from "./operations";
+export * from "./needs";
 

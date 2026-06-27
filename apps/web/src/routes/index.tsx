@@ -60,112 +60,6 @@ function urgencyLabel(iso: string): { text: string; urgent: boolean; overdue: bo
   return { text: `Para el ${new Date(iso).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}`, urgent: false, overdue: false }
 }
 
-function todayPlus(days: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return d.toISOString().split('T')[0]
-}
-
-// --- Mock data ---
-const MOCK_NECESIDADES: Necesidad[] = [
-  {
-    id: 'nec-001',
-    nombre: 'Agua potable',
-    categoria: 'Víveres',
-    unidad: 'litros',
-    meta: 10000,
-    recibido: 3200,
-    prioridad: 'CRITICA',
-    descripcion: 'Agua purificada para consumo humano en zonas sin servicio.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    fechaNecesidad: todayPlus(0),
-  },
-  {
-    id: 'nec-002',
-    nombre: 'Acetaminofén 500mg',
-    categoria: 'Medicamentos',
-    unidad: 'tabletas',
-    meta: 50000,
-    recibido: 18000,
-    prioridad: 'CRITICA',
-    descripcion: 'Analgésico esencial para centros de atención médica improvisados.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    fechaNecesidad: todayPlus(1),
-  },
-  {
-    id: 'nec-003',
-    nombre: 'Arroz blanco',
-    categoria: 'Víveres',
-    unidad: 'kg',
-    meta: 5000,
-    recibido: 2800,
-    prioridad: 'ALTA',
-    descripcion: 'Alimento base para raciones diarias en albergues.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    fechaNecesidad: todayPlus(1),
-  },
-  {
-    id: 'nec-004',
-    nombre: 'Pañales desechables',
-    categoria: 'Artículos para bebés y grupos vulnerables',
-    unidad: 'unidades',
-    meta: 8000,
-    recibido: 1100,
-    prioridad: 'CRITICA',
-    descripcion: 'Tallas medianas y grandes para bebés en albergues.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 200).toISOString(),
-    fechaNecesidad: todayPlus(0),
-  },
-  {
-    id: 'nec-005',
-    nombre: 'Frazadas / mantas',
-    categoria: 'Abrigo y refugio',
-    unidad: 'unidades',
-    meta: 3000,
-    recibido: 2200,
-    prioridad: 'MEDIA',
-    descripcion: 'Para familias evacuadas en zonas altas con bajas temperaturas.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    fechaNecesidad: todayPlus(3),
-  },
-  {
-    id: 'nec-006',
-    nombre: 'Jabón de baño',
-    categoria: 'Higiene personal',
-    unidad: 'unidades',
-    meta: 6000,
-    recibido: 4500,
-    prioridad: 'MEDIA',
-    descripcion: 'Barras de jabón para higiene personal en albergues.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
-    fechaNecesidad: todayPlus(4),
-  },
-  {
-    id: 'nec-007',
-    nombre: 'Linternas y pilas',
-    categoria: 'Herramientas',
-    unidad: 'kits',
-    meta: 1500,
-    recibido: 320,
-    prioridad: 'ALTA',
-    descripcion: 'Kits de iluminación para zonas sin electricidad.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    fechaNecesidad: todayPlus(2),
-  },
-  {
-    id: 'nec-008',
-    nombre: 'Cloro / desinfectante',
-    categoria: 'Productos de limpieza',
-    unidad: 'litros',
-    meta: 2000,
-    recibido: 1600,
-    prioridad: 'BAJA',
-    descripcion: 'Desinfectante para limpieza de espacios colectivos.',
-    ultimaActualizacion: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    fechaNecesidad: todayPlus(7),
-  },
-]
-
 // --- Rotating messages ---
 const MENSAJES_ACTIVOS = [
   'Cada litro de agua que donas salva una familia esta noche.',
@@ -473,14 +367,13 @@ function NecesidadesPage() {
   const { data, isLoading } = useQuery<Necesidad[]>({
     queryKey: ['necesidades'],
     queryFn: async () => {
-      const res = await fetch(`${apiUrl}/api/necesidades`)
+      const res = await fetch(`${apiUrl}/api/needs`)
       if (!res.ok) throw new Error('API error')
       return res.json()
     },
-    placeholderData: MOCK_NECESIDADES,
   })
 
-  const necesidades = data ?? MOCK_NECESIDADES
+  const necesidades = data ?? []
   const criticas = necesidades.filter(n => n.prioridad === 'CRITICA').length
   const totalMeta = necesidades.reduce((s, n) => s + n.meta, 0)
   const totalRecibido = necesidades.reduce((s, n) => s + n.recibido, 0)

@@ -1,10 +1,16 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { join } from "path";
-import { centroSchema, type Centro } from "@sos/shared";
-import { eq } from "drizzle-orm";
+import {
+  centroSchema,
+  createNeedSchema,
+  updateNeedSchema,
+  type Centro,
+} from "@sos/shared";
+import { eq, desc } from "drizzle-orm";
 import { db } from "./src/infrastructure/persistence/db";
 import { hubs, resources } from "./src/infrastructure/persistence/schema/resources.schema";
+import { needs } from "./src/infrastructure/persistence/schema/needs.schema";
 import { createIdentityModule } from "./src/infrastructure/identity.module";
 import { createResourcesModule } from "./src/infrastructure/resources.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
@@ -12,19 +18,30 @@ import { createOperationsModule } from "./src/infrastructure/operations.module";
 const app = new Hono();
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
-const NEEDS_FILE_PATH = join(import.meta.dir, "data", "needs.json");
 
-interface NeedRecord {
-  id: string;
-  nombre: string;
-  categoria: string;
-  unidad: string;
-  meta: number;
-  recibido: number;
-  prioridad: string;
-  descripcion: string;
-  fechaNecesidad: string;
-  ultimaActualizacion: string;
+type NeedRow = typeof needs.$inferSelect;
+
+/**
+ * Mapea el row de Postgres al payload público.
+ * `fechaNecesidad` viene como Date; lo serializamos a YYYY-MM-DD.
+ * `ultimaActualizacion` viene como Date; lo serializamos a ISO.
+ */
+function toPublicNeed(row: NeedRow) {
+  return {
+    id: row.id,
+    nombre: row.nombre,
+    categoria: row.categoria,
+    unidad: row.unidad,
+    meta: row.meta,
+    recibido: row.recibido,
+    prioridad: row.prioridad,
+    descripcion: row.descripcion,
+    fechaNecesidad:
+      row.fechaNecesidad instanceof Date
+        ? row.fechaNecesidad.toISOString().split("T")[0]
+        : String(row.fechaNecesidad),
+    ultimaActualizacion: row.ultimaActualizacion.toISOString(),
+  };
 }
 
 async function readCentros(): Promise<Centro[]> {
@@ -40,25 +57,6 @@ async function readCentros(): Promise<Centro[]> {
 async function writeCentros(data: Centro[]): Promise<boolean> {
   try {
     await Bun.write(DATA_FILE_PATH, JSON.stringify(data, null, 2));
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function readNeeds(): Promise<NeedRecord[]> {
-  try {
-    const file = Bun.file(NEEDS_FILE_PATH);
-    if (!await file.exists()) return [];
-    return await file.json();
-  } catch {
-    return [];
-  }
-}
-
-async function writeNeeds(data: NeedRecord[]): Promise<boolean> {
-  try {
-    await Bun.write(NEEDS_FILE_PATH, JSON.stringify(data, null, 2));
     return true;
   } catch {
     return false;
@@ -217,80 +215,81 @@ app.delete("/api/centros/:id", async (c) => {
   }
 });
 
-// --- Needs (necesidades) — public read + admin CRUD, persistido en JSON local ---
+// --- Needs (necesidades) — public read + admin CRUD, persistido en Postgres (tabla `needs`) ---
 
-app.get("/api/necesidades", async (c) => {
-  const needs = await readNeeds();
-  return c.json(needs);
+app.get("/api/needs", async (c) => {
+  try {
+    const rows = await db.select().from(needs).orderBy(desc(needs.fechaNecesidad));
+    return c.json(rows.map(toPublicNeed));
+  } catch (error) {
+    console.error("Error al listar necesidades:", error);
+    return c.json({ error: "Error al obtener necesidades" }, 500);
+  }
 });
 
-app.post("/api/necesidades", async (c) => {
+app.post("/api/needs", async (c) => {
   try {
-    const body = (await c.req.json()) as Partial<NeedRecord>;
-    if (!body.nombre || !body.categoria || !body.unidad || !body.meta || !body.prioridad || !body.fechaNecesidad) {
-      return c.json({ error: "Faltan campos requeridos" }, 400);
+    const body = await c.req.json().catch(() => null);
+    const parsed = createNeedSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     }
-    const newRecord: NeedRecord = {
-      id: `nec-${Date.now()}`,
-      nombre: body.nombre,
-      categoria: body.categoria,
-      unidad: body.unidad,
-      meta: Number(body.meta),
-      recibido: Number(body.recibido ?? 0),
-      prioridad: body.prioridad,
-      descripcion: body.descripcion ?? "",
-      fechaNecesidad: body.fechaNecesidad,
-      ultimaActualizacion: new Date().toISOString(),
-    };
-    const needs = await readNeeds();
-    needs.push(newRecord);
-    const saved = await writeNeeds(needs);
-    if (!saved) return c.json({ error: "Error al guardar" }, 500);
-    return c.json(newRecord, 201);
-  } catch {
+    const draft = parsed.data;
+    const [inserted] = await db
+      .insert(needs)
+      .values({
+        nombre: draft.nombre,
+        categoria: draft.categoria,
+        unidad: draft.unidad,
+        meta: draft.meta,
+        recibido: draft.recibido,
+        prioridad: draft.prioridad,
+        descripcion: draft.descripcion,
+        fechaNecesidad: draft.fechaNecesidad,
+      })
+      .returning();
+    return c.json(toPublicNeed(inserted!), 201);
+  } catch (error) {
+    console.error("Error al crear necesidad:", error);
     return c.json({ error: "Error en la petición" }, 400);
   }
 });
 
-app.put("/api/necesidades/:id", async (c) => {
+app.put("/api/needs/:id", async (c) => {
   try {
     const id = c.req.param("id");
-    const needs = await readNeeds();
-    const idx = needs.findIndex((n) => n.id === id);
-    if (idx === -1) return c.json({ error: "No encontrada" }, 404);
-
-    const body = (await c.req.json()) as Partial<NeedRecord>;
-    const current = needs[idx]!;
-    const updated: NeedRecord = {
-      id: current.id,
-      nombre: body.nombre ?? current.nombre,
-      categoria: body.categoria ?? current.categoria,
-      unidad: body.unidad ?? current.unidad,
-      prioridad: body.prioridad ?? current.prioridad,
-      descripcion: body.descripcion ?? current.descripcion,
-      fechaNecesidad: body.fechaNecesidad ?? current.fechaNecesidad,
-      meta: Number(body.meta ?? current.meta),
-      recibido: Number(body.recibido ?? current.recibido),
-      ultimaActualizacion: new Date().toISOString(),
-    };
-    needs[idx] = updated;
-    const saved = await writeNeeds(needs);
-    if (!saved) return c.json({ error: "Error al guardar" }, 500);
-    return c.json(updated);
-  } catch {
+    const body = await c.req.json().catch(() => null);
+    const parsed = updateNeedSchema.safeParse(body);
+    if (!parsed.success) {
+      return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
+    }
+    const patch = parsed.data;
+    const [updated] = await db
+      .update(needs)
+      .set({
+        ...patch,
+        ultimaActualizacion: new Date(),
+      })
+      .where(eq(needs.id, id))
+      .returning();
+    if (!updated) return c.json({ error: "No encontrada" }, 404);
+    return c.json(toPublicNeed(updated));
+  } catch (error) {
+    console.error("Error al actualizar necesidad:", error);
     return c.json({ error: "Error en la petición" }, 400);
   }
 });
 
-app.delete("/api/necesidades/:id", async (c) => {
-  const id = c.req.param("id");
-  const needs = await readNeeds();
-  const idx = needs.findIndex((n) => n.id === id);
-  if (idx === -1) return c.json({ error: "No encontrada" }, 404);
-  needs.splice(idx, 1);
-  const saved = await writeNeeds(needs);
-  if (!saved) return c.json({ error: "Error al guardar" }, 500);
-  return c.json({ ok: true });
+app.delete("/api/needs/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const [deleted] = await db.delete(needs).where(eq(needs.id, id)).returning();
+    if (!deleted) return c.json({ error: "No encontrada" }, 404);
+    return c.json({ ok: true });
+  } catch (error) {
+    console.error("Error al eliminar necesidad:", error);
+    return c.json({ error: "Error en la petición" }, 400);
+  }
 });
 
 const port = Number(process.env.PORT ?? 8081);

@@ -1,0 +1,32 @@
+meta {
+  name: List Needs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/needs
+  body: none
+  auth: none
+}
+
+docs {
+  Lista las necesidades públicas activas (panel principal).
+  Persiste en Postgres (tabla `needs`).
+
+  Respuesta 200: array ordenado por `fechaNecesidad` descendente:
+  ```json
+  {
+    "id": "uuid-v4",
+    "nombre": "Agua potable",
+    "categoria": "Víveres",
+    "unidad": "litros",
+    "meta": 10000,
+    "recibido": 3200,
+    "prioridad": "CRITICA",
+    "descripcion": "...",
+    "fechaNecesidad": "YYYY-MM-DD",
+    "ultimaActualizacion": "ISO-8601"
+  }
+  ```
+}
