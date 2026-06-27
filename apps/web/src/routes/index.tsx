@@ -20,6 +20,7 @@ import {
   Sparkles,
   CalendarClock,
   HandHeart,
+  Warehouse,
 } from 'lucide-react'
 
 import logotipo from '@/assets/branding/white-logotipo.webp'
@@ -80,6 +81,7 @@ const MENSAJES_CUBIERTOS = [
 
 // --- Helpers ---
 function getPct(recibido: number, meta: number) {
+  if (meta <= 0) return 0
   return Math.min(Math.round((recibido / meta) * 100), 100)
 }
 function fmt(n: number) {
@@ -453,20 +455,43 @@ function NecesidadesPage() {
                 LO QUE MÁS<br />
                 <span style={{ color: '#C8DCF0' }}>NECESITAMOS HOY</span>
               </h1>
-              <p className="text-sm text-white/50 max-w-lg leading-relaxed">
+              <p className="text-sm text-white/50 max-w-lg leading-relaxed mb-6">
                 Estas son las necesidades urgentes de los centros de acopio activos.
                 Cada donación se registra y actualiza estas cifras en tiempo real.
               </p>
-              <div className="mt-5">
-                <Link
-                  to="/needs-register"
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2B5F8E]/40 border border-[#4A89C0]/40 text-xs font-bold text-[#C8DCF0] hover:bg-[#2B5F8E]/60 hover:text-white transition-all duration-200"
-                >
-                  <HandHeart className="w-4 h-4 text-[#4A89C0]" />
-                  REPORTAR NECESIDADES DE UN CENTRO
-                </Link>
+
+              {/* Stats */}
+              <div className="flex flex-wrap gap-2 mb-4">
+                <StatBadge value={criticas} label="necesidades críticas" highlight />
+                <StatBadge value={necesidades.length} label="ítems activos" />
+                <StatBadge value={`${pctGeneral}%`} label="cubierto en total" />
+                <StatBadge value={fmt(totalRecibido)} label="unidades recibidas" />
+              </div>
+
+              {/* Overall progress */}
+              <div className="p-4 rounded-xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="w-4 h-4 text-white/40" />
+                    <span className="text-xs font-semibold text-white/50">Progreso general de la campaña</span>
+                  </div>
+                  <span
+                    className="font-black text-white tabular-nums"
+                    style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
+                  >
+                    {pctGeneral}%
+                  </span>
+                </div>
+                <ProgressBar pct={pctGeneral} barColor="bg-[#4A89C0]" barBg="bg-white/10" />
+                <div className="flex justify-between mt-1.5 text-[10px] text-white/25">
+                  <span>{fmt(totalRecibido)} unidades recibidas</span>
+                  <span>meta: {fmt(totalMeta)}</span>
+                </div>
               </div>
             </div>
+
+            {/* CTA stack — "Quiero ayudar" + "Tengo un centro de acopio" */}
+            <div className="flex flex-col gap-4 w-full lg:w-[320px]">
 
             {/* Big CTA block — real MapLibre map preview as background */}
             <Link
@@ -475,7 +500,7 @@ function NecesidadesPage() {
                          shadow-[0_8px_40px_rgba(15,35,55,0.6)]
                          hover:shadow-[0_16px_60px_rgba(74,137,192,0.4)]
                          active:scale-[0.98] transition-[transform,box-shadow] duration-300
-                         w-full lg:w-[320px] min-h-[240px]
+                         w-full min-h-[240px]
                          border border-[#4A89C0]/30 bg-[#0F2337]"
             >
               {/* Real interactive map preview — disabled pointer events so the whole card is the link */}
@@ -559,34 +584,43 @@ function NecesidadesPage() {
                 </div>
               </div>
             </Link>
-          </div>
 
-          {/* Stats */}
-          <div className="flex flex-wrap gap-2 mb-6">
-            <StatBadge value={criticas} label="necesidades críticas" highlight />
-            <StatBadge value={necesidades.length} label="ítems activos" />
-            <StatBadge value={`${pctGeneral}%`} label="cubierto en total" />
-            <StatBadge value={fmt(totalRecibido)} label="unidades recibidas" />
-          </div>
+            {/* Secondary CTA — "Tengo un centro de acopio" → /register */}
+            <Link
+              to="/register"
+              className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden
+                         border border-[#4A89C0]/30 bg-gradient-to-br from-[#152D46] to-[#0F2337]
+                         shadow-[0_4px_24px_rgba(15,35,55,0.5)]
+                         hover:border-[#4A89C0]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
+                         active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
+            >
+              {/* Shimmer on hover */}
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
 
-          {/* Overall progress */}
-          <div className="p-4 rounded-xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-white/40" />
-                <span className="text-xs font-semibold text-white/50">Progreso general de la campaña</span>
+              <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
+                <Warehouse className="w-6 h-6" strokeWidth={2.2} />
               </div>
-              <span
-                className="font-black text-white tabular-nums"
-                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
-              >
-                {pctGeneral}%
-              </span>
-            </div>
-            <ProgressBar pct={pctGeneral} barColor="bg-[#4A89C0]" barBg="bg-white/10" />
-            <div className="flex justify-between mt-1.5 text-[10px] text-white/25">
-              <span>{fmt(totalRecibido)} unidades recibidas</span>
-              <span>meta: {fmt(totalMeta)}</span>
+
+              <div className="relative flex-1 min-w-0">
+                <span
+                  className="block text-white leading-[0.95] tracking-tight"
+                  style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontStyle: 'italic',
+                    fontWeight: 800,
+                    fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)',
+                  }}
+                >
+                  TENGO UN CENTRO<br />DE ACOPIO
+                </span>
+                <span className="block text-[11px] text-white/55 mt-1 font-medium leading-snug">
+                  Regístralo y publica tus necesidades
+                </span>
+              </div>
+
+              <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
+            </Link>
+
             </div>
           </div>
         </header>
