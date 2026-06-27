@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
 import { Route as AdminTraspasoRouteImport } from './routes/admin/traspaso'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminNeedsRouteImport } from './routes/admin/needs'
 import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 import { Route as AdminFleetRouteImport } from './routes/admin/fleet'
@@ -70,6 +71,11 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
 const AdminTraspasoRoute = AdminTraspasoRouteImport.update({
   id: '/traspaso',
   path: '/traspaso',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminNeedsRoute = AdminNeedsRouteImport.update({
@@ -127,6 +133,7 @@ export interface FileRoutesByFullPath {
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
@@ -165,6 +173,7 @@ export interface FileRoutesById {
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
+  '/admin/settings': typeof AdminSettingsRoute
   '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
@@ -186,6 +195,7 @@ export interface FileRouteTypes {
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
+    | '/admin/settings'
     | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
+    | '/admin/settings'
     | '/admin/traspaso'
     | '/admin/users'
     | '/admin'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
+    | '/admin/settings'
     | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
@@ -303,6 +315,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminTraspasoRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/needs': {
       id: '/admin/needs'
       path: '/needs'
@@ -370,6 +389,7 @@ interface AdminRouteChildren {
   AdminFleetRoute: typeof AdminFleetRoute
   AdminHubsRoute: typeof AdminHubsRoute
   AdminNeedsRoute: typeof AdminNeedsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
   AdminTraspasoRoute: typeof AdminTraspasoRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -384,6 +404,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminFleetRoute: AdminFleetRoute,
   AdminHubsRoute: AdminHubsRoute,
   AdminNeedsRoute: AdminNeedsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
   AdminTraspasoRoute: AdminTraspasoRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,

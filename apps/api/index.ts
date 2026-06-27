@@ -12,6 +12,7 @@ import { createOperationsModule } from "./src/infrastructure/operations.module";
 import { createFleetModule } from "./src/infrastructure/fleet.module";
 import { createCargoModule } from "./src/infrastructure/cargo.module";
 import { createConvoysModule } from "./src/infrastructure/convoys.module";
+import { createSettingsModule } from "./src/infrastructure/settings.module";
 
 const app = new Hono();
 
@@ -52,6 +53,9 @@ app.route("/cargo", createCargoModule().routes);
 
 // Bounded context `convoys` — caravanas escoltadas ZODI bajo /convoys.
 app.route("/convoys", createConvoysModule().routes);
+
+// Bounded context `settings` — configuración global de la app bajo /settings.
+app.route("/settings", createSettingsModule().routes);
 
 // --- Endpoints del Servidor ---
 
