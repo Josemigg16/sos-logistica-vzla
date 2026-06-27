@@ -488,7 +488,7 @@ function HubFormModal({
             </Field>
           </div>
 
-          <Field label="Estado operativo" hint="Un centro inactivo no puede usarse como origen ni destino de caravanas">
+          <Field label="Estado operativo">
             <div className="grid grid-cols-2 gap-2">
               {(['ACTIVO', 'INACTIVO'] as const).map((s) => (
                 <button
