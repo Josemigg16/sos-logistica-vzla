@@ -401,9 +401,16 @@ export default function App() {
             />
           )}
           {isCustomRoutingMode && customRoutePoints[1] && (
-            <MapMarker 
-              coordinates={customRoutePoints[1]} 
-              color="#d97706" 
+            <MapMarker
+              coordinates={customRoutePoints[1]}
+              color="#d97706"
+              active={true}
+            />
+          )}
+          {isRegistering && clickedCoordinates && (
+            <MapMarker
+              coordinates={clickedCoordinates}
+              color="#8b5cf6"
               active={true}
             />
           )}
@@ -862,183 +869,222 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !direccion.trim() || !contacto.trim() || !responsable.trim()) return;
-
     const lat = parseFloat(latitud);
     const lng = parseFloat(longitud);
     if (isNaN(lat) || isNaN(lng)) return;
-
     onSubmit({
       id: crypto.randomUUID(),
       nombre,
       direccion,
       contacto,
       responsable,
-      tipo: "acopio", // Solo se permite registrar centros de acopio
+      tipo: "acopio",
       coordenadas: [lng, lat],
     });
   };
 
+  const lng = parseFloat(longitud) || -69.2216;
+  const lat = parseFloat(latitud) || 9.5832;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/70 backdrop-blur-sm select-text" onClick={onClose}>
+    <>
+      {/* Panel flotante — bottom sheet en mobile, panel lateral en desktop */}
       <div
-        className="relative w-full md:max-w-lg md:rounded-2xl bg-card border-t md:border border-border shadow-2xl flex flex-col max-h-[92vh] md:max-h-[85vh] animate-in slide-in-from-bottom duration-300 overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed bottom-0 left-0 right-0 z-50 md:bottom-6 md:left-auto md:right-6 md:w-[420px] select-text"
+        style={{ animation: "hubModalIn 0.38s cubic-bezier(0.32, 0.72, 0, 1) both" }}
       >
-        {/* Cabecera */}
-        <div className="p-4 border-b border-border flex items-center justify-between bg-secondary/30">
-          <div>
-            <h3
-              className="text-base font-black text-foreground uppercase tracking-wide leading-none"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+        <style>{`
+          @keyframes hubModalIn {
+            from { transform: translateY(100%); opacity: 0.6; }
+            to   { transform: translateY(0);    opacity: 1;   }
+          }
+          @media (min-width: 768px) {
+            @keyframes hubModalIn {
+              from { transform: translateY(24px); opacity: 0; }
+              to   { transform: translateY(0);    opacity: 1; }
+            }
+          }
+        `}</style>
+
+        <div
+          className="w-full rounded-t-3xl md:rounded-2xl bg-card/95 border-t md:border border-border shadow-2xl shadow-black/30 flex flex-col overflow-hidden backdrop-blur-lg"
+          style={{ maxHeight: "88vh" }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Drag handle — solo mobile */}
+          <div className="flex justify-center pt-3 pb-0.5 md:hidden">
+            <div className="w-9 h-1 bg-muted-foreground/25 rounded-full" />
+          </div>
+
+          {/* Cabecera */}
+          <div className="px-5 pt-4 pb-3.5 md:pt-5 border-b border-border/60 flex items-start justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2.5 mb-1.5">
+                <div className="flex items-center justify-center w-7 h-7 rounded-xl bg-violet-500/15 border border-violet-500/20 text-violet-400 shrink-0">
+                  <MapPin className="w-3.5 h-3.5" />
+                </div>
+                <h3
+                  className="text-base font-black text-foreground uppercase tracking-wide leading-none"
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+                >
+                  Nuevo Centro de Acopio
+                </h3>
+              </div>
+
+              {/* Pill de coordenadas — contexto de dónde se hizo clic */}
+              {initialCoordinates && (
+                <div className="flex items-center gap-1.5 ml-9">
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse shrink-0" />
+                    <span className="text-[9.5px] font-mono font-medium tracking-tight">
+                      {initialCoordinates[1].toFixed(4)}°, {initialCoordinates[0].toFixed(4)}°
+                    </span>
+                  </span>
+                </div>
+              )}
+
+              <p className="text-[10px] text-muted-foreground mt-2 ml-9 leading-relaxed">
+                Completá los datos. El centro será visible de inmediato en el mapa.
+              </p>
+            </div>
+
+            <button
+              onClick={onClose}
+              className="w-7 h-7 rounded-full bg-secondary/80 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer shrink-0 mt-0.5 active:scale-[0.92]"
             >
-              Proponer Centro de Acopio
-            </h3>
-            <p className="text-[10px] text-muted-foreground mt-1.5">
-              Completa los datos del nuevo centro de acopio. Será visible de inmediato.
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        {/* Formulario */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Nombre del Centro *</label>
-            <input
-              type="text"
-              required
-              value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              placeholder="ej. Centro de Acopio Comunitario"
-              className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
-            />
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dirección Física *</label>
-            <input
-              type="text"
-              required
-              value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
-              placeholder="ej. Av. Páez, frente a la Plaza Bolívar"
-              className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
-            />
-          </div>
+          {/* Formulario */}
+          <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 no-scrollbar">
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Coordinador/a *</label>
+            <div className="space-y-1.5">
+              <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                Nombre del Centro *
+              </label>
               <input
                 type="text"
                 required
-                value={responsable}
-                onChange={(e) => setResponsable(e.target.value)}
-                placeholder="Nombre completo"
-                className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+                autoFocus
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="ej. Centro de Acopio Comunitario El Pinar"
+                className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
               />
             </div>
-            <div className="space-y-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Contacto (WhatsApp) *</label>
+
+            <div className="space-y-1.5">
+              <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                Dirección Física *
+              </label>
               <input
                 type="text"
                 required
-                value={contacto}
-                onChange={(e) => setContacto(e.target.value)}
-                placeholder="+58 ..."
-                className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+                value={direccion}
+                onChange={(e) => setDireccion(e.target.value)}
+                placeholder="ej. Av. Páez, frente a la Plaza Bolívar"
+                className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
               />
             </div>
-          </div>
 
-          <div className="border-t border-border/50 pt-3 space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Latitud *</label>
+              <div className="space-y-1.5">
+                <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Coordinador/a *
+                </label>
                 <input
-                  type="number"
-                  step="any"
+                  type="text"
                   required
-                  value={latitud}
-                  onChange={(e) => setLatitud(e.target.value)}
-                  placeholder="ej. 9.5832"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+                  value={responsable}
+                  onChange={(e) => setResponsable(e.target.value)}
+                  placeholder="Nombre completo"
+                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
                 />
               </div>
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Longitud *</label>
+              <div className="space-y-1.5">
+                <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                  WhatsApp *
+                </label>
                 <input
-                  type="number"
-                  step="any"
+                  type="text"
                   required
-                  value={longitud}
-                  onChange={(e) => setLongitud(e.target.value)}
-                  placeholder="ej. -69.2216"
-                  className="w-full px-3 py-2 text-xs rounded-lg bg-secondary/50 border border-border text-foreground focus:outline-none focus:border-blue-500/50"
+                  value={contacto}
+                  onChange={(e) => setContacto(e.target.value)}
+                  placeholder="+58 4XX XXX XXXX"
+                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-violet-500/50 focus:ring-2 focus:ring-violet-500/10 transition-all duration-200"
                 />
               </div>
             </div>
 
-            {/* Mapa de selección */}
-            <div className="w-full h-40 rounded-lg overflow-hidden border border-border relative">
-              <Map
-                center={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
-                zoom={8}
-                onClick={(lngLat) => {
-                  setLongitud(lngLat[0].toFixed(5));
-                  setLatitud(lngLat[1].toFixed(5));
-                }}
-                className="w-full h-full animate-in fade-in duration-300"
-              >
-                <MapControls />
-                <MapMarker
-                  coordinates={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
-                  color="#3b82f6"
-                  active={true}
-                  draggable={true}
-                  onDragEnd={(lngLat) => {
+            {/* Mini mapa de ubicación */}
+            <div className="space-y-2 pt-1 border-t border-border/50">
+              <div className="flex items-center justify-between">
+                <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                  Ubicación Exacta
+                </label>
+                <span className="text-[9px] font-mono text-muted-foreground/50 bg-secondary/40 px-2 py-0.5 rounded-md border border-border/30 tabular-nums">
+                  {lat.toFixed(4)}°, {lng.toFixed(4)}°
+                </span>
+              </div>
+
+              <div className="w-full h-36 rounded-xl overflow-hidden border border-border/60 relative ring-1 ring-border/30">
+                <Map
+                  center={[lng, lat]}
+                  zoom={13}
+                  onClick={(lngLat) => {
                     setLongitud(lngLat[0].toFixed(5));
                     setLatitud(lngLat[1].toFixed(5));
                   }}
-                />
-              </Map>
-              <div className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded bg-black/80 text-[8px] text-white/70 pointer-events-none">
-                Haz clic o arrastra el marcador para ubicar el centro
+                  className="w-full h-full"
+                >
+                  <MapMarker
+                    coordinates={[lng, lat]}
+                    color="#8b5cf6"
+                    active={true}
+                    draggable={true}
+                    onDragEnd={(lngLat) => {
+                      setLongitud(lngLat[0].toFixed(5));
+                      setLatitud(lngLat[1].toFixed(5));
+                    }}
+                  />
+                </Map>
+                <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/70 text-[8.5px] text-white/70 pointer-events-none backdrop-blur-sm border border-white/5">
+                  Hacé clic o arrastrá el marcador
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="p-3 bg-blue-500/5 border border-blue-500/10 rounded-lg text-[10px] text-blue-400 flex items-start gap-2">
-            <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            <span>Por motivos de seguridad, los ciudadanos no logueados solo pueden registrar centros de acopio y no centros de despacho ni destinos finales.</span>
-          </div>
+            <div className="flex items-start gap-2 p-3 bg-violet-500/5 border border-violet-500/10 rounded-xl text-[9.5px] text-violet-400/80">
+              <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-violet-400" />
+              <span>Solo podés proponer centros de acopio. Los puntos de despacho y destinos son gestionados por coordinadores autorizados.</span>
+            </div>
 
-          {/* Botones de acción */}
-          <div className="flex gap-2 pt-2 border-t border-border/50">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 rounded-lg bg-secondary border border-border text-foreground font-bold text-xs hover:bg-secondary/80 active:scale-98 transition-[transform,background-color] duration-200 cursor-pointer"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-blue-500 text-zinc-950 font-black text-xs hover:bg-blue-600 active:scale-98 transition-[transform,background-color] duration-200 disabled:opacity-50 cursor-pointer"
-              style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
-            >
-              {isSubmitting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-              REGISTRAR CENTRO
-            </button>
-          </div>
-        </form>
+            {/* Botones */}
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-2.5 rounded-xl bg-secondary/80 border border-border text-foreground font-semibold text-xs hover:bg-secondary active:scale-[0.97] transition-all duration-150 cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex-[1.6] flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl bg-violet-600 text-white font-black text-xs hover:bg-violet-500 active:scale-[0.97] transition-all duration-150 disabled:opacity-50 cursor-pointer shadow-lg shadow-violet-600/20"
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
+              >
+                {isSubmitting
+                  ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  : <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                }
+                REGISTRAR CENTRO
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
