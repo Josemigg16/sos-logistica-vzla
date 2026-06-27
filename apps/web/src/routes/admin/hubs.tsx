@@ -444,6 +444,7 @@ function HubFormModal({
       coordenadas: [lng, lat],
       inventario,
       isInformal,
+      needs: initial?.needs ?? [],
       verificacion: initial?.verificacion,
       metadata: initial?.metadata,
     })
