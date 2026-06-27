@@ -23,6 +23,7 @@ import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
+import isotipo from "@/assets/branding/white-isotipo-blue-background.webp";
 
 
 interface Centro {
@@ -225,7 +226,7 @@ export default function App() {
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <img
-            src="/src/assets/branding/white-isotipo-blue-background.webp"
+            src={isotipo}
             alt="Portuguesa Unida"
             className="w-10 h-10 rounded-lg object-cover shrink-0"
           />
