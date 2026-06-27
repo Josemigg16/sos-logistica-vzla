@@ -16,8 +16,16 @@ export class SelfRegisterCoordinator {
     const byUsername = await this.users.findByUsername(command.username);
     if (byUsername) throw new UsernameTakenError(command.username);
 
-    const byCedula = await this.users.findByCedula(command.cedula);
-    if (byCedula) throw new CedulaTakenError(command.cedula);
+    const fullCedula = command.cedula
+      ? command.documentType
+        ? `${command.documentType}-${command.cedula}`
+        : command.cedula
+      : null;
+
+    if (fullCedula) {
+      const byCedula = await this.users.findByCedula(fullCedula);
+      if (byCedula) throw new CedulaTakenError(fullCedula);
+    }
 
     const hash = await this.hasher.hash(command.password);
     const user = User.register({
@@ -25,8 +33,8 @@ export class SelfRegisterCoordinator {
       username: command.username,
       credential: Credential.fromHash(hash),
       role: Role.create("HUB_COORDINATOR"),
-      cedula: command.cedula,
-      telefono: command.telefono,
+      cedula: fullCedula,
+      telefono: command.telefono ?? null,
     });
     await this.users.save(user);
     return user.toPublic();
