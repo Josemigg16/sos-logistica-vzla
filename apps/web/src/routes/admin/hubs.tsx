@@ -20,6 +20,7 @@ import type { Centro, TipoCentro } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import centrosData from '@/data/centros.json'
+import { Map, MapControls, MapMarker } from '@/components/ui/map'
 
 export const Route = createFileRoute('/admin/hubs')({
   component: HubsGate,
@@ -406,7 +407,7 @@ function HubFormModal({
     if (isNaN(lat) || isNaN(lng)) return
 
     onSubmit({
-      id: initial?.id ?? `centro-${Date.now()}`,
+      id: initial?.id ?? crypto.randomUUID(),
       nombre,
       direccion,
       contacto,
@@ -515,7 +516,7 @@ function HubFormModal({
               <MapPin className="w-3.5 h-3.5 text-[#C8DCF0]/50" />
               Coordenadas Geográficas
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 mb-3">
               <Field label="Latitud" required hint="Rango Venezuela: 0 a 13">
                 <input
                   type="number"
@@ -543,6 +544,29 @@ function HubFormModal({
                   placeholder="ej. -69.2216"
                 />
               </Field>
+            </div>
+
+            {/* Mapa interactivo para seleccionar coordenadas */}
+            <div className="w-full h-48 rounded-lg overflow-hidden border border-[#2B5F8E]/30 relative">
+              <Map
+                center={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
+                zoom={8}
+                onClick={(lngLat) => {
+                  setLongitud(lngLat[0].toFixed(5))
+                  setLatitud(lngLat[1].toFixed(5))
+                }}
+                className="w-full h-full"
+              >
+                <MapControls />
+                <MapMarker
+                  coordinates={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
+                  color="#22c55e"
+                  active={true}
+                />
+              </Map>
+              <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-[#0F2337]/90 text-[10px] text-white/70 border border-[#2B5F8E]/40 pointer-events-none">
+                Hacé clic en el mapa para marcar la ubicación
+              </div>
             </div>
           </div>
 

@@ -17,6 +17,7 @@ import {
 import { Link } from "@tanstack/react-router";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import centrosData from "@/data/centros.json";
+import { API_URL } from "@/lib/auth/config";
 
 
 interface Centro {
@@ -103,7 +104,7 @@ export default function App() {
   }, [activeImageUrl]);
 
   useEffect(() => {
-    fetch("http://localhost:3000/api/centros")
+    fetch(`${API_URL}/api/centros`)
       .then((res) => {
         if (!res.ok) throw new Error("API response not OK");
         return res.json();
