@@ -25,6 +25,7 @@ import { Route as AdminCoordinatorRouteImport } from './routes/admin/coordinator
 import { Route as AdminConvoysRouteImport } from './routes/admin/convoys'
 import { Route as AdminCatalogRouteImport } from './routes/admin/catalog'
 import { Route as AdminCargarRouteImport } from './routes/admin/cargar'
+import { Route as AdminHubsHubIdRouteImport } from './routes/admin/hubs.$hubId'
 
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
@@ -106,6 +107,11 @@ const AdminCargarRoute = AdminCargarRouteImport.update({
   path: '/cargar',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHubsHubIdRoute = AdminHubsHubIdRouteImport.update({
+  id: '/$hubId',
+  path: '/$hubId',
+  getParentRoute: () => AdminHubsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -119,11 +125,12 @@ export interface FileRoutesByFullPath {
   '/admin/convoys': typeof AdminConvoysRoute
   '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
-  '/admin/hubs': typeof AdminHubsRoute
+  '/admin/hubs': typeof AdminHubsRouteWithChildren
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/hubs/$hubId': typeof AdminHubsHubIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -136,11 +143,12 @@ export interface FileRoutesByTo {
   '/admin/convoys': typeof AdminConvoysRoute
   '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
-  '/admin/hubs': typeof AdminHubsRoute
+  '/admin/hubs': typeof AdminHubsRouteWithChildren
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
+  '/admin/hubs/$hubId': typeof AdminHubsHubIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -155,11 +163,12 @@ export interface FileRoutesById {
   '/admin/convoys': typeof AdminConvoysRoute
   '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
-  '/admin/hubs': typeof AdminHubsRoute
+  '/admin/hubs': typeof AdminHubsRouteWithChildren
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
+  '/admin/hubs/$hubId': typeof AdminHubsHubIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -180,6 +189,7 @@ export interface FileRouteTypes {
     | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
+    | '/admin/hubs/$hubId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -197,6 +207,7 @@ export interface FileRouteTypes {
     | '/admin/traspaso'
     | '/admin/users'
     | '/admin'
+    | '/admin/hubs/$hubId'
   id:
     | '__root__'
     | '/'
@@ -215,6 +226,7 @@ export interface FileRouteTypes {
     | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
+    | '/admin/hubs/$hubId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,8 +352,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCargarRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/hubs/$hubId': {
+      id: '/admin/hubs/$hubId'
+      path: '/$hubId'
+      fullPath: '/admin/hubs/$hubId'
+      preLoaderRoute: typeof AdminHubsHubIdRouteImport
+      parentRoute: typeof AdminHubsRoute
+    }
   }
 }
+
+interface AdminHubsRouteChildren {
+  AdminHubsHubIdRoute: typeof AdminHubsHubIdRoute
+}
+
+const AdminHubsRouteChildren: AdminHubsRouteChildren = {
+  AdminHubsHubIdRoute: AdminHubsHubIdRoute,
+}
+
+const AdminHubsRouteWithChildren = AdminHubsRoute._addFileChildren(
+  AdminHubsRouteChildren,
+)
 
 interface AdminRouteChildren {
   AdminCargarRoute: typeof AdminCargarRoute
@@ -349,7 +380,7 @@ interface AdminRouteChildren {
   AdminConvoysRoute: typeof AdminConvoysRoute
   AdminCoordinatorRoute: typeof AdminCoordinatorRoute
   AdminFleetRoute: typeof AdminFleetRoute
-  AdminHubsRoute: typeof AdminHubsRoute
+  AdminHubsRoute: typeof AdminHubsRouteWithChildren
   AdminNeedsRoute: typeof AdminNeedsRoute
   AdminTraspasoRoute: typeof AdminTraspasoRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -362,7 +393,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminConvoysRoute: AdminConvoysRoute,
   AdminCoordinatorRoute: AdminCoordinatorRoute,
   AdminFleetRoute: AdminFleetRoute,
-  AdminHubsRoute: AdminHubsRoute,
+  AdminHubsRoute: AdminHubsRouteWithChildren,
   AdminNeedsRoute: AdminNeedsRoute,
   AdminTraspasoRoute: AdminTraspasoRoute,
   AdminUsersRoute: AdminUsersRoute,

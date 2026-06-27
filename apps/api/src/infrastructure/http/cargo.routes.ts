@@ -95,8 +95,10 @@ export function createCargoRoutes(deps: CargoRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  // Asignar vehículo a un lote (pone el lote EN_TRANSITO)
-  router.post("/lotes/:id/assign", authentication, requireRole("ADMIN", "MANAGER"), async (c) => {
+  // Asignar vehículo a un lote (pone el lote EN_TRANSITO).
+  // HUB_COORDINATOR arma el lote, pero la decisión logística de qué vehículo
+  // lo transporta es del operador superior (admin/manager/zodi_sender).
+  router.post("/lotes/:id/assign", authentication, requireRole("ADMIN", "MANAGER", "ZODI_SENDER"), async (c) => {
     const id = c.req.param("id");
     const parsed = assignVehicleSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
