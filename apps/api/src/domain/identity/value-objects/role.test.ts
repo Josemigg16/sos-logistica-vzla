@@ -11,7 +11,7 @@ describe("Role", () => {
       "HUB_COORDINATOR",
       "DRIVER",
       "VOLUNTEER",
-    ];
+    ] as const;
     for (const value of catalog) {
       expect(Role.create(value).value).toBe(value);
     }

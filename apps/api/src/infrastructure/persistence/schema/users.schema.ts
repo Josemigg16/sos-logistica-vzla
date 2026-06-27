@@ -6,7 +6,11 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { ROLES, USER_STATUSES } from "@sos/shared";
+import { choferes } from "./operations.schema";
+import { hubs, historialCarga, traspasosCarga } from "./resources.schema";
+import { incidents } from "./incidents.schema";
 
 export const roleEnum = pgEnum("role", ROLES);
 export const userStatusEnum = pgEnum("user_status", USER_STATUSES);
@@ -22,3 +26,14 @@ export const users = pgTable("users", {
     .notNull()
     .defaultNow(),
 });
+
+export const usersRelations = relations(users, ({ one, many }) => ({
+  choferPerfil: one(choferes, {
+    fields: [users.id],
+    references: [choferes.id],
+  }),
+  centrosResponsable: many(hubs),
+  incidentesReportados: many(incidents),
+  historialAcciones: many(historialCarga),
+  traspasosAutorizados: many(traspasosCarga),
+}));
