@@ -48,7 +48,8 @@ const INVENTORY_CATEGORIES = [
 
 const TIPOS_CENTRO: { value: TipoCentro; label: string; color: string }[] = [
   { value: 'acopio', label: 'Acopio Periférico', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
-  { value: 'salida', label: 'Base ZODI (Salida)', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
+  { value: 'salida', label: 'Despacho (Salida)', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+  { value: 'base_zodi', label: 'Base ZODI', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
   { value: 'destino', label: 'Centro Destino (Llegada)', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
 ]
 

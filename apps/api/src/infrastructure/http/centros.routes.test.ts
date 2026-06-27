@@ -170,7 +170,7 @@ describe("GET /centros — after POST", () => {
 
   test("maps all HubType variants to TipoCentro correctly", async () => {
     const app = buildApp();
-    const tipos = ["acopio", "salida", "destino"] as const;
+    const tipos = ["acopio", "salida", "destino", "base_zodi"] as const;
     const authHdr = await authHeader();
 
     for (let i = 0; i < tipos.length; i++) {
@@ -187,7 +187,7 @@ describe("GET /centros — after POST", () => {
     const res = await app.request("/centros");
     const list = await res.json() as any;
     const tipos_in_response = list.map((c: { tipo: string }) => c.tipo).sort();
-    expect(tipos_in_response).toEqual(["acopio", "destino", "salida"]);
+    expect(tipos_in_response).toEqual(["acopio", "base_zodi", "destino", "salida"]);
   });
 });
 

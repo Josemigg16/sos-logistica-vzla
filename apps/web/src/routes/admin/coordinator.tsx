@@ -544,6 +544,7 @@ function LoteCard({ lote }: { lote: PublicLote }) {
 interface DraftItem { productId: string; cantidad: string }
 
 function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: () => void; onDone: () => void }) {
+  const { user } = useAuth()
   const [items, setItems] = useState<DraftItem[]>([{ productId: '', cantidad: '' }])
   const [hubDestinoId, setHubDestinoId] = useState('')
   const [nota, setNota] = useState('')
@@ -586,7 +587,13 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
     mut.mutate({ hubOrigenId: hub.id, hubDestinoId: hubDestinoId || undefined, nota: nota || undefined, items: validItems })
   }
 
-  const destinos = hubs.filter((h) => h.id !== hub.id && h.type === 'DESTINATION')
+  // ZODI_SENDER reparte desde su base ZODI hacia centros DESTINATION (puntos
+  // de llegada). El resto de coordinadores envían su carga hacia bases ZODI
+  // para que ZODI la distribuya.
+  const destinoTipo: HubType = user?.role === 'ZODI_SENDER' ? 'DESTINATION' : 'ZODI_BASE'
+  const destinos = hubs.filter((h) => h.id !== hub.id && h.type === destinoTipo)
+  const hayDestinos = destinos.length > 0
+  const destinoLabel = user?.role === 'ZODI_SENDER' ? 'Centro de destino (llegada)' : 'Base ZODI de salida'
 
   return (
     <ModalShell title="Nuevo lote" onClose={onClose} wide>
@@ -621,11 +628,19 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
           )}
         </div>
 
-        <Field label="Centro de destino (opcional)">
-          <select className="coord-input" value={hubDestinoId} onChange={(e) => setHubDestinoId(e.target.value)}>
-            <option value="">Sin definir</option>
-            {destinos.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
-          </select>
+        <Field label={`${destinoLabel} (opcional)`}>
+          {hayDestinos ? (
+            <select className="coord-input" value={hubDestinoId} onChange={(e) => setHubDestinoId(e.target.value)}>
+              <option value="">Sin definir</option>
+              {destinos.map((h) => <option key={h.id} value={h.id}>{h.name}</option>)}
+            </select>
+          ) : (
+            <p className="coord-input flex items-center text-white/50 text-xs">
+              {user?.role === 'ZODI_SENDER'
+                ? 'Aún no hay centros de destino (llegada) registrados.'
+                : 'Aún no hay bases ZODI registradas para envío.'}
+            </p>
+          )}
         </Field>
 
         <Field label="Nota (opcional)">

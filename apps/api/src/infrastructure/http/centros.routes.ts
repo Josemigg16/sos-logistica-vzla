@@ -23,13 +23,14 @@ const HUB_TYPE_TO_TIPO: Record<HubType, Centro["tipo"]> = {
   COLLECTION: "acopio",
   DISPATCH: "salida",
   DESTINATION: "destino",
-  ZODI_BASE: "destino",
+  ZODI_BASE: "base_zodi",
 };
 
 const TIPO_TO_HUB_TYPE: Record<Centro["tipo"], HubType> = {
   acopio: "COLLECTION",
   salida: "DISPATCH",
   destino: "DESTINATION",
+  base_zodi: "ZODI_BASE",
 };
 
 // ---------- deps ----------
