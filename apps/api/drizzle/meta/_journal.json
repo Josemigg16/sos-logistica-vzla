@@ -15,6 +15,13 @@
       "when": 1782521982278,
       "tag": "0001_fuzzy_blue_shield",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1782522994791,
+      "tag": "0002_silky_khan",
+      "breakpoints": true
     }
   ]
 }
