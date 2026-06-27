@@ -9,7 +9,6 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PortalRouteImport } from './routes/portal'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
@@ -18,11 +17,6 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminNeedsRouteImport } from './routes/admin/needs'
 import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 
-const PortalRoute = PortalRouteImport.update({
-  id: '/portal',
-  path: '/portal',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
@@ -64,7 +58,6 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
-  '/portal': typeof PortalRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/': typeof AdminIndexRoute
@@ -73,7 +66,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
-  '/portal': typeof PortalRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin': typeof AdminIndexRoute
@@ -84,7 +76,6 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
-  '/portal': typeof PortalRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/': typeof AdminIndexRoute
@@ -96,26 +87,17 @@ export interface FileRouteTypes {
     | '/admin'
     | '/login'
     | '/map'
-    | '/portal'
     | '/admin/hubs'
     | '/admin/needs'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to:
-    | '/'
-    | '/login'
-    | '/map'
-    | '/portal'
-    | '/admin/hubs'
-    | '/admin/needs'
-    | '/admin'
+  to: '/' | '/login' | '/map' | '/admin/hubs' | '/admin/needs' | '/admin'
   id:
     | '__root__'
     | '/'
     | '/admin'
     | '/login'
     | '/map'
-    | '/portal'
     | '/admin/hubs'
     | '/admin/needs'
     | '/admin/'
@@ -126,18 +108,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
-  PortalRoute: typeof PortalRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/portal': {
-      id: '/portal'
-      path: '/portal'
-      fullPath: '/portal'
-      preLoaderRoute: typeof PortalRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/map': {
       id: '/map'
       path: '/map'
@@ -209,7 +183,6 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
-  PortalRoute: PortalRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
