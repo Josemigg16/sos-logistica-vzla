@@ -1,5 +1,6 @@
 import { RegisterHub } from "../application/resources/register-hub";
 import { ListHubs } from "../application/resources/list-hubs";
+import { GetHubByCoordinator } from "../application/resources/get-hub-by-coordinator";
 import { StockResource } from "../application/resources/stock-resource";
 import { ListResourcesByHub } from "../application/resources/list-resources-by-hub";
 import { UpsertHub } from "../application/resources/upsert-hub";
@@ -20,6 +21,7 @@ export function createResourcesModule() {
   const useCases = {
     registerHub: new RegisterHub(hubs),
     listHubs: new ListHubs(hubs),
+    getHubByCoordinator: new GetHubByCoordinator(hubs),
     stockResource: new StockResource(hubs, resources),
     listResourcesByHub: new ListResourcesByHub(resources),
   };

@@ -7,6 +7,7 @@
  */
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
+import { sign } from "hono/jwt";
 import { Hub } from "../../domain/resources/entities/hub";
 import { InMemoryHubRepository } from "../../infrastructure/persistence/in-memory-hub.repository";
 import { InMemoryProductCatalogRepository } from "../../infrastructure/persistence/in-memory-product-catalog.repository";
@@ -16,6 +17,20 @@ import { CreateNeed } from "./create-need";
 import { ListNeeds } from "./list-needs";
 import { UpdateNeed } from "./update-need";
 import { DeleteNeed } from "./delete-need";
+
+const TEST_SECRET = "dev-secret-change-me";
+
+async function makeAuthHeaders(): Promise<HeadersInit> {
+  const token = await sign(
+    { sub: "test-user-id", username: "test-zodi", role: "ZODI_DESTINATION" },
+    TEST_SECRET,
+    "HS256",
+  );
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 function buildApp(useCases: {
   createNeed: CreateNeed;
@@ -34,6 +49,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   let needRepo: InMemoryNeedRepository;
   let hubId: string;
   let app: Hono;
+  let auth: HeadersInit;
 
   beforeEach(async () => {
     hubRepo = new InMemoryHubRepository();
@@ -60,6 +76,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       deleteNeed: new DeleteNeed(needRepo),
     };
     app = buildApp(useCases);
+    auth = await makeAuthHeaders();
   });
 
   // ── GET /needs ─────────────────────────────────────────────────────────────
@@ -84,7 +101,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs creates a need and auto-creates product (Víveres → kg)", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "Arroz blanco",
@@ -113,7 +130,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs with Medicamentos category auto-creates product with unit cajas", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "Ibuprofeno 400mg",
@@ -140,7 +157,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "AGUA EMBOTELLADA", // different case
@@ -158,7 +175,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs with fechaNecesidad stores and returns it", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "Frazadas térmicas",
@@ -177,7 +194,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /necesidades is an alias for POST /needs", async () => {
     const res = await app.request("/necesidades", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "Jabón de baño",
@@ -192,7 +209,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs returns 400 when hubId is missing", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ nombre: "Arroz", categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
@@ -203,7 +220,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs returns 400 when nombre is missing", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
@@ -214,7 +231,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs returns 400 when categoria is missing", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Arroz", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
@@ -225,7 +242,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs returns 400 when meta is missing", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Arroz", categoria: "Víveres", prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
@@ -236,7 +253,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("POST /needs returns 400 when prioridad is missing", async () => {
     const res = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Arroz", categoria: "Víveres", meta: 10 }),
     });
     expect(res.status).toBe(400);
@@ -250,7 +267,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     // Create a need first
     await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "Colchonetas",
@@ -299,14 +316,14 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     // Create need in hub1
     await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Agua", categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
 
     // Create need in hub2
     await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId: hub2.id, nombre: "Arroz", categoria: "Víveres", meta: 5, prioridad: "ALTA" }),
     });
 
@@ -329,7 +346,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("PUT /needs/:id updates fields and returns the updated row", async () => {
     const createRes = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Leche en polvo", categoria: "Víveres", meta: 40, prioridad: "ALTA" }),
     });
     const created = await createRes.json() as any;
@@ -337,7 +354,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     const updateRes = await app.request(`/needs/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ meta: 80, recibido: 20, prioridad: "MEDIA", descripcion: "Actualizado" }),
     });
 
@@ -355,7 +372,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("PUT /necesidades/:id is an alias for PUT /needs/:id", async () => {
     const createRes = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Aceite vegetal", categoria: "Víveres", meta: 30, prioridad: "ALTA" }),
     });
     const created = await createRes.json() as any;
@@ -363,7 +380,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     const updateRes = await app.request(`/necesidades/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ meta: 60 }),
     });
 
@@ -376,7 +393,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     const fakeId = crypto.randomUUID();
     const res = await app.request(`/needs/${fakeId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ meta: 50 }),
     });
     expect(res.status).toBe(404);
@@ -389,13 +406,13 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("DELETE /needs/:id deletes and returns { ok: true }", async () => {
     const createRes = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Sábanas", categoria: "Abrigo y refugio", meta: 15, prioridad: "BAJA" }),
     });
     const created = await createRes.json() as any;
     const id = created.id;
 
-    const delRes = await app.request(`/needs/${id}`, { method: "DELETE" });
+    const delRes = await app.request(`/needs/${id}`, { method: "DELETE", headers: auth });
     expect(delRes.status).toBe(200);
     const body = await delRes.json() as any;
     expect(body.ok).toBe(true);
@@ -409,13 +426,13 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("DELETE /necesidades/:id is an alias for DELETE /needs/:id", async () => {
     const createRes = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Escobas", categoria: "Productos de limpieza", meta: 10, prioridad: "BAJA" }),
     });
     const created = await createRes.json() as any;
     const id = created.id;
 
-    const delRes = await app.request(`/necesidades/${id}`, { method: "DELETE" });
+    const delRes = await app.request(`/necesidades/${id}`, { method: "DELETE", headers: auth });
     expect(delRes.status).toBe(200);
     const body = await delRes.json() as any;
     expect(body.ok).toBe(true);
@@ -423,7 +440,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
   test("DELETE /needs/:id returns 404 when need does not exist", async () => {
     const fakeId = crypto.randomUUID();
-    const res = await app.request(`/needs/${fakeId}`, { method: "DELETE" });
+    const res = await app.request(`/needs/${fakeId}`, { method: "DELETE", headers: auth });
     expect(res.status).toBe(404);
     const body = await res.json() as any;
     expect(body.error).toBe("Necesidad no encontrada");
@@ -434,7 +451,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("GET /needs formats fechaNecesidad as YYYY-MM-DD string", async () => {
     await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({
         hubId,
         nombre: "Guantes de protección",
@@ -453,7 +470,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   test("PUT /needs/:id with fechaNecesidad updates the date and returns YYYY-MM-DD", async () => {
     const createRes = await app.request("/needs", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ hubId, nombre: "Palas", categoria: "Herramientas", meta: 5, prioridad: "ALTA" }),
     });
     const created = await createRes.json() as any;
@@ -461,7 +478,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     const updateRes = await app.request(`/needs/${id}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json" },
+      headers: auth,
       body: JSON.stringify({ fechaNecesidad: "2025-03-20" }),
     });
 

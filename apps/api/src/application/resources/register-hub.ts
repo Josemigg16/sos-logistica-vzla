@@ -3,12 +3,15 @@ import type { HubRepository } from "../../domain/resources/repositories/hub.repo
 import { Hub } from "../../domain/resources/entities/hub";
 
 /**
- * Use case: registrar un centro de acopio.
+ * Use case: registrar un centro de acopio. Opcionalmente queda asociado al
+ * coordinador que lo crea (auto-registro de un Coord. Centro).
  */
 export class RegisterHub {
   constructor(private readonly hubs: HubRepository) {}
 
-  async execute(command: CreateHubRequest): Promise<PublicHub> {
+  async execute(
+    command: CreateHubRequest & { coordinatorId?: string | null },
+  ): Promise<PublicHub> {
     const hub = Hub.register({ id: crypto.randomUUID(), ...command });
     await this.hubs.save(hub);
     return hub.toPublic();
