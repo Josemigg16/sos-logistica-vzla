@@ -52,6 +52,7 @@ export class CreateLote {
       pesoKg: it.pesoKg,
     })));
 
-    return lote.toPublic();
+    const saved = await this.lotes.findById(lote.id);
+    return saved ? saved.toPublic() : lote.toPublic();
   }
 }

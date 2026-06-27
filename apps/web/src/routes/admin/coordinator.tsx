@@ -513,12 +513,25 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
   const [nota, setNota] = useState('')
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
-  const { data: stock = [] } = useQuery({ queryKey: ['hub-resources', hub.id], queryFn: () => fetchHubResources(hub.id) })
+  const { data: stockLines = [] } = useQuery({ queryKey: ['hub-stock', hub.id], queryFn: () => fetchHubStock(hub.id) })
+  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
   const { data: hubs = [] } = useQuery({ queryKey: ['hubs-all'], queryFn: fetchHubs })
 
-  // Solo productos efectivamente en stock del centro.
-  const stocked = stock.filter((r) => r.productId && r.quantity > 0)
-  const byProduct = Object.fromEntries(stocked.map((r) => [r.productId as string, r]))
+  const productMap = Object.fromEntries(products.map((p) => [p.id, p]))
+
+  // Solo productos efectivamente en stock del centro (basado en la agregación de lotes).
+  const stocked = stockLines
+    .filter((line) => line.totalBatches > 0)
+    .map((line) => {
+      return {
+        id: line.productId,
+        productId: line.productId,
+        productName: line.productName,
+        quantity: line.totalBatches,
+        unit: line.totalBatches === 1 ? 'lote' : 'lotes',
+      }
+    })
+  const byProduct = Object.fromEntries(stocked.map((r) => [r.productId, r]))
 
   const mut = useMutation({ mutationFn: createLote, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
 
@@ -560,7 +573,7 @@ function CreateLoteModal({ hub, onClose, onDone }: { hub: PublicHub; onClose: ()
                         <option value="">Seleccionar producto…</option>
                         {stocked.map((r) => <option key={r.id} value={r.productId as string}>{r.productName} ({r.quantity} {r.unit})</option>)}
                       </select>
-                      <input type="number" min="1" max={sel?.quantity} className="coord-input" style={{ minWidth: 0 }} placeholder="Cant." value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
+                      <input type="number" min="1" max={sel?.quantity} className="coord-input" style={{ minWidth: 0 }} placeholder="Lotes" value={it.cantidad} onChange={(e) => setItem(i, { cantidad: e.target.value })} />
                       <input type="number" min="0" step="any" className="coord-input" style={{ minWidth: 0 }} placeholder="Peso kg" value={it.pesoKg} onChange={(e) => setItem(i, { pesoKg: e.target.value })} />
                       <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="p-2 rounded-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 disabled:opacity-30 transition"><Trash2 className="w-4 h-4" /></button>
                     </div>

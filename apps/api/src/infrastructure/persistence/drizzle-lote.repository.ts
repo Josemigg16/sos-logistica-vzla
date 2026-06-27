@@ -1,73 +1,129 @@
 import { eq, and, inArray, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "./db";
-import { lotes, loteItems } from "./schema";
+import { lotes, loteItems, hubs, products, vehiculos } from "./schema";
 import type { LoteRepository } from "../../domain/cargo/repositories/lote.repository";
 import { Lote, type LoteItemProps } from "../../domain/cargo/entities/lote";
 
-function toItemProps(row: { id: string; loteId: string; productId: string; cantidad: number; pesoKg: number | null }): LoteItemProps {
-  return {
-    id: row.id,
-    loteId: row.loteId,
-    productId: row.productId,
-    productName: "",
-    cantidad: row.cantidad,
-    pesoKg: row.pesoKg,
-  };
+const hubsOrigen = alias(hubs, "hubs_origen");
+const hubsDestino = alias(hubs, "hubs_destino");
+
+interface LoteQueryResultRow {
+  lote: typeof lotes.$inferSelect;
+  hubOrigenNombre: string | null;
+  hubDestinoNombre: string | null;
+  vehiculoPlaca: string | null;
 }
 
-async function withItems(loteRows: (typeof lotes.$inferSelect)[]): Promise<Lote[]> {
-  if (!loteRows.length) return [];
-  const ids = loteRows.map((r) => r.id);
+async function withItems(loteQueryResultRows: LoteQueryResultRow[]): Promise<Lote[]> {
+  if (!loteQueryResultRows.length) return [];
+  const ids = loteQueryResultRows.map((r) => r.lote.id);
   const itemRows = await db
-    .select()
+    .select({
+      id: loteItems.id,
+      loteId: loteItems.loteId,
+      productId: loteItems.productId,
+      cantidad: loteItems.cantidad,
+      pesoKg: loteItems.pesoKg,
+      productName: products.name,
+    })
     .from(loteItems)
+    .leftJoin(products, eq(loteItems.productId, products.id))
     .where(inArray(loteItems.loteId, ids));
 
-  return loteRows.map((r) => {
+  return loteQueryResultRows.map((r) => {
     const items = itemRows
-      .filter((it) => it.loteId === r.id)
-      .map(toItemProps);
+      .filter((it) => it.loteId === r.lote.id)
+      .map((it): LoteItemProps => ({
+        id: it.id,
+        loteId: it.loteId,
+        productId: it.productId,
+        productName: it.productName ?? "",
+        cantidad: it.cantidad,
+        pesoKg: it.pesoKg,
+      }));
     return Lote.rehydrate({
-      id: r.id,
-      hubOrigenId: r.hubOrigenId,
-      hubOrigenNombre: "",
-      hubDestinoId: r.hubDestinoId,
-      hubDestinoNombre: null,
-      vehiculoId: r.vehiculoId,
-      vehiculoPlaca: null,
-      estado: r.estado,
-      nota: r.nota,
-      pesoTotalKg: r.pesoTotalKg,
-      creadoPorId: r.creadoPorId,
+      id: r.lote.id,
+      hubOrigenId: r.lote.hubOrigenId,
+      hubOrigenNombre: r.hubOrigenNombre ?? "",
+      hubDestinoId: r.lote.hubDestinoId,
+      hubDestinoNombre: r.hubDestinoNombre,
+      vehiculoId: r.lote.vehiculoId,
+      vehiculoPlaca: r.vehiculoPlaca,
+      estado: r.lote.estado,
+      nota: r.lote.nota,
+      pesoTotalKg: r.lote.pesoTotalKg,
+      creadoPorId: r.lote.creadoPorId,
       items,
-      createdAt: r.createdAt,
-      updatedAt: r.updatedAt,
+      createdAt: r.lote.createdAt,
+      updatedAt: r.lote.updatedAt,
     });
   });
 }
 
 export class DrizzleLoteRepository implements LoteRepository {
   async findById(id: string): Promise<Lote | null> {
-    const rows = await db.select().from(lotes).where(eq(lotes.id, id)).limit(1);
+    const rows = await db
+      .select({
+        lote: lotes,
+        hubOrigenNombre: hubsOrigen.name,
+        hubDestinoNombre: hubsDestino.name,
+        vehiculoPlaca: vehiculos.placa,
+      })
+      .from(lotes)
+      .leftJoin(hubsOrigen, eq(lotes.hubOrigenId, hubsOrigen.id))
+      .leftJoin(hubsDestino, eq(lotes.hubDestinoId, hubsDestino.id))
+      .leftJoin(vehiculos, eq(lotes.vehiculoId, vehiculos.id))
+      .where(eq(lotes.id, id))
+      .limit(1);
     const result = await withItems(rows);
     return result[0] ?? null;
   }
 
   async findAll(): Promise<Lote[]> {
-    const rows = await db.select().from(lotes);
+    const rows = await db
+      .select({
+        lote: lotes,
+        hubOrigenNombre: hubsOrigen.name,
+        hubDestinoNombre: hubsDestino.name,
+        vehiculoPlaca: vehiculos.placa,
+      })
+      .from(lotes)
+      .leftJoin(hubsOrigen, eq(lotes.hubOrigenId, hubsOrigen.id))
+      .leftJoin(hubsDestino, eq(lotes.hubDestinoId, hubsDestino.id))
+      .leftJoin(vehiculos, eq(lotes.vehiculoId, vehiculos.id));
     return withItems(rows);
   }
 
   async findByHub(hubId: string): Promise<Lote[]> {
     const rows = await db
-      .select()
+      .select({
+        lote: lotes,
+        hubOrigenNombre: hubsOrigen.name,
+        hubDestinoNombre: hubsDestino.name,
+        vehiculoPlaca: vehiculos.placa,
+      })
       .from(lotes)
+      .leftJoin(hubsOrigen, eq(lotes.hubOrigenId, hubsOrigen.id))
+      .leftJoin(hubsDestino, eq(lotes.hubDestinoId, hubsDestino.id))
+      .leftJoin(vehiculos, eq(lotes.vehiculoId, vehiculos.id))
       .where(sql`${lotes.hubOrigenId} = ${hubId} OR ${lotes.hubDestinoId} = ${hubId}`);
     return withItems(rows);
   }
 
   async findByVehicle(vehiculoId: string): Promise<Lote[]> {
-    const rows = await db.select().from(lotes).where(eq(lotes.vehiculoId, vehiculoId));
+    const rows = await db
+      .select({
+        lote: lotes,
+        hubOrigenNombre: hubsOrigen.name,
+        hubDestinoNombre: hubsDestino.name,
+        vehiculoPlaca: vehiculos.placa,
+      })
+      .from(lotes)
+      .leftJoin(hubsOrigen, eq(lotes.hubOrigenId, hubsOrigen.id))
+      .leftJoin(hubsDestino, eq(lotes.hubDestinoId, hubsDestino.id))
+      .leftJoin(vehiculos, eq(lotes.vehiculoId, vehiculos.id))
+      .where(eq(lotes.vehiculoId, vehiculoId));
     return withItems(rows);
   }
 
