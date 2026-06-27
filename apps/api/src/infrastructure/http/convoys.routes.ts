@@ -87,6 +87,7 @@ export function createConvoysRoutes(deps: ConvoysRoutesDeps): Hono<AuthEnv> {
   router.post("/", authentication, requireRole("ZODI_SENDER", "ADMIN"), async (c) => {
     const parsed = createConvoySchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
+      console.error("Validation error details:", JSON.stringify(parsed.error.flatten(), null, 2));
       return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     }
 
