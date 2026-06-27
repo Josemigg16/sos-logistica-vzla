@@ -89,6 +89,16 @@ function todayIso(): string {
   return new Date().toISOString().split('T')[0]
 }
 
+function formatLocalDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.toLocaleDateString('es-VE', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 function getPct(received: number, goal: number) {
   return Math.min(Math.round((received / goal) * 100), 100)
 }
@@ -485,31 +495,37 @@ function NeedRow({
       <td className="px-5 py-4">
         <div className="flex items-center gap-1.5 text-[12px] text-white/70 tabular-nums">
           <CalendarClock className="w-3 h-3 text-white/40 shrink-0" />
-          {need.fechaNecesidad
-            ? new Date(need.fechaNecesidad).toLocaleDateString('es-VE', {
-                day: 'numeric',
-                month: 'short',
-              })
-            : '—'}
+          {formatLocalDate(need.fechaNecesidad)}
         </div>
       </td>
       <td className="px-5 py-4 min-w-[140px]">
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-[width] duration-500 ${isCovered ? 'bg-white' : 'bg-[#4A89C0]'}`}
-              style={{ width: `${pct}%` }}
-            />
+        {need.meta > 0 ? (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-[width] duration-500 ${isCovered ? 'bg-white' : 'bg-[#4A89C0]'}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="text-[11px] font-bold text-white tabular-nums">{pct}%</span>
+              {isCovered && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
+            </div>
+            <div className="flex justify-between mt-1 text-[10px] text-white/30 tabular-nums">
+              <span>{need.recibido.toLocaleString('es-VE')}</span>
+              <span>
+                {need.meta.toLocaleString('es-VE')} {need.unidad}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className="text-[11px] text-white/50">
+            <div>
+              <span className="font-bold text-white tabular-nums">{need.recibido.toLocaleString('es-VE')}</span> {need.unidad}
+            </div>
+            <div className="text-[10px] text-white/30 mt-0.5">Sin meta (continuo)</div>
           </div>
-          <span className="text-[11px] font-bold text-white tabular-nums">{pct}%</span>
-          {isCovered && <CheckCircle2 className="w-3.5 h-3.5 text-white" />}
-        </div>
-        <div className="flex justify-between mt-1 text-[10px] text-white/30 tabular-nums">
-          <span>{need.recibido.toLocaleString('es-VE')}</span>
-          <span>
-            {need.meta.toLocaleString('es-VE')} {need.unidad}
-          </span>
-        </div>
+        )}
       </td>
       <td className="px-5 py-4">
         <div className="flex items-center justify-end gap-1">
@@ -576,23 +592,26 @@ function NeedMobileCard({
         <div className="flex items-center gap-2 text-[11px] text-white/60 mb-2">
           <CalendarClock className="w-3 h-3 text-white/40" />
           <span className="tabular-nums">
-            {new Date(need.fechaNecesidad).toLocaleDateString('es-VE', {
-              day: 'numeric',
-              month: 'short',
-            })}
+            {formatLocalDate(need.fechaNecesidad)}
           </span>
         </div>
       )}
 
-      <div className="flex items-center gap-2 mb-3">
-        <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
-          <div
-            className={`h-full rounded-full ${isCovered ? 'bg-white' : 'bg-[#4A89C0]'}`}
-            style={{ width: `${pct}%` }}
-          />
+      {need.meta > 0 ? (
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div
+              className={`h-full rounded-full ${isCovered ? 'bg-white' : 'bg-[#4A89C0]'}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <span className="text-[11px] font-bold text-white tabular-nums">{pct}%</span>
         </div>
-        <span className="text-[11px] font-bold text-white tabular-nums">{pct}%</span>
-      </div>
+      ) : (
+        <div className="text-[11px] text-white/50 mb-3">
+          <span className="font-bold text-white tabular-nums">{need.recibido.toLocaleString('es-VE')}</span> {need.unidad} recibidos (Sin meta continua)
+        </div>
+      )}
 
       <div className="flex gap-2">
         {need.status === 'DRAFT' && (
@@ -1020,7 +1039,7 @@ function NeedFormModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!draft.nombre.trim() || !draft.unidad.trim() || draft.meta <= 0) return
+    if (!draft.nombre.trim() || !draft.unidad.trim() || draft.meta < 0) return
     onSubmit(draft)
   }
 
@@ -1160,11 +1179,11 @@ function NeedFormModal({
               placeholder="litros, kg…"
             />
           </Field>
-          <Field label="Meta" required>
+          <Field label="Meta" required hint="Usa 0 para necesidades continuas sin meta fija">
             <input
               type="number"
-              min={1}
-              value={draft.meta || ''}
+              min={0}
+              value={draft.meta === 0 ? '0' : draft.meta || ''}
               onChange={(e) => setDraft({ ...draft, meta: Number(e.target.value) })}
               required
               className="input tabular-nums"

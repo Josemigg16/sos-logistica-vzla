@@ -46,8 +46,8 @@ interface Necesidad {
 
 // --- Date helpers ---
 function daysFromNow(iso: string): number {
-  const target = new Date(iso)
-  target.setHours(0, 0, 0, 0)
+  const [year, month, day] = iso.split('-').map(Number)
+  const target = new Date(year, month - 1, day)
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
@@ -59,7 +59,14 @@ function urgencyLabel(iso: string): { text: string; urgent: boolean; overdue: bo
   if (days === 0) return { text: 'Se necesita HOY', urgent: true, overdue: false }
   if (days === 1) return { text: 'Se necesita MAÑANA', urgent: true, overdue: false }
   if (days <= 3) return { text: `En ${days} días`, urgent: true, overdue: false }
-  return { text: `Para el ${new Date(iso).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}`, urgent: false, overdue: false }
+  
+  const [year, month, day] = iso.split('-').map(Number)
+  const targetDate = new Date(year, month - 1, day)
+  return {
+    text: `Para el ${targetDate.toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}`,
+    urgent: false,
+    overdue: false,
+  }
 }
 
 // --- Rotating messages ---
@@ -89,8 +96,12 @@ function fmt(n: number) {
   if (n >= 1000) return `${(n / 1000).toFixed(1)}k`
   return n.toString()
 }
-function timeAgo(iso: string) {
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
+function timeAgo(iso?: string) {
+  if (!iso) return 'hace 0 min'
+  const time = new Date(iso).getTime()
+  if (isNaN(time)) return 'hace 0 min'
+  const mins = Math.floor((Date.now() - time) / 60000)
+  if (isNaN(mins) || mins < 0) return 'hace 0 min'
   if (mins < 60) return `hace ${mins} min`
   const hrs = Math.floor(mins / 60)
   if (hrs < 24) return `hace ${hrs}h`
@@ -263,39 +274,54 @@ function NeedCard({ nec, index }: { nec: Necesidad; index: number }) {
         <p className={`text-[12px] leading-relaxed ${cfg.dimText}`}>{nec.descripcion}</p>
 
         {/* Progress */}
-        <div className="flex flex-col gap-2">
-          <div className="flex items-end justify-between">
-            <div>
+        {nec.meta > 0 ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-end justify-between">
+              <div>
+                <span
+                  className={`font-black tabular-nums leading-none ${isCovered ? cfg.textColor : cfg.textColor}`}
+                  style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '2rem' }}
+                >
+                  {pct}%
+                </span>
+                <span className={`text-[11px] ml-1.5 ${cfg.dimText}`}>cubierto</span>
+              </div>
+              <div className="text-right">
+                {isCovered ? (
+                  <span className={`text-[11px] font-semibold ${cfg.dimText}`}>¡Meta alcanzada!</span>
+                ) : (
+                  <>
+                    <span
+                      className={`font-bold tabular-nums ${cfg.textColor}`}
+                      style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem' }}
+                    >
+                      {fmt(missing)}
+                    </span>
+                    <span className={`text-[11px] ${cfg.dimText}`}> {nec.unidad} faltan</span>
+                  </>
+                )}
+              </div>
+            </div>
+            <ProgressBar pct={pct} barColor={cfg.barColor} barBg={cfg.barBg} />
+            <div className={`flex justify-between text-[10px] ${cfg.dimText}`}>
+              <span>{fmt(nec.recibido)} recibidos</span>
+              <span>meta {fmt(nec.meta)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2 pt-1">
+            <div className="flex items-center justify-between">
+              <span className={`text-[11px] ${cfg.dimText}`}>Recibido hasta la fecha:</span>
               <span
-                className={`font-black tabular-nums leading-none ${isCovered ? cfg.textColor : cfg.textColor}`}
-                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '2rem' }}
+                className={`font-black tabular-nums ${cfg.textColor}`}
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.4rem' }}
               >
-                {pct}%
+                {fmt(nec.recibido)} {nec.unidad}
               </span>
-              <span className={`text-[11px] ml-1.5 ${cfg.dimText}`}>cubierto</span>
             </div>
-            <div className="text-right">
-              {isCovered ? (
-                <span className={`text-[11px] font-semibold ${cfg.dimText}`}>¡Meta alcanzada!</span>
-              ) : (
-                <>
-                  <span
-                    className={`font-bold tabular-nums ${cfg.textColor}`}
-                    style={{ fontFamily: "'DM Mono', monospace", fontSize: '0.85rem' }}
-                  >
-                    {fmt(missing)}
-                  </span>
-                  <span className={`text-[11px] ${cfg.dimText}`}> {nec.unidad} faltan</span>
-                </>
-              )}
-            </div>
+            <span className={`text-[10px] italic ${cfg.dimText} opacity-80`}>Necesidad continua (sin meta fija)</span>
           </div>
-          <ProgressBar pct={pct} barColor={cfg.barColor} barBg={cfg.barBg} />
-          <div className={`flex justify-between text-[10px] ${cfg.dimText}`}>
-            <span>{fmt(nec.recibido)} recibidos</span>
-            <span>meta {fmt(nec.meta)}</span>
-          </div>
-        </div>
+        )}
 
         {/* Footer row */}
         <div className={`flex items-center justify-between pt-1 border-t ${cfg.divider}`}>

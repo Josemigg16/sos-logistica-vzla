@@ -17,7 +17,7 @@ export const needSchema = z.object({
   nombre: z.string().trim().min(1).max(160),
   categoria: inventoryCategorySchema,
   unidad: z.string().trim().min(1).max(40),
-  meta: z.number().int().positive(),
+  meta: z.number().int().nonnegative(),
   recibido: z.number().int().min(0),
   prioridad: prioridadSchema,
   descripcion: z.string().max(500).default(""),

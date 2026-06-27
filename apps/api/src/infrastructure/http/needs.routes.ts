@@ -54,7 +54,11 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
       const onlyPublished = !(includeDrafts && isPrivileged);
 
       const rows = await deps.listNeeds.execute(hubId || undefined, onlyPublished);
-      return c.json(rows);
+      const mapped = rows.map((row) => ({
+        ...row,
+        ultimaActualizacion: row.updatedAt.toISOString(),
+      }));
+      return c.json(mapped);
     } catch (error) {
       console.error("Error al obtener necesidades:", error);
       return c.json({ error: "Error al obtener necesidades" }, 500);
@@ -99,7 +103,7 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
           descripcion: row.descripcion,
           status: row.status,
           fechaNecesidad: row.fechaNecesidad,
-          ultimaActualizacion: new Date().toISOString(),
+          ultimaActualizacion: row.updatedAt.toISOString(),
         },
         201,
       );
@@ -139,7 +143,12 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
           fechaNecesidad: body.fechaNecesidad ?? null,
         });
 
-        return c.json({ created: rows, count: rows.length }, 201);
+        const mapped = rows.map((row) => ({
+          ...row,
+          ultimaActualizacion: row.updatedAt.toISOString(),
+        }));
+
+        return c.json({ created: mapped, count: rows.length }, 201);
       } catch (error) {
         console.error("Error al importar necesidades:", error);
         return c.json({ error: "Error interno en el servidor" }, 500);
@@ -157,7 +166,22 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
       try {
         const id = c.req.param("id") as string;
         const row = await deps.publishNeed.execute(id);
-        return c.json(row);
+        return c.json({
+          id: row.id,
+          hubId: row.hubId,
+          hubName: row.hubName,
+          productId: row.productId,
+          nombre: row.nombre,
+          categoria: row.categoria,
+          unidad: row.unidad,
+          meta: row.meta,
+          recibido: row.recibido,
+          prioridad: row.prioridad,
+          descripcion: row.descripcion,
+          status: row.status,
+          fechaNecesidad: row.fechaNecesidad,
+          ultimaActualizacion: row.updatedAt.toISOString(),
+        });
       } catch (error) {
         if (error instanceof NeedNotFoundError) {
           return c.json({ error: "Necesidad no encontrada" }, 404);
@@ -198,6 +222,7 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
         descripcion: row.descripcion,
         status: row.status,
         fechaNecesidad: row.fechaNecesidad,
+        ultimaActualizacion: row.updatedAt.toISOString(),
       });
     } catch (error) {
       if (error instanceof NeedNotFoundError) {

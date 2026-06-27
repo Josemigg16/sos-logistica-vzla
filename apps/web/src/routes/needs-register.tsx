@@ -89,6 +89,16 @@ function authHeaders(): HeadersInit {
   return token ? { ...base, Authorization: `Bearer ${token}` } : base
 }
 
+function formatLocalDate(dateStr: string): string {
+  if (!dateStr) return '—'
+  const [year, month, day] = dateStr.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.toLocaleDateString('es-VE', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 function NeedsRegisterPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
@@ -461,10 +471,7 @@ function NeedsRegisterPage() {
                         </div>
                         <div className="flex items-center gap-1 mt-1.5 text-[9px] text-white/30">
                           <CalendarClock className="w-3 h-3" />
-                          Límite: {new Date(need.fechaNecesidad).toLocaleDateString('es-VE', {
-                            day: 'numeric',
-                            month: 'short',
-                          })}
+                          Límite: {formatLocalDate(need.fechaNecesidad)}
                         </div>
                       </div>
                     </div>
