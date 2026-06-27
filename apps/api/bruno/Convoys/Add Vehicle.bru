@@ -1,0 +1,32 @@
+meta {
+  name: Add Vehicle
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/convoys/:id/vehicles
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 00000000-0000-0000-0000-000000000001
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "vehicleId": "00000000-0000-0000-0000-000000000004"
+  }
+}
+
+docs {
+  Agrega un vehículo a una caravana en PLANIFICADO. Requiere rol ZODI_SENDER.
+
+  - 409 `code: "DUPLICATE_VEHICLE"` si el vehículo ya está.
+  - 409 `code: "CONVOY_NOT_PLANIFICADO"` si la caravana ya salió.
+}

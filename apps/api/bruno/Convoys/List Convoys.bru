@@ -1,0 +1,40 @@
+meta {
+  name: List Convoys
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/convoys?status=
+  body: none
+  auth: none
+}
+
+params:query {
+  ~status: PLANIFICADO
+}
+
+docs {
+  Lista las caravanas (convoys) escoltadas ZODI. Endpoint público.
+
+  Query opcional `status`: PLANIFICADO | EN_RUTA | ENTREGADO | CANCELADO.
+  Sin `status` devuelve todas.
+
+  Respuesta 200:
+  ```json
+  {
+    "convoys": [
+      {
+        "id": "uuid",
+        "origenId": "uuid",
+        "destinoId": "uuid",
+        "escoltaId": "uuid",
+        "vehicleIds": ["uuid"],
+        "status": "PLANIFICADO",
+        "createdAt": "ISO-8601",
+        "updatedAt": "ISO-8601"
+      }
+    ]
+  }
+  ```
+}
