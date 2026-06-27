@@ -149,14 +149,20 @@ function SidebarContent({
   return (
     <div className="flex flex-col h-full min-h-0">
       {!compact && (
-        <div className="p-5 pb-3 shrink-0">
-          <Link to="/admin" className="flex items-center gap-2">
+        <div className="p-4 pb-3 shrink-0">
+          <Link
+            to="/"
+            title="Ir a la página principal"
+            aria-label="Ir a la página principal"
+            className="group relative flex items-center justify-center w-full rounded-xl border border-[#4A89C0]/30 bg-gradient-to-br from-[#2B5F8E]/40 via-[#1E4A6E]/30 to-[#0F2337]/40 px-4 py-4 transition-[transform,background-color,border-color,box-shadow] duration-200 hover:border-[#4A89C0]/60 hover:from-[#2B5F8E]/60 hover:via-[#1E4A6E]/50 hover:to-[#0F2337]/60 hover:shadow-[0_8px_24px_rgba(43,95,142,0.4)] active:scale-[0.98]"
+          >
             <img
               src={logotipo}
               alt="Portuguesa Unida"
-              className="h-7 w-auto object-contain"
-              style={{ filter: 'drop-shadow(0 2px 8px rgba(43,95,142,0.5))' }}
+              className="h-12 w-auto object-contain transition-transform duration-200 group-hover:scale-[1.03]"
+              style={{ filter: 'drop-shadow(0 2px 12px rgba(74,137,192,0.6))' }}
             />
+            <span className="pointer-events-none absolute inset-x-3 -bottom-px h-px bg-gradient-to-r from-transparent via-[#4A89C0]/40 to-transparent" />
           </Link>
         </div>
       )}
