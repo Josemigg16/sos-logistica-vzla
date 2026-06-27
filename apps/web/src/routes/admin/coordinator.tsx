@@ -1,6 +1,7 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Loader2, MapPin, Plus, Package, Boxes, X, AlertTriangle, Trash2,
   Warehouse, Send, ChevronRight, History,
@@ -15,7 +16,7 @@ import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole } from '@/lib/session'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
-import { Map, MapControls, MapMarker } from '@/components/ui/map'
+import { Map as MapView, MapControls, MapMarker } from '@/components/ui/map'
 
 export const Route = createFileRoute('/admin/coordinator')({ component: CoordinatorGate })
 
@@ -114,9 +115,16 @@ async function createLote(d: {
   return (await res.json()).lote
 }
 async function fetchProducts(): Promise<ProductMaster[]> {
-  const res = await fetch(`${API_URL}/productos`)
+  const res = await fetch(`${API_URL}/productos`, { headers: authHeaders() })
   if (!res.ok) throw new Error('No se pudieron cargar los productos')
-  return res.json()
+  const data = await res.json()
+  // El endpoint debería devolver un array directo, pero defendemos contra
+  // formas envueltas tipo { products: [...] } o { data: [...] }.
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.products)) return data.products
+  if (Array.isArray(data?.productos)) return data.productos
+  if (Array.isArray(data?.data)) return data.data
+  return []
 }
 
 // ─── Página ─────────────────────────────────────────────────────────────────
@@ -201,7 +209,7 @@ function RegisterHubSection() {
         </div>
 
         <div className="w-full h-56 rounded-xl overflow-hidden border border-[#2B5F8E]/30 relative">
-          <Map
+          <MapView
             center={[lngNum, latNum]}
             zoom={8}
             onClick={(lngLat) => { setLng(lngLat[0].toFixed(5)); setLat(lngLat[1].toFixed(5)) }}
@@ -209,7 +217,7 @@ function RegisterHubSection() {
           >
             <MapControls />
             <MapMarker coordinates={[lngNum, latNum]} color="#22c55e" active />
-          </Map>
+          </MapView>
           <div className="absolute bottom-2 left-2 px-2 py-1 rounded bg-[#0F2337]/90 text-[10px] text-white/70 border border-[#2B5F8E]/40 pointer-events-none">
             Hacé clic en el mapa para marcar la ubicación
           </div>
@@ -323,7 +331,8 @@ function RegisterBatchModal({ hubId, onClose, onDone }: { hubId: string; onClose
   const { data: products = [], isLoading: loadingProducts } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
   const mut = useMutation({ mutationFn: registerInventoryBatch, onSuccess: onDone, onError: (e: Error) => setErrorMsg(e.message) })
 
-  const grouped = products.reduce<Record<string, ProductMaster[]>>((acc, p) => {
+  const safeProducts = Array.isArray(products) ? products : []
+  const grouped = safeProducts.reduce<Record<string, ProductMaster[]>>((acc, p) => {
     (acc[p.category] ||= []).push(p)
     return acc
   }, {})
@@ -384,8 +393,17 @@ function BatchesHistorySection({ hub }: { hub: PublicHub }) {
     queryKey: ['hub-batches', hub.id],
     queryFn: () => fetchHubBatches(hub.id),
   })
-  const { data: products = [] } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
-  const productById = new globalThis.Map(products.map((p) => [p.id, p]))
+  const { data: products } = useQuery({ queryKey: ['productos'], queryFn: fetchProducts })
+  const productById = useMemo(() => {
+    const map = new Map<string, ProductMaster>()
+    if (!Array.isArray(products)) return map
+    for (const p of products) {
+      if (p && typeof p === 'object' && typeof p.id === 'string') {
+        map.set(p.id, p)
+      }
+    }
+    return map
+  }, [products])
 
   const removeMut = useMutation({
     mutationFn: deleteInventoryBatch,
@@ -624,31 +642,97 @@ function ErrorBanner({ msg, onDismiss }: { msg: string; onDismiss: () => void })
 }
 
 function ModalShell({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-0 md:p-4 bg-black/70 backdrop-blur-sm" onClick={onClose}>
+  // Lock body scroll y cerrar con Esc mientras el modal vive.
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => {
+      document.body.style.overflow = prevOverflow
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [onClose])
+
+  // Portal a document.body para escapar de ancestros con backdrop-filter / transform
+  // que rompen `position: fixed` (CSS spec: cualquier filtro o transform crea un
+  // containing block para fixed descendants).
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-[#0A1A2A]/80 backdrop-blur-md p-0 sm:p-4 animate-modal-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label={title}
+    >
       <div
-        className={`bg-[#0F2337] border border-[#2B5F8E]/40 rounded-t-2xl md:rounded-2xl w-full ${wide ? 'max-w-2xl' : 'max-w-md'} max-h-[92vh] overflow-y-auto shadow-2xl`}
+        className={`relative flex flex-col w-full ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} max-h-[calc(100dvh-2rem)] sm:max-h-[85vh] bg-[#152D46] border border-[#2B5F8E]/50 rounded-t-2xl sm:rounded-2xl shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7)] animate-modal-panel overflow-hidden`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-[#2B5F8E]/30 sticky top-0 bg-[#0F2337] z-10">
-          <h3 className="font-bold text-white">{title}</h3>
-          <button onClick={onClose} className="flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"><X className="w-4 h-4" /></button>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#2B5F8E]/30 shrink-0">
+          <h3 className="font-bold text-white text-base">{title}</h3>
+          <button
+            onClick={onClose}
+            aria-label="Cerrar"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
-        {children}
+        <div className="flex-1 min-h-0 overflow-y-auto">{children}</div>
       </div>
-    </div>
+      <ModalAnimations />
+    </div>,
+    document.body,
   )
 }
 
 function ModalActions({ onCancel, isSubmitting, label, icon }: { onCancel: () => void; isSubmitting: boolean; label: string; icon?: React.ReactNode }) {
   return (
-    <div className="flex gap-3 pt-1">
-      <button type="button" onClick={onCancel} className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/10 transition">Cancelar</button>
-      <button type="submit" disabled={isSubmitting} className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#0F2337] text-sm font-bold hover:bg-[#C8DCF0] active:scale-[0.98] transition disabled:opacity-70">
+    <div className="sticky bottom-0 -mx-5 -mb-5 mt-2 flex gap-3 px-5 py-4 border-t border-[#2B5F8E]/30 bg-[#152D46]/95 backdrop-blur-sm">
+      <button
+        type="button"
+        onClick={onCancel}
+        className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white/70 text-sm font-semibold hover:bg-white/10 transition"
+      >
+        Cancelar
+      </button>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-white text-[#0F2337] text-sm font-bold hover:bg-[#C8DCF0] active:scale-[0.98] transition disabled:opacity-70 disabled:cursor-not-allowed"
+      >
         {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : icon}
         {label}
       </button>
     </div>
+  )
+}
+
+function ModalAnimations() {
+  return (
+    <style>{`
+      @keyframes modal-overlay-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+      @keyframes modal-panel-in {
+        from { opacity: 0; transform: translateY(8px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+      .animate-modal-overlay { animation: modal-overlay-in 160ms ease-out; }
+      .animate-modal-panel { animation: modal-panel-in 200ms cubic-bezier(0.16, 1, 0.3, 1); }
+      @media (max-width: 639px) {
+        @keyframes modal-panel-in-mobile {
+          from { opacity: 0; transform: translateY(40px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-modal-panel { animation: modal-panel-in-mobile 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .animate-modal-overlay, .animate-modal-panel { animation: none; }
+      }
+    `}</style>
   )
 }
 
