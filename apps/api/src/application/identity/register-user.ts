@@ -6,9 +6,6 @@ import { Credential } from "../../domain/identity/value-objects/credential";
 import { Role } from "../../domain/identity/value-objects/role";
 import { UsernameTakenError } from "../../domain/identity/errors";
 
-/**
- * Use case: alta de usuario. La provisiona un ADMIN (no hay auto-registro).
- */
 export class RegisterUser {
   constructor(
     private readonly users: UserRepository,
@@ -16,16 +13,17 @@ export class RegisterUser {
   ) {}
 
   async execute(command: RegisterRequest): Promise<PublicUser> {
-    const existing = await this.users.findByUsername(command.username);
-    if (existing) throw new UsernameTakenError(command.username);
+    const existing = await this.users.findByUsername(command.telefono);
+    if (existing) throw new UsernameTakenError(command.telefono);
 
     const hash = await this.hasher.hash(command.password);
     const user = User.register({
       id: crypto.randomUUID(),
-      username: command.username,
+      username: command.telefono,
       credential: Credential.fromHash(hash),
       role: Role.create(command.role),
       email: command.email ?? null,
+      telefono: command.telefono,
     });
     await this.users.save(user);
 

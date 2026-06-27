@@ -27,7 +27,7 @@ export class AuthenticateUser {
   ) {}
 
   async execute(command: LoginRequest): Promise<AuthTokens> {
-    const user = await this.users.findByUsername(command.username);
+    const user = await this.users.findByUsername(command.telefono);
     if (!user) throw new InvalidCredentialsError();
 
     user.ensureCanAuthenticate();

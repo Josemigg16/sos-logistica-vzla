@@ -7,10 +7,13 @@ const json = (body: unknown) => ({
   body: JSON.stringify(body),
 });
 
+const ADMIN_PHONE = "+58000000000";
+const ADMIN_PASS = "adminpass123";
+
 async function loginAdmin(app: Awaited<ReturnType<typeof buildAuthApp>>["app"]) {
   const res = await app.request(
     "/login",
-    json({ username: "admin", password: "adminpass123" }),
+    json({ telefono: ADMIN_PHONE, password: ADMIN_PASS }),
   );
   const cookie = extractRefreshCookie(res.headers.get("set-cookie"));
   const { accessToken, user } = (await res.json()) as {
@@ -34,7 +37,7 @@ describe("Auth e2e (HTTP)", () => {
     });
     expect(me.status).toBe(200);
     expect(((await me.json()) as { actor: { username: string } }).actor.username).toBe(
-      "admin",
+      ADMIN_PHONE,
     );
 
     const refreshed = await app.request("/refresh", {
@@ -55,30 +58,54 @@ describe("Auth e2e (HTTP)", () => {
     const { app } = await buildAuthApp();
     const res = await app.request(
       "/login",
-      json({ username: "admin", password: "wrongpass1" }),
+      json({ telefono: ADMIN_PHONE, password: "wrongpass1" }),
     );
     expect(res.status).toBe(401);
   });
 
   test("login con body inválido devuelve 400 (Zod)", async () => {
     const { app } = await buildAuthApp();
-    const res = await app.request("/login", json({ username: "x", password: "1" }));
+    const res = await app.request("/login", json({ telefono: "x", password: "1" }));
     expect(res.status).toBe(400);
   });
 
-  test("register público permite registrarse y luego loguearse", async () => {
+  test("register (admin) permite crear usuario y luego loguearse", async () => {
     const { app } = await buildAuthApp();
 
     const created = await app.request(
       "/register",
-      json({ username: "coord1", password: "coordpass1", role: "HUB_COORDINATOR" }),
+      json({ telefono: "+58000000030", password: "coordpass1", role: "HUB_COORDINATOR" }),
     );
     expect(created.status).toBe(201);
 
-    // el nuevo usuario puede autenticarse
     const login = await app.request(
       "/login",
-      json({ username: "coord1", password: "coordpass1" }),
+      json({ telefono: "+58000000030", password: "coordpass1" }),
+    );
+    expect(login.status).toBe(200);
+  });
+
+  test("signup público crea cuenta con clave generada y devuelve accessToken", async () => {
+    const { app } = await buildAuthApp();
+
+    const res = await app.request(
+      "/signup",
+      json({ telefono: "+58414000001" }),
+    );
+    expect(res.status).toBe(201);
+    const body = (await res.json()) as {
+      user: { role: string };
+      generatedPassword: string;
+      accessToken: string;
+    };
+    expect(body.user.role).toBe("HUB_COORDINATOR");
+    expect(body.generatedPassword).toBeTruthy();
+    expect(body.accessToken).toBeTruthy();
+
+    // La clave generada es válida para login
+    const login = await app.request(
+      "/login",
+      json({ telefono: "+58414000001", password: body.generatedPassword }),
     );
     expect(login.status).toBe(200);
   });
@@ -101,7 +128,6 @@ describe("Auth e2e (HTTP)", () => {
   });
 
   test("la cookie de refresh usa Path=/", async () => {
-    // Para ser compatible tanto con dev como con el proxy de prod, usamos Path=/
     const { app } = await buildAuthApp();
     const { res } = await loginAdmin(app);
     expect(res.headers.get("set-cookie")).toContain("Path=/");

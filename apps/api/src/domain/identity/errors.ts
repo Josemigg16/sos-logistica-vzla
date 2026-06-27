@@ -25,8 +25,8 @@ export class UserSuspendedError extends IdentityError {
 }
 
 export class UsernameTakenError extends IdentityError {
-  constructor(username: string) {
-    super(`El nombre de usuario "${username}" ya existe`, "USERNAME_TAKEN");
+  constructor(telefono: string) {
+    super(`El número "${telefono}" ya está registrado`, "USERNAME_TAKEN");
   }
 }
 

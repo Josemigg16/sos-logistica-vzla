@@ -21,14 +21,19 @@ export const USER_STATUSES = ["ACTIVE", "SUSPENDED"] as const;
 export const userStatusSchema = z.enum(USER_STATUSES);
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
+const telefonoSchema = z
+  .string()
+  .trim()
+  .regex(/^\+?[0-9]{7,15}$/, "Debe ser un número de teléfono válido");
+
 export const loginSchema = z.object({
-  username: z.string().trim().toLowerCase().min(3).max(64),
+  telefono: telefonoSchema,
   password: z.string().min(4).max(128),
 });
 export type LoginRequest = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
-  username: z.string().trim().toLowerCase().min(3).max(64),
+  telefono: telefonoSchema,
   password: z.string().min(4).max(128),
   role: roleSchema,
   email: z.string().email().max(255).optional(),
@@ -63,9 +68,9 @@ export interface AdminUserView extends PublicUser {
 export const documentTypeSchema = z.enum(["V", "J"]);
 export type DocumentType = z.infer<typeof documentTypeSchema>;
 
+/** El teléfono actúa como identificador único — no se pide username ni password. */
 export const signupSchema = z.object({
-  username: z.string().trim().toLowerCase().min(3).max(64),
-  password: z.string().min(8).max(128),
+  telefono: telefonoSchema,
   documentType: documentTypeSchema.optional(),
   cedula: z
     .string()
@@ -74,12 +79,10 @@ export const signupSchema = z.object({
     .max(20)
     .optional()
     .or(z.literal("").transform(() => undefined)),
-  telefono: z
-    .string()
-    .trim()
-    .min(7)
-    .max(20)
-    .optional()
-    .or(z.literal("").transform(() => undefined)),
 });
 export type SignupRequest = z.infer<typeof signupSchema>;
+
+export interface SignupResult {
+  user: PublicUser;
+  generatedPassword: string;
+}

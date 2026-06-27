@@ -51,7 +51,7 @@ export async function buildAuthApp() {
   };
 
   await useCases.registerUser.execute({
-    username: "admin",
+    telefono: "+58000000000",
     password: "adminpass123",
     role: "ADMIN",
   });

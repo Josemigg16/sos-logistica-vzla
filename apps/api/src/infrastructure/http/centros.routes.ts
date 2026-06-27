@@ -136,6 +136,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
     }
 
     try {
+      const actor = c.get("actor");
       const savedHub = await deps.upsertHub.execute({
         id: centro.id,
         name: centro.nombre,
@@ -145,6 +146,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
         status: centro.estado,
         latitude: centro.coordenadas[1],
         longitude: centro.coordenadas[0],
+        coordinatorId: actor?.userId ?? null,
         isInformal: centro.isInformal ?? false,
         needs: centro.needs ?? [],
       });

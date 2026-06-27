@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, type FormEvent } from "react";
 import { loginSchema } from "@sos/shared";
-import { ArrowLeft, Eye, EyeOff, Loader2, Lock, LogIn, User } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Loader2, Lock, LogIn, Phone } from "lucide-react";
 import { AuthError } from "@/lib/auth/auth-client";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/login")({
 const EASE_OUT = "cubic-bezier(0.23, 1, 0.32, 1)";
 
 interface FieldErrors {
-  username?: string;
+  telefono?: string;
   password?: string;
 }
 
@@ -22,7 +22,7 @@ function LoginPage() {
   const { status, login } = useAuth();
   const navigate = useNavigate();
 
-  const [username, setUsername] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
@@ -36,7 +36,6 @@ function LoginPage() {
     return () => clearTimeout(t);
   }, []);
 
-  // Ya hay sesión → directo al portal.
   if (status === "authenticated") return <Navigate to="/admin" />;
 
   async function handleSubmit(e: FormEvent) {
@@ -44,11 +43,11 @@ function LoginPage() {
     setFormError(null);
     setFieldErrors({});
 
-    const parsed = loginSchema.safeParse({ username, password });
+    const parsed = loginSchema.safeParse({ telefono, password });
     if (!parsed.success) {
       const flat = parsed.error.flatten().fieldErrors;
       setFieldErrors({
-        username: flat.username?.[0],
+        telefono: flat.telefono?.[0],
         password: flat.password?.[0],
       });
       return;
@@ -130,14 +129,15 @@ function LoginPage() {
           )}
 
           <Field
-            id="username"
-            label="Usuario"
-            icon={<User className="h-4 w-4" />}
-            value={username}
-            onChange={setUsername}
-            autoComplete="username"
-            placeholder="tu.usuario"
-            error={fieldErrors.username}
+            id="telefono"
+            label="Teléfono"
+            icon={<Phone className="h-4 w-4" />}
+            value={telefono}
+            onChange={setTelefono}
+            type="tel"
+            autoComplete="tel"
+            placeholder="+584XX-XXX-XXXX"
+            error={fieldErrors.telefono}
             disabled={submitting}
           />
 
@@ -207,7 +207,7 @@ function LoginPage() {
               transitionTimingFunction: EASE_OUT,
             }}
           >
-            <User className="h-5 w-5" strokeWidth={2.5} />
+            <Phone className="h-5 w-5" strokeWidth={2.5} />
             <span>Crear cuenta</span>
           </Link>
         </form>

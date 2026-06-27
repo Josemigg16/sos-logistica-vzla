@@ -11,6 +11,7 @@ export interface UpsertHubCommand {
   status?: HubStatus;
   latitude: number;
   longitude: number;
+  coordinatorId?: string | null;
   isInformal?: boolean;
   needs?: HubNeed[];
 }

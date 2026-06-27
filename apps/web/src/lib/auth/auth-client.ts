@@ -29,9 +29,11 @@ export class AuthError extends Error {
 
 /** Mensajes en español por código de error del backend. UI en español. */
 const ERROR_MESSAGES: Record<string, string> = {
-  INVALID_CREDENTIALS: "Usuario o contraseña incorrectos.",
+  INVALID_CREDENTIALS: "Número o contraseña incorrectos.",
   INVALID_REFRESH_TOKEN: "Tu sesión expiró. Inicia sesión de nuevo.",
   USER_SUSPENDED: "Tu cuenta está suspendida. Contacta a un administrador.",
+  USERNAME_TAKEN: "Ese número de teléfono ya está registrado.",
+  CEDULA_TAKEN: "Esa cédula ya está registrada.",
   NETWORK: "No se pudo conectar con el servidor. Revisa tu conexión.",
 };
 
@@ -116,6 +118,37 @@ export async function fetchMe(accessToken: string): Promise<SessionUser | null> 
     id: data.actor.userId,
     username: data.actor.username,
     role: data.actor.role,
+  };
+}
+
+export interface SignupHubResult {
+  user: SessionUser;
+  generatedPassword: string;
+  accessToken: string;
+}
+
+/**
+ * Auto-registro público para coordinadores de hubs.
+ * El backend genera la contraseña y devuelve tokens directamente.
+ */
+export async function signupHub(telefono: string): Promise<SignupHubResult> {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/auth/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({ telefono }),
+    });
+  } catch {
+    throw new AuthError("NETWORK", messageFor("NETWORK"));
+  }
+  if (!res.ok) throw await toAuthError(res);
+  const data = (await res.json()) as { user: PublicUser; generatedPassword: string; accessToken: string };
+  return {
+    user: data.user,
+    generatedPassword: data.generatedPassword,
+    accessToken: data.accessToken,
   };
 }
 

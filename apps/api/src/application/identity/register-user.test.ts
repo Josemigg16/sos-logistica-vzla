@@ -15,35 +15,46 @@ describe("RegisterUser", () => {
 
   test("crea un usuario y devuelve su forma pública", async () => {
     const user = await register.execute({
-      username: "zodi1",
+      telefono: "+584141000001",
       password: "password123",
       role: "ZODI_SENDER",
     });
-    expect(user.username).toBe("zodi1");
+    expect(user.username).toBe("+584141000001");
     expect(user.role).toBe("ZODI_SENDER");
-    expect(await users.findByUsername("zodi1")).not.toBeNull();
+    expect(await users.findByUsername("+584141000001")).not.toBeNull();
   });
 
   test("guarda el hash, nunca la contraseña en plano", async () => {
     await register.execute({
-      username: "zodi2",
+      telefono: "+584141000002",
       password: "password123",
       role: "ZODI_DESTINATION",
     });
-    const stored = await users.findByUsername("zodi2");
+    const stored = await users.findByUsername("+584141000002");
     expect(stored!.credential.hash).toBe("hashed:password123");
     expect(stored!.credential.hash).not.toBe("password123");
   });
 
-  test("rechaza un username ya tomado", async () => {
+  test("escribe el telefono en ambas columnas: username y telefono", async () => {
     await register.execute({
-      username: "dup",
+      telefono: "+584141000003",
+      password: "password123",
+      role: "MANAGER",
+    });
+    const stored = await users.findByUsername("+584141000003");
+    expect(stored!.username).toBe("+584141000003");
+    expect(stored!.telefono).toBe("+584141000003");
+  });
+
+  test("rechaza un telefono ya tomado", async () => {
+    await register.execute({
+      telefono: "+584141000020",
       password: "password123",
       role: "MANAGER",
     });
     await expect(
       register.execute({
-        username: "dup",
+        telefono: "+584141000020",
         password: "otherpass123",
         role: "ADMIN",
       }),

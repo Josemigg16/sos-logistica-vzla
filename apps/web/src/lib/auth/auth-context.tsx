@@ -19,6 +19,7 @@ interface AuthContextValue {
   user: SessionUser | null;
   login: (credentials: LoginRequest) => Promise<void>;
   logout: () => Promise<void>;
+  loginWithToken: (accessToken: string, user: SessionUser) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -89,6 +90,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     startTimer();
   }, [startTimer]);
 
+  const loginWithToken = useCallback((token: string, sessionUser: SessionUser) => {
+    setToken(token);
+    setUser(sessionUser);
+    setStatus("authenticated");
+    startTimer();
+  }, [startTimer]);
+
   const logout = useCallback(async () => {
     stopTimer();
     await authClient.logout();
@@ -98,7 +106,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [stopTimer]);
 
   return (
-    <AuthContext.Provider value={{ status, user, login, logout }}>
+    <AuthContext.Provider value={{ status, user, login, logout, loginWithToken }}>
       {children}
     </AuthContext.Provider>
   );

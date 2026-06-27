@@ -68,6 +68,7 @@ const ERROR_STATUS: Record<string, 401 | 403 | 409> = {
   USER_SUSPENDED: 403,
   INVALID_REFRESH_TOKEN: 401,
   USERNAME_TAKEN: 409,
+  CEDULA_TAKEN: 409,
 };
 
 function mapError(c: Context, error: unknown) {
@@ -114,15 +115,21 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
     return c.json({ ok: true });
   });
 
-  // Auto-registro público para coordinadores de centros de acopio
+  // Auto-registro público para coordinadores de centros de acopio.
+  // Genera la contraseña automáticamente y devuelve tokens para auto-login.
   router.post("/signup", async (c) => {
     const parsed = signupSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       return c.json({ error: "Datos inválidos", details: parsed.error.flatten() }, 400);
     }
     try {
-      const user = await deps.selfRegisterCoordinator.execute(parsed.data);
-      return c.json({ user }, 201);
+      const { user, generatedPassword } = await deps.selfRegisterCoordinator.execute(parsed.data);
+      const tokens = await deps.authenticateUser.execute({
+        telefono: parsed.data.telefono,
+        password: generatedPassword,
+      });
+      setRefreshCookie(c, tokens.refreshToken, tokens.refreshExpiresAt);
+      return c.json({ user, generatedPassword, accessToken: tokens.accessToken }, 201);
     } catch (error) {
       return mapError(c, error);
     }

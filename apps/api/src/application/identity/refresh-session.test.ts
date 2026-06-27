@@ -22,14 +22,14 @@ describe("RefreshSession", () => {
     authenticate = new AuthenticateUser(users, sessions, hasher, tokens, 60_000);
     refresh = new RefreshSession(users, sessions, tokens, 60_000);
     await new RegisterUser(users, hasher).execute({
-      username: "manager",
+      telefono: "+58000000001",
       password: "secret123",
       role: "MANAGER",
     });
   });
 
   async function login() {
-    return authenticate.execute({ username: "manager", password: "secret123" });
+    return authenticate.execute({ telefono: "+58000000001", password: "secret123" });
   }
 
   test("rota el refresh: emite uno nuevo y revoca el anterior", async () => {
@@ -43,11 +43,9 @@ describe("RefreshSession", () => {
     const { refreshToken } = await login();
     const rotated = await refresh.execute(refreshToken);
 
-    // reuso del viejo -> falla y revoca todo
     await expect(refresh.execute(refreshToken)).rejects.toBeInstanceOf(
       InvalidRefreshTokenError,
     );
-    // tras el reuso, hasta el nuevo queda revocado
     await expect(refresh.execute(rotated.refreshToken)).rejects.toBeInstanceOf(
       InvalidRefreshTokenError,
     );

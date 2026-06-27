@@ -27,7 +27,7 @@ describe("AuthenticateUser", () => {
       60_000,
     );
     await new RegisterUser(users, hasher).execute({
-      username: "manager",
+      telefono: "+58000000001",
       password: "secret123",
       role: "MANAGER",
     });
@@ -35,7 +35,7 @@ describe("AuthenticateUser", () => {
 
   test("credenciales correctas devuelven tokens y crean sesión", async () => {
     const result = await authenticate.execute({
-      username: "manager",
+      telefono: "+58000000001",
       password: "secret123",
     });
     expect(result.accessToken).toBeTruthy();
@@ -46,22 +46,22 @@ describe("AuthenticateUser", () => {
 
   test("contraseña incorrecta tira InvalidCredentials", async () => {
     await expect(
-      authenticate.execute({ username: "manager", password: "wrong" }),
+      authenticate.execute({ telefono: "+58000000001", password: "wrong" }),
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
   });
 
   test("usuario inexistente tira InvalidCredentials", async () => {
     await expect(
-      authenticate.execute({ username: "ghost", password: "secret123" }),
+      authenticate.execute({ telefono: "+58999999999", password: "secret123" }),
     ).rejects.toBeInstanceOf(InvalidCredentialsError);
   });
 
   test("usuario suspendido tira UserSuspended", async () => {
-    const user = await users.findByUsername("manager");
+    const user = await users.findByUsername("+58000000001");
     user!.suspend();
     await users.save(user!);
     await expect(
-      authenticate.execute({ username: "manager", password: "secret123" }),
+      authenticate.execute({ telefono: "+58000000001", password: "secret123" }),
     ).rejects.toBeInstanceOf(UserSuspendedError);
   });
 });

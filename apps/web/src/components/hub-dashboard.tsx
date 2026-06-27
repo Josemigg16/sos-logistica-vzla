@@ -738,7 +738,7 @@ function CreateLoteModal({ hub, canManageVehicles, onClose, onDone }: {
           <Field label="Vehículo asignado (opcional)">
             {vehicles.length === 0 ? (
               <p className="coord-input flex items-center text-white/50 text-xs">
-                No hay vehículos disponibles. Podés asignar uno más tarde.
+                No hay vehículos disponibles. Puedes asignar uno más tarde.
               </p>
             ) : (
               <select className="coord-input" value={vehiculoId} onChange={(e) => setVehiculoId(e.target.value)}>
