@@ -215,7 +215,7 @@ export default function App() {
     <div className="mapa-layout relative flex flex-col select-none bg-background text-foreground transition-colors duration-300 antialiased">
       
       {/* HEADER DE LA APP */}
-      <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
+      <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-max md:max-w-[calc(100vw-48px)] flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
         <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <Link
             to="/"

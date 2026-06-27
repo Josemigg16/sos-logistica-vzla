@@ -1082,11 +1082,12 @@ function NeedFormModal({
             <input
               type="text"
               value={draft.nombre}
+              disabled={!!initial}
               onChange={(e) => {
                 setDraft({ ...draft, nombre: e.target.value })
                 setShowSuggestions(true)
               }}
-              onFocus={() => setShowSuggestions(true)}
+              onFocus={() => !initial && setShowSuggestions(true)}
               onBlur={() => {
                 setTimeout(() => setShowSuggestions(false), 200)
               }}
@@ -1095,7 +1096,7 @@ function NeedFormModal({
               className="input"
               placeholder="ej. Agua potable"
             />
-            {showSuggestions && suggestions.length > 0 && (
+            {!initial && showSuggestions && suggestions.length > 0 && (
               <div className="absolute left-0 right-0 mt-1 z-50 rounded-lg border border-[#2B5F8E]/50 bg-[#0F2337] shadow-xl overflow-hidden max-h-48 overflow-y-auto">
                 {suggestions.map((prod) => (
                   <button
@@ -1120,6 +1121,7 @@ function NeedFormModal({
             <select
               value={draft.categoria}
               onChange={(e) => setDraft({ ...draft, categoria: e.target.value })}
+              disabled={!!initial}
               className="input"
             >
               {CATEGORIES.map((c) => (
@@ -1151,6 +1153,7 @@ function NeedFormModal({
               type="text"
               value={draft.unidad}
               onChange={(e) => setDraft({ ...draft, unidad: e.target.value })}
+              disabled={!!initial}
               required
               maxLength={32}
               className="input"
