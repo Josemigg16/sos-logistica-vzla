@@ -513,6 +513,46 @@ export default function App() {
                 </a>
               </div>
 
+              {/* Reglas de Embalaje con animación llamativa */}
+              <div className="mb-4">
+                <style>{`
+                  @keyframes border-glow {
+                    0%, 100% { border-color: rgba(59, 130, 246, 0.4); box-shadow: 0 0 8px rgba(59, 130, 246, 0.15); }
+                    50% { border-color: rgba(59, 130, 246, 0.8); box-shadow: 0 0 16px rgba(59, 130, 246, 0.35); }
+                  }
+                  @keyframes pulse-scale {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                  }
+                  .animate-border-glow {
+                    animation: border-glow 2s infinite ease-in-out;
+                  }
+                  .animate-pulse-scale {
+                    animation: pulse-scale 2.5s infinite ease-in-out;
+                  }
+                `}</style>
+                <button
+                  onClick={() => setActiveImageUrl("/reglas_de_embalage.png")}
+                  className="w-full relative flex items-center justify-between p-3.5 rounded-xl border bg-gradient-to-r from-blue-600/10 to-blue-500/5 hover:from-blue-600/20 hover:to-blue-500/10 text-blue-400 hover:text-blue-300 transition-all duration-300 active:scale-[0.98] cursor-pointer overflow-hidden group animate-border-glow animate-pulse-scale"
+                >
+                  {/* Subtle pulsing background dot */}
+                  <span className="absolute -left-1 -top-1 w-3 h-3 rounded-full bg-blue-500 blur-sm animate-ping opacity-75" />
+                  
+                  <div className="flex items-center gap-2.5 z-10">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 group-hover:scale-110 transition-transform duration-300">
+                      <Package className="w-4 h-4 animate-bounce" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-[11px] leading-tight font-extrabold tracking-wide text-white group-hover:text-blue-300 transition-colors">📦 REGLAS DE EMBALAJE</p>
+                      <p className="text-[9px] text-muted-foreground font-normal lowercase tracking-normal mt-0.5 normal-case">Presiona para ver las normas del centro</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 z-10 bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md text-[9px] font-black border border-blue-500/30 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300">
+                    VER
+                  </div>
+                </button>
+              </div>
+
               {/* Inventario por Categorías */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
