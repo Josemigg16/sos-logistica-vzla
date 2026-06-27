@@ -1,0 +1,23 @@
+meta {
+  name: Request Token
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/auth/token
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "secret": "mi-secreto-super-seguro-para-tokens-externos"
+  }
+}
+
+script:post-response {
+  if (res.status === 200 && res.body.accessToken) {
+    bru.setVar("accessToken", res.body.accessToken);
+  }
+}
