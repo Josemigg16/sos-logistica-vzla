@@ -1,10 +1,11 @@
 import { createFileRoute, Navigate } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Search, Inbox, Loader2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { Search, Inbox, Loader2, Plus, X, Save } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { INVENTORY_CATEGORIES, type ProductMaster } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
+import { getToken } from '@/lib/auth/token-store'
 
 export const Route = createFileRoute('/admin/catalog')({
   component: CatalogGate,
@@ -28,9 +29,24 @@ const CATEGORY_COLORS: Record<string, string> = {
   'Artículos para bebés y grupos vulnerables': 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20',
 }
 
+function authHeaders(): HeadersInit {
+  const token = getToken()
+  const base: HeadersInit = { 'Content-Type': 'application/json' }
+  return token ? { ...base, Authorization: `Bearer ${token}` } : base
+}
+
 function AdminCatalogPage() {
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  // Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [newName, setNewName] = useState('')
+  const [newCategory, setNewCategory] = useState(INVENTORY_CATEGORIES[0])
+  const [newUnit, setNewUnit] = useState('')
+  const [newDescription, setNewDescription] = useState('')
+  const [formError, setFormError] = useState<string | null>(null)
 
   const { data: products = [], isLoading } = useQuery<ProductMaster[]>({
     queryKey: ['productos'],
@@ -38,6 +54,36 @@ function AdminCatalogPage() {
       const res = await fetch(`${API_URL}/productos`)
       if (!res.ok) throw new Error('Error al cargar productos')
       return res.json()
+    },
+  })
+
+  const createProductMutation = useMutation({
+    mutationFn: async (newProduct: Omit<ProductMaster, 'id'>) => {
+      const res = await fetch(`${API_URL}/productos`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify(newProduct),
+      })
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Error al crear producto')
+      }
+      return res.json()
+    },
+    onSuccess: (created) => {
+      queryClient.setQueryData<ProductMaster[]>(['productos'], (prev = []) => {
+        return [...prev, created]
+      })
+      setIsModalOpen(false)
+      // Reset form
+      setNewName('')
+      setNewCategory(INVENTORY_CATEGORIES[0])
+      setNewUnit('')
+      setNewDescription('')
+      setFormError(null)
+    },
+    onError: (error: any) => {
+      setFormError(error.message || 'Error al guardar el producto')
     },
   })
 
@@ -51,27 +97,59 @@ function AdminCatalogPage() {
     })
   }, [products, searchTerm, selectedCategory])
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    setFormError(null)
+
+    if (!newName.trim()) {
+      setFormError('El nombre del producto es requerido')
+      return
+    }
+    if (!newUnit.trim()) {
+      setFormError('La unidad de medida es requerida')
+      return
+    }
+
+    createProductMutation.mutate({
+      name: newName.trim(),
+      category: newCategory,
+      unit: newUnit.trim(),
+      description: newDescription.trim(),
+    })
+  }
+
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-6xl mx-auto lg:mx-0">
       {/* Header */}
-      <div className="mb-6 sm:mb-8">
-        <span className="text-[11px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em] mb-2 block">
-          Referencia de suministros
-        </span>
-        <h1
-          className="text-white leading-[0.95] tracking-tight mb-2"
-          style={{
-            fontFamily: "'Barlow Condensed', sans-serif",
-            fontStyle: 'italic',
-            fontWeight: 800,
-            fontSize: 'clamp(2rem, 4vw, 3rem)',
-          }}
-        >
-          CATÁLOGO DE PRODUCTOS
-        </h1>
-        <p className="text-sm text-white/50 max-w-lg">
-          Consulta el maestro oficial de productos y las unidades de medida estandarizadas para el sistema SOS Logística.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 sm:mb-8">
+        <div>
+          <span className="text-[11px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em] mb-2 block">
+            Referencia de suministros
+          </span>
+          <h1
+            className="text-white leading-[0.95] tracking-tight mb-2"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontStyle: 'italic',
+              fontWeight: 800,
+              fontSize: 'clamp(2rem, 4vw, 3rem)',
+            }}
+          >
+            CATÁLOGO DE PRODUCTOS
+          </h1>
+          <p className="text-sm text-white/50 max-w-lg">
+            Consulta el maestro oficial de productos y las unidades de medida estandarizadas para el sistema SOS Logística.
+          </p>
+        </div>
+        <div>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 shadow-lg active:scale-95 cursor-pointer border border-blue-500/20"
+          >
+            <Plus className="w-4 h-4" />
+            Crear Producto
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}
@@ -165,6 +243,130 @@ function AdminCatalogPage() {
           ))}
         </div>
       )}
+
+      {/* Modal / Dialog de Creación de Producto */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm">
+          <div className="relative w-full max-w-lg bg-[#0F2337] border border-[#2B5F8E]/50 rounded-2xl shadow-2xl p-6 overflow-hidden">
+            {/* Header Modal */}
+            <div className="flex items-center justify-between pb-4 border-b border-[#2B5F8E]/20 mb-4">
+              <h2 className="text-white font-bold text-base tracking-tight uppercase">
+                Crear Nuevo Producto
+              </h2>
+              <button
+                onClick={() => {
+                  setIsModalOpen(false)
+                  setFormError(null)
+                }}
+                className="text-white/50 hover:text-white transition-colors duration-200 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Formulario */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {formError && (
+                <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex gap-2 items-center">
+                  <span className="font-semibold">Error:</span> {formError}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                  Nombre del Producto
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej. Agua embotellada, Harina de maíz, Gasas"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                    Categoría
+                  </label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value as any)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#152D46] border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 cursor-pointer"
+                  >
+                    {INVENTORY_CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                    Unidad de Medida
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej. litros, kg, unidades, paquetes"
+                    value={newUnit}
+                    onChange={(e) => setNewUnit(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#C8DCF0]/60 mb-1.5">
+                  Descripción
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Detalles sobre el suministro, especificaciones o empaque..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#152D46]/40 border border-[#2B5F8E]/40 text-xs text-white placeholder-white/20 focus:outline-none focus:border-[#4A89C0]/50 resize-none"
+                />
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex justify-end gap-3 pt-4 border-t border-[#2B5F8E]/20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsModalOpen(false)
+                    setFormError(null)
+                  }}
+                  className="px-4 py-2 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-colors duration-200 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={createProductMutation.isPending}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 text-white rounded-xl text-xs font-bold uppercase tracking-wider transition-all duration-200 cursor-pointer"
+                >
+                  {createProductMutation.isPending ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Guardando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4" />
+                      Guardar Producto
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

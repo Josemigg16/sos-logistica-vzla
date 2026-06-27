@@ -6,6 +6,7 @@ import { join } from "path";
 import {
   centroSchema,
   type Centro,
+  INVENTORY_CATEGORIES,
 } from "@sos/shared";
 import { eq, sql, desc } from "drizzle-orm";
 import { db } from "./src/infrastructure/persistence/db";
@@ -44,7 +45,7 @@ async function writeCentros(data: Centro[]): Promise<boolean> {
 app.use(
   "/*",
   cors({
-    origin: process.env.WEB_ORIGIN ?? "http://localhost:5173",
+    origin: (origin) => origin,
     credentials: true,
   }),
 );
@@ -57,6 +58,51 @@ app.get("/api/productos", async (c) => {
   } catch (error) {
     console.error("Error al obtener productos de la DB:", error);
     return c.json({ error: "Error al obtener productos" }, 500);
+  }
+});
+
+// Crear un nuevo producto en el catálogo maestro
+app.post("/api/productos", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { name, category, unit, description } = body;
+
+    // Validaciones básicas
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      return c.json({ error: "El nombre es requerido y debe ser texto" }, 400);
+    }
+    if (!category || !INVENTORY_CATEGORIES.includes(category as any)) {
+      return c.json({ error: `La categoría debe ser una de: ${INVENTORY_CATEGORIES.join(", ")}` }, 400);
+    }
+    if (!unit || typeof unit !== "string" || unit.trim().length === 0) {
+      return c.json({ error: "La unidad de medida es requerida y debe ser texto" }, 400);
+    }
+
+    // Verificar si el nombre ya existe para evitar errores de clave única
+    const existing = await db
+      .select()
+      .from(products)
+      .where(eq(products.name, name.trim()))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return c.json({ error: "Ya existe un producto con este nombre en el catálogo" }, 409);
+    }
+
+    const [newProduct] = await db
+      .insert(products)
+      .values({
+        name: name.trim(),
+        category: category as any,
+        unit: unit.trim(),
+        description: (description || "").trim(),
+      })
+      .returning();
+
+    return c.json(newProduct, 201);
+  } catch (error) {
+    console.error("Error al crear producto en la DB:", error);
+    return c.json({ error: "Error interno del servidor al crear producto" }, 500);
   }
 });
 
