@@ -19,6 +19,9 @@ import {
   MousePointerClick,
   Route,
   HandHeart,
+  SlidersHorizontal,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { PublicConvoy } from "@sos/shared";
@@ -70,6 +73,9 @@ export default function App() {
   const [centros, setCentros] = useState<Centro[]>(centrosData as unknown as Centro[]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTipos, setActiveTipos] = useState<Set<Centro["tipo"]>>(
+    () => new Set(["acopio", "salida", "destino"]),
+  );
   const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
@@ -223,14 +229,29 @@ export default function App() {
     [centros],
   );
 
-  // Filtrar centros según búsqueda
+  // Filtrar centros según búsqueda y tipo seleccionado
   const filteredCentros = useMemo(() => {
     const term = searchTerm.toLowerCase();
     return publicCentros.filter(c =>
-      c.nombre.toLowerCase().includes(term) ||
-      c.direccion.toLowerCase().includes(term)
+      activeTipos.has(c.tipo) &&
+      (c.nombre.toLowerCase().includes(term) ||
+        c.direccion.toLowerCase().includes(term))
     );
-  }, [publicCentros, searchTerm]);
+  }, [publicCentros, searchTerm, activeTipos]);
+
+  const toggleTipo = (tipo: Centro["tipo"]) => {
+    setActiveTipos((prev) => {
+      const next = new Set(prev);
+      if (next.has(tipo)) {
+        // Evitar dejar todos apagados: si es el único activo, ignorar el toggle.
+        if (next.size === 1) return prev;
+        next.delete(tipo);
+      } else {
+        next.add(tipo);
+      }
+      return next;
+    });
+  };
 
   const handleSelectCentro = (centro: Centro) => {
     setSelectedId(centro.id);
@@ -390,24 +411,65 @@ export default function App() {
           })}
         </Map>
 
-        {/* LEYENDA DEL MAPA */}
-        <div className={`absolute right-4 z-30 p-3.5 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md flex flex-col gap-2 min-w-[220px] transition-all duration-300 md:bottom-6 md:right-6 ${
+        {/* LEYENDA / FILTRO DEL MAPA */}
+        <div className={`absolute right-4 z-30 p-3.5 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md flex flex-col gap-2.5 min-w-[240px] transition-all duration-300 md:bottom-6 md:right-6 ${
           selectedId ? "bottom-28" : "bottom-4"
         }`}>
-          <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Leyenda</h4>
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
-              <span className="text-[11px] font-medium text-foreground">Hub Interno (Acopio)</span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <SlidersHorizontal className="w-3 h-3 text-muted-foreground" />
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                Filtrar por tipo
+              </h4>
             </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>
-              <span className="text-[11px] font-medium text-foreground">Salidas ZODI</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-              <span className="text-[11px] font-medium text-foreground">Llegada Centro Acopio Destino</span>
-            </div>
+            {activeTipos.size < 3 && (
+              <button
+                onClick={() => setActiveTipos(new Set(["acopio", "salida", "destino"]))}
+                className="text-[9px] font-semibold text-blue-400 hover:text-blue-300 uppercase tracking-wider cursor-pointer transition-colors"
+              >
+                Ver todos
+              </button>
+            )}
+          </div>
+          <div className="flex flex-col gap-1">
+            {([
+              { tipo: "acopio" as const, label: "Hub Interno (Acopio)", dot: "bg-blue-500", glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
+              { tipo: "salida" as const, label: "Salidas ZODI", dot: "bg-red-500", glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]" },
+              { tipo: "destino" as const, label: "Llegada Centro Acopio Destino", dot: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]" },
+            ]).map(({ tipo, label, dot, glow }) => {
+              const isActive = activeTipos.has(tipo);
+              return (
+                <button
+                  key={tipo}
+                  onClick={() => toggleTipo(tipo)}
+                  aria-pressed={isActive}
+                  title={isActive ? `Ocultar ${label}` : `Mostrar ${label}`}
+                  className={`group flex items-center gap-2.5 px-2 py-1.5 -mx-1 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    isActive
+                      ? "hover:bg-secondary/60"
+                      : "hover:bg-secondary/40 opacity-50 hover:opacity-80"
+                  }`}
+                >
+                  <span
+                    className={`w-3 h-3 rounded-full shrink-0 transition-all duration-200 ${dot} ${
+                      isActive ? glow : "grayscale opacity-60"
+                    }`}
+                  />
+                  <span
+                    className={`flex-1 text-left text-[11px] font-medium transition-colors duration-200 ${
+                      isActive ? "text-foreground" : "text-muted-foreground line-through decoration-1"
+                    }`}
+                  >
+                    {label}
+                  </span>
+                  {isActive ? (
+                    <Eye className="w-3 h-3 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0" />
+                  ) : (
+                    <EyeOff className="w-3 h-3 text-muted-foreground/40 group-hover:text-foreground transition-colors shrink-0" />
+                  )}
+                </button>
+              );
+            })}
             {activeConvoys.length > 0 && (
               <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
                 <div className="flex items-center gap-2.5">
