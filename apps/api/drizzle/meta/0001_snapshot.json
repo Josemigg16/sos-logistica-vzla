@@ -1,5 +1,5 @@
 {
-  "id": "9275e66a-5c93-4bf2-b319-c8d5c6fa0fcf",
+  "id": "55dfaf19-dfb1-4b25-8992-3593e802d36c",
   "prevId": "952325ba-d1d1-4fd9-bb85-2a8ad417481e",
   "version": "7",
   "dialect": "postgresql",
@@ -145,8 +145,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.incidents": {
-      "name": "incidents",
+    "public.hubs": {
+      "name": "hubs",
       "schema": "",
       "columns": {
         "id": {
@@ -156,43 +156,28 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "title": {
-          "name": "title",
+        "name": {
+          "name": "name",
           "type": "varchar(160)",
           "primaryKey": false,
           "notNull": true
         },
-        "description": {
-          "name": "description",
-          "type": "text",
+        "address": {
+          "name": "address",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "contact": {
+          "name": "contact",
+          "type": "varchar(120)",
           "primaryKey": false,
           "notNull": true
         },
         "type": {
           "name": "type",
-          "type": "varchar(80)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "priority": {
-          "name": "priority",
-          "type": "priority",
+          "type": "hub_type",
           "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'MEDIUM'"
-        },
-        "status": {
-          "name": "status",
-          "type": "incident_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'ACTIVE'"
-        },
-        "zone": {
-          "name": "zone",
-          "type": "varchar(120)",
           "primaryKey": false,
           "notNull": true
         },
@@ -208,18 +193,58 @@
           "primaryKey": false,
           "notNull": true
         },
-        "reported_by_id": {
-          "name": "reported_by_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.resources": {
+      "name": "resources",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "hub_id": {
+          "name": "hub_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "category": {
+          "name": "category",
+          "type": "inventory_category",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "unit": {
+          "name": "unit",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": true
         },
         "updated_at": {
           "name": "updated_at",
@@ -230,7 +255,21 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "resources_hub_id_hubs_id_fk": {
+          "name": "resources_hub_id_hubs_id_fk",
+          "tableFrom": "resources",
+          "tableTo": "hubs",
+          "columnsFrom": [
+            "hub_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -260,23 +299,26 @@
         "SUSPENDED"
       ]
     },
-    "public.incident_status": {
-      "name": "incident_status",
+    "public.hub_type": {
+      "name": "hub_type",
       "schema": "public",
       "values": [
-        "ACTIVE",
-        "CONTAINED",
-        "CLOSED"
+        "COLLECTION",
+        "DISPATCH",
+        "DESTINATION"
       ]
     },
-    "public.priority": {
-      "name": "priority",
+    "public.inventory_category": {
+      "name": "inventory_category",
       "schema": "public",
       "values": [
-        "CRITICAL",
-        "HIGH",
-        "MEDIUM",
-        "LOW"
+        "Víveres",
+        "Medicamentos",
+        "Higiene personal",
+        "Abrigo y refugio",
+        "Herramientas",
+        "Productos de limpieza",
+        "Artículos para bebés y grupos vulnerables"
       ]
     }
   },
