@@ -19,7 +19,10 @@ let originalOverflow: string | null = null
 export function lockBodyScroll(): void {
   if (typeof document === 'undefined') return
   if (lockCount === 0) {
-    originalOverflow = document.body.style.overflow
+    // El body podría estar 'hidden' por residuo previo (HMR, fallo de un cleanup anterior).
+    // Si no hay locks activos, lo tratamos como '' para no perpetuar el bloqueo.
+    const current = document.body.style.overflow
+    originalOverflow = current === 'hidden' ? '' : current
     document.body.style.overflow = 'hidden'
   }
   lockCount += 1
@@ -33,6 +36,20 @@ export function unlockBodyScroll(): void {
     document.body.style.overflow = originalOverflow ?? ''
     originalOverflow = null
   }
+}
+
+// HMR: cuando Vite reemplaza este módulo en caliente, los componentes que
+// habían adquirido locks ya no tienen forma de liberarlos. Limpiamos el body
+// y reseteamos el contador para evitar que un scroll quede bloqueado al
+// recargar el código en dev.
+if (typeof document !== 'undefined' && import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    lockCount = 0
+    originalOverflow = null
+    if (document.body.style.overflow === 'hidden') {
+      document.body.style.overflow = ''
+    }
+  })
 }
 
 /** Hook: bloquea el scroll del body mientras `active` sea true. */
