@@ -339,13 +339,14 @@ function NeedCard({ nec, index }: { nec: Necesidad; index: number }) {
 }
 
 // --- Summary stat ---
-function StatBadge({ value, label, highlight }: { value: string | number; label: string; highlight?: boolean }) {
-  return (
-    <div className={`flex flex-col items-center px-4 py-3 rounded-xl border ${
-      highlight
-        ? 'bg-[#2B5F8E] border-[#4A89C0]/50 shadow-[0_4px_16px_rgba(43,95,142,0.4)]'
-        : 'bg-[#152D46] border-[#2B5F8E]/30'
-    }`}>
+function StatBadge({ value, label, highlight, to }: { value: string | number; label: string; highlight?: boolean; to?: string }) {
+  const base = `flex flex-col items-center px-4 py-3 rounded-xl border ${
+    highlight
+      ? 'bg-[#2B5F8E] border-[#4A89C0]/50 shadow-[0_4px_16px_rgba(43,95,142,0.4)]'
+      : 'bg-[#152D46] border-[#2B5F8E]/30'
+  }`
+  const inner = (
+    <>
       <span
         className="font-black tabular-nums text-white leading-none"
         style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.5rem' }}
@@ -353,8 +354,21 @@ function StatBadge({ value, label, highlight }: { value: string | number; label:
         {value}
       </span>
       <span className="text-[10px] text-white/50 font-medium mt-1 whitespace-nowrap">{label}</span>
-    </div>
+    </>
   )
+
+  if (to) {
+    return (
+      <Link
+        to={to}
+        className={`${base} group cursor-pointer hover:border-[#4A89C0]/70 hover:bg-[#1E4A6E] hover:shadow-[0_4px_16px_rgba(74,137,192,0.3)] active:scale-[0.97] transition-[transform,background-color,border-color,box-shadow] duration-200`}
+      >
+        {inner}
+      </Link>
+    )
+  }
+
+  return <div className={base}>{inner}</div>
 }
 
 // --- Rotating message (context-aware) ---
@@ -364,20 +378,27 @@ function RotatingMessage({ hasCovered }: { hasCovered: boolean }) {
     : MENSAJES_ACTIVOS
   const [idx, setIdx] = useState(0)
   const [visible, setVisible] = useState(true)
+
   useEffect(() => {
     const iv = setInterval(() => {
       setVisible(false)
-      setTimeout(() => { setIdx(i => (i + 1) % pool.length); setVisible(true) }, 350)
+      setTimeout(() => {
+        setIdx(i => (i + 1) % pool.length)
+        setVisible(true)
+      }, 400)
     }, 5000)
     return () => clearInterval(iv)
   }, [pool.length])
+
   return (
-    <p
-      className="text-sm text-white/60 text-center italic leading-relaxed max-w-md mx-auto transition-opacity duration-350"
-      style={{ opacity: visible ? 1 : 0 }}
-    >
-      "{pool[idx % pool.length]}"
-    </p>
+    <div className="min-h-[3rem] flex items-center justify-center max-w-md mx-auto">
+      <p
+        className="text-sm text-white/60 text-center italic leading-relaxed transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+      >
+        "{pool[idx % pool.length]}"
+      </p>
+    </div>
   )
 }
 
@@ -403,7 +424,6 @@ function NecesidadesPage() {
   })
 
   const necesidades = data ?? []
-  const criticas = necesidades.filter(n => n.prioridad === 'CRITICA').length
   const totalMeta = necesidades.reduce((s, n) => s + n.meta, 0)
   const totalRecibido = necesidades.reduce((s, n) => s + n.recibido, 0)
   const pctGeneral = getPct(totalRecibido, totalMeta)
@@ -486,12 +506,11 @@ function NecesidadesPage() {
                   fontSize: 'clamp(2.6rem, 7vw, 4.5rem)',
                 }}
               >
-                LO QUE MÁS<br />
-                <span style={{ color: '#C8DCF0' }}>NECESITAMOS HOY</span>
+                VENEZUELA<br />
+                <span style={{ color: '#C8DCF0' }}>TE NECESITA</span>
               </h1>
               <p className="text-sm text-white/50 max-w-lg leading-relaxed mb-6">
-                Estas son las necesidades urgentes de los centros de acopio activos.
-                Cada donación se registra y actualiza estas cifras en tiempo real.
+                Dona lo que puedas o suma tu centro de acopio. Cada gesto llega directo a quien más lo necesita.
               </p>
 
               <Link
@@ -511,193 +530,27 @@ function NecesidadesPage() {
                 <ChevronRight className="relative w-5 h-5 text-[#0F2337] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
               </Link>
 
-              {/* Tengo un centro de acopio — only visible on mobile; desktop shows it in the side CTA stack */}
               <Link
                 to="/register"
-                className="lg:hidden group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden mb-6
-                           border border-[#4A89C0]/30 bg-gradient-to-br from-[#152D46] to-[#0F2337]
-                           shadow-[0_4px_24px_rgba(15,35,55,0.5)]
-                           hover:border-[#4A89C0]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
-                           active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
+                className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
               >
-                <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
-                <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
-                  <Warehouse className="w-6 h-6" strokeWidth={2.2} />
-                </div>
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-black/5 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+                <Warehouse className="relative w-6 h-6 text-[#0F2337] shrink-0" strokeWidth={2.2} />
                 <div className="relative flex-1 min-w-0">
-                  <span
-                    className="block text-white leading-[0.95] tracking-tight"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 800, fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)' }}
-                  >
-                    TENGO UN CENTRO<br />DE ACOPIO
+                  <span className="block text-[#0F2337] leading-[0.95] tracking-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 800, fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)' }}>
+                    TENGO UN CENTRO DE ACOPIO
                   </span>
-                  <span className="block text-[11px] text-white/55 mt-1 font-medium leading-snug">
+                  <span className="block text-[11px] text-[#0F2337]/55 mt-1 font-medium leading-snug">
                     Regístralo y publica tus necesidades
                   </span>
                 </div>
-                <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
+                <ChevronRight className="relative w-5 h-5 text-[#0F2337] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
               </Link>
 
-              {/* Stats */}
-              <div className="flex flex-wrap gap-2 mb-4">
-                <StatBadge value={criticas} label="necesidades críticas" highlight />
-                <StatBadge value={necesidades.length} label="ítems activos" />
-                <StatBadge value={`${pctGeneral}%`} label="cubierto en total" />
-                <StatBadge value={fmt(totalRecibido)} label="unidades recibidas" />
-              </div>
-
-              {/* Overall progress */}
-              <div className="p-4 rounded-xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-white/40" />
-                    <span className="text-xs font-semibold text-white/50">Progreso general de la campaña</span>
-                  </div>
-                  <span
-                    className="font-black text-white tabular-nums"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
-                  >
-                    {pctGeneral}%
-                  </span>
-                </div>
-                <ProgressBar pct={pctGeneral} barColor="bg-[#4A89C0]" barBg="bg-white/10" />
-                <div className="flex justify-between mt-1.5 text-[10px] text-white/25">
-                  <span>{fmt(totalRecibido)} unidades recibidas</span>
-                  <span>meta: {fmt(totalMeta)}</span>
-                </div>
-              </div>
             </div>
 
-            {/* CTA stack — "Quiero ayudar" + "Tengo un centro de acopio" */}
+            {/* CTA stack — Normas de embalaje (mobile) */}
             <div className="flex flex-col gap-4 w-full lg:w-[320px]">
-
-            {/* Big CTA block — real MapLibre map preview as background */}
-            <Link
-              to="/map"
-              className="group relative flex flex-col justify-between gap-5 p-6 lg:p-7 rounded-2xl overflow-hidden
-                         shadow-[0_8px_40px_rgba(15,35,55,0.6)]
-                         hover:shadow-[0_16px_60px_rgba(74,137,192,0.4)]
-                         active:scale-[0.98] transition-[transform,box-shadow] duration-300
-                         w-full min-h-[240px]
-                         border border-[#4A89C0]/30 bg-[#0F2337]"
-            >
-              {/* Real interactive map preview — disabled pointer events so the whole card is the link */}
-              <div className="pointer-events-none absolute inset-0 z-0">
-                <Map
-                  center={[-69.7, 9.05]}
-                  zoom={6.3}
-                  theme="dark"
-                  className="w-full h-full"
-                >
-                  {(centrosData as unknown as Array<{ id: string; coordenadas: [number, number]; tipo: string; isInformal?: boolean }>).map((c) => (
-                    <MapMarker
-                      key={c.id}
-                      coordinates={c.coordenadas}
-                      color={
-                        c.tipo === 'acopio' ? '#3b82f6' :
-                        c.tipo === 'salida' ? '#ef4444' :
-                        c.tipo === 'destino' ? '#22c55e' :
-                        '#3b82f6'
-                      }
-                    />
-                  ))}
-                </Map>
-              </div>
-
-              {/* Brand-tinted overlay for text legibility */}
-              <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-br from-[#0F2337]/85 via-[#0F2337]/55 to-[#2B5F8E]/70" />
-
-              {/* Top decorative stripe */}
-              <div className="pointer-events-none absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r from-[#4A89C0] via-[#C8DCF0] to-[#4A89C0] z-[2]" />
-
-              {/* Shimmer on hover */}
-              <span className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-br from-transparent via-white/15 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
-
-              {/* Top row: icon + tag */}
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-white text-[#0F2337] shadow-[0_4px_16px_rgba(0,0,0,0.4)]">
-                  <HandHeart className="w-6 h-6" strokeWidth={2.4} />
-                </div>
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/30 backdrop-blur-md border border-white/20">
-                  <MapPin className="w-3 h-3 text-[#C8DCF0]" />
-                  <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-[0.1em]">
-                    Explora
-                  </span>
-                </div>
-              </div>
-
-              {/* Big headline */}
-              <div className="relative z-10">
-                <span
-                  className="block text-white leading-[0.95] tracking-tight"
-                  style={{
-                    fontFamily: "'Barlow Condensed', sans-serif",
-                    fontStyle: 'italic',
-                    fontWeight: 800,
-                    fontSize: 'clamp(1.7rem, 2.6vw, 2.2rem)',
-                    textShadow: '0 2px 16px rgba(15,35,55,0.85)',
-                  }}
-                >
-                  QUIERO<br />AYUDAR
-                </span>
-                <span
-                  className="block text-[12px] text-white/85 mt-2 font-medium leading-snug"
-                  style={{ textShadow: '0 1px 8px rgba(15,35,55,0.85)' }}
-                >
-                  Ver los centros de acopio cercanos y cómo donar
-                </span>
-              </div>
-
-              {/* Bottom row */}
-              <div className="relative z-10 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
-                  <span className="text-[10px] font-semibold text-[#C8DCF0]/90" style={{ textShadow: '0 1px 6px rgba(15,35,55,0.8)' }}>
-                    {(centrosData as unknown[]).length} centros activos
-                  </span>
-                </div>
-                <div className="flex items-center gap-1 text-[11px] font-bold text-white uppercase tracking-wider" style={{ textShadow: '0 1px 6px rgba(15,35,55,0.8)' }}>
-                  <span>Ir al mapa</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" strokeWidth={3} />
-                </div>
-              </div>
-            </Link>
-
-            {/* Secondary CTA — "Tengo un centro de acopio" → /register (desktop only; mobile shows it above stats) */}
-            <Link
-              to="/register"
-              className="hidden lg:flex group relative items-center gap-4 p-5 rounded-2xl overflow-hidden
-                         border border-[#4A89C0]/30 bg-gradient-to-br from-[#152D46] to-[#0F2337]
-                         shadow-[0_4px_24px_rgba(15,35,55,0.5)]
-                         hover:border-[#4A89C0]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
-                         active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
-            >
-              {/* Shimmer on hover */}
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
-
-              <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
-                <Warehouse className="w-6 h-6" strokeWidth={2.2} />
-              </div>
-
-              <div className="relative flex-1 min-w-0">
-                <span
-                  className="block text-white leading-[0.95] tracking-tight"
-                  style={{
-                    fontFamily: "'Barlow Condensed', sans-serif",
-                    fontStyle: 'italic',
-                    fontWeight: 800,
-                    fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)',
-                  }}
-                >
-                  TENGO UN CENTRO<br />DE ACOPIO
-                </span>
-                <span className="block text-[11px] text-white/55 mt-1 font-medium leading-snug">
-                  Regístralo y publica tus necesidades
-                </span>
-              </div>
-
-              <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
-            </Link>
 
             {/* Tertiary CTA — "Normas de embalaje" → PDF (only on mobile here; desktop renders as full-width band below) */}
             <a
@@ -711,12 +564,7 @@ function NecesidadesPage() {
                          hover:border-[#2B5F8E]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
                          active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
             >
-              {/* Shimmer on hover */}
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
-
-              <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
-                <Package className="w-6 h-6 animate-pulse" strokeWidth={2.2} />
-              </div>
+              <Package className="relative w-6 h-6 text-white shrink-0" strokeWidth={2.2} />
 
               <div className="relative flex-1 min-w-0">
                 <span
@@ -753,12 +601,7 @@ function NecesidadesPage() {
                        hover:border-[#2B5F8E]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
                        active:scale-[0.99] transition-[transform,box-shadow,border-color] duration-300"
           >
-            {/* Shimmer on hover */}
-            <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
-
-            <div className="relative flex items-center justify-center w-11 h-11 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
-              <Package className="w-5 h-5 animate-pulse" strokeWidth={2.2} />
-            </div>
+            <Package className="relative w-5 h-5 text-white shrink-0" strokeWidth={2.2} />
 
             <div className="relative flex flex-1 items-baseline gap-3 min-w-0">
               <span
@@ -787,17 +630,20 @@ function NecesidadesPage() {
           </a>
         </header>
 
-        {/* ── MOTIVATIONAL BANNER ── */}
-        <div className="mb-8 py-5 px-6 rounded-xl border border-[#2B5F8E]/30 bg-[#2B5F8E]/10 text-center">
-          <div className="flex items-center justify-center gap-2 mb-2">
-            <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
-            <span className="text-[10px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">Cada gesto importa</span>
-            <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
-          </div>
-          <RotatingMessage hasCovered={hasCovered} />
+        {/* ── NEEDS SECTION ── */}
+        <div className="mb-5">
+          <h2
+            className="text-white/90 leading-tight mb-1"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 800, fontSize: 'clamp(1.4rem, 4vw, 2rem)' }}
+          >
+            LO QUE MÁS NECESITAMOS HOY
+          </h2>
+          <p className="text-sm text-white/45 font-medium">
+            Necesidades urgentes de los centros de acopio activos, ordenadas por urgencia. Se actualizan en tiempo real con cada donación.
+          </p>
         </div>
 
-        {/* ── FILTERS ── */}
+        {/* Filters */}
         <div className="flex flex-wrap gap-2 mb-6">
           {(['TODAS', 'CRITICA', 'ALTA', 'MEDIA', 'BAJA'] as const).map(p => {
             const active = filter === p
@@ -824,7 +670,7 @@ function NecesidadesPage() {
           })}
         </div>
 
-        {/* ── NEEDS GRID ── */}
+        {/* Needs grid */}
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -841,6 +687,48 @@ function NecesidadesPage() {
             {sorted.map((nec, i) => <NeedCard key={nec.id} nec={nec} index={i} />)}
           </div>
         )}
+
+        {/* ── CAMPAIGN SUMMARY ── unified panel: stats + progress + motivational strip */}
+        <section className="mt-12 p-5 sm:p-6 rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 backdrop-blur-sm">
+          <div className="flex items-center gap-2 mb-5">
+            <TrendingUp className="w-4 h-4 text-[#C8DCF0]/60" />
+            <h2 className="text-[11px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">Resumen de campaña</h2>
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-3 mb-6">
+            <StatBadge value={fmt(totalRecibido)} label="donaciones recibidas" highlight />
+            <StatBadge value={(centrosData as unknown[]).length} label="centros de acopio activos" to="/map" />
+          </div>
+
+          {/* Overall progress */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-xs font-semibold text-white/50">Progreso general</span>
+              <span
+                className="font-black text-white tabular-nums"
+                style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.1rem' }}
+              >
+                {pctGeneral}%
+              </span>
+            </div>
+            <ProgressBar pct={pctGeneral} barColor="bg-[#4A89C0]" barBg="bg-white/10" />
+            <div className="flex justify-between mt-1.5 text-[10px] text-white/25">
+              <span>{fmt(totalRecibido)} unidades recibidas</span>
+              <span>meta: {fmt(totalMeta)}</span>
+            </div>
+          </div>
+
+          {/* Motivational strip — folded in */}
+          <div className="mt-5 pt-5 border-t border-[#2B5F8E]/20 text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
+              <span className="text-[10px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">Cada gesto importa</span>
+              <Sparkles className="w-3.5 h-3.5 text-[#C8DCF0]/60" />
+            </div>
+            <RotatingMessage hasCovered={hasCovered} />
+          </div>
+        </section>
 
         {/* ── FOOTER ── */}
         <footer className="mt-14 pt-10 border-t border-[#2B5F8E]/20 text-center">
