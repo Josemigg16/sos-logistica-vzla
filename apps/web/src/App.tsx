@@ -402,7 +402,7 @@ export default function App() {
             <p className="text-[11px] text-foreground font-medium mt-0.5 leading-snug">
               {customRoutePoints.length === 0 && "Haz clic en el mapa para marcar el Origen (A)."}
               {customRoutePoints.length === 1 && "Haz clic en el mapa para marcar el Destino (B)."}
-              {customRoutePoints.length === 2 && "Ruta calculada. Volvé a hacer clic para trazar otra."}
+              {customRoutePoints.length === 2 && "Ruta calculada. Vuelve a hacer clic para trazar otra."}
             </p>
             {customRoutePoints.length > 0 && (
               <button

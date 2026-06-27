@@ -39,4 +39,6 @@ export type Centro = z.infer<typeof centroSchema>;
 
 export * from "./identity";
 export * from "./incidents";
+export * from "./resources";
+export * from "./operations";
 
