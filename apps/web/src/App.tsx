@@ -321,23 +321,6 @@ export default function App() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
-          <button
-            onClick={() => {
-              setShowSupplyRoute(prev => !prev);
-              if (!showSupplyRoute) {
-                setMapCenter([-68.0044, 10.1804]);
-                setMapZoom(8);
-              }
-            }}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0 ${
-              showSupplyRoute 
-                ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-md shadow-emerald-500/20" 
-                : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
-            }`}
-            title="Mostrar ruta inteligente de distribución"
-          >
-            <Layers className={`w-4 h-4 ${showSupplyRoute ? "animate-pulse" : ""}`} />
-          </button>
           <SupportPhoneHeaderButton />
           <button
             onClick={() => setShowWelcomeModal(true)}
@@ -360,10 +343,10 @@ export default function App() {
             }}
             className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:px-2.5 md:py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
-            title="Proponer nuevo centro de acopio"
+            title="Registrar nuevo centro de acopio"
           >
             <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span className="hidden md:inline ml-1">Proponer</span>
+            <span className="hidden md:inline ml-1">Registrar</span>
           </button>
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
@@ -1009,11 +992,11 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
               <HandHeart className="w-4 h-4 text-blue-400" />
             </div>
             <div>
-              <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Propone un centro</p>
+              <p className="text-[11px] font-semibold text-foreground leading-none mb-0.5">Registra un centro</p>
               <p className="text-[10px] text-muted-foreground leading-relaxed">
                 ¿Conoces un centro que no aparece? Regístralo con el botón{" "}
                 <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-blue-600 text-white text-[9px] font-bold align-middle">
-                  <Plus className="w-2.5 h-2.5 inline stroke-[3]" /> Proponer
+                  <Plus className="w-2.5 h-2.5 inline stroke-[3]" /> Registrar
                 </span>
                 .
               </p>
@@ -1138,7 +1121,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
               )}
 
               <p className="text-[10px] text-muted-foreground mt-2 ml-9 leading-relaxed">
-                Completá los datos. El centro será visible de inmediato en el mapa.
+                Completa los datos. El centro será visible de inmediato en el mapa.
               </p>
             </div>
 
@@ -1251,7 +1234,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
 
             <div className="flex items-start gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl text-[9.5px] text-blue-400/80">
               <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-400" />
-              <span>Solo podés proponer centros de acopio. Los puntos de despacho y destinos son gestionados por coordinadores autorizados.</span>
+              <span>Solo puedes registrar centros de acopio. Los puntos de despacho y destinos son gestionados por coordinadores autorizados.</span>
             </div>
 
             {/* Botones */}

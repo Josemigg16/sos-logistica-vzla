@@ -44,10 +44,6 @@ services:
     build:
       context: .
       dockerfile: docker/web.Dockerfile
-      args:
-        # Same-origin: la web pega a /api y el nginx del host la reenvía a la api.
-        # Al ser relativo, la MISMA imagen sirve dev/test/prod sin rebuild por dominio.
-        VITE_API_URL: ${VITE_API_URL:-/api}
     restart: unless-stopped
     depends_on:
       - api

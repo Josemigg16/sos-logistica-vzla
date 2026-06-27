@@ -11,6 +11,7 @@ import {
   Truck,
   User,
   Tag,
+  Search,
 } from 'lucide-react'
 import type { PublicVehicleType, PublicVehicle, PublicDriver, VehicleStatus } from '@sos/shared'
 import { useAuth } from '@/lib/auth/auth-context'
@@ -453,6 +454,7 @@ function VehiclesTab() {
   const [editing, setEditing] = useState<PublicVehicle | null>(null)
   const [deleting, setDeleting] = useState<PublicVehicle | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const { data: vehicles = [], isLoading } = useQuery({ queryKey: ['fleet-vehicles'], queryFn: fetchVehicles })
   const { data: types = [] } = useQuery({ queryKey: ['fleet-vehicle-types'], queryFn: fetchVehicleTypes })
@@ -491,35 +493,110 @@ function VehiclesTab() {
     FUERA_DE_SERVICIO: 'text-red-400 bg-red-400/10',
   }
 
+  const filteredVehicles = vehicles.filter((v) => {
+    const query = search.toLowerCase()
+    const typeLabel = v.tipoVehiculoId ? (typesMap[v.tipoVehiculoId] || '').toLowerCase() : ''
+    const driverLabel = v.choferId ? (driversMap[v.choferId] || '').toLowerCase() : ''
+    return (
+      v.placa.toLowerCase().includes(query) ||
+      v.modelo.toLowerCase().includes(query) ||
+      typeLabel.includes(query) ||
+      driverLabel.includes(query)
+    )
+  })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-white/50">{vehicles.length} vehículos registrados</p>
-        <AddButton label="NUEVO VEHÍCULO" onClick={() => { setCreating(true); setErrorMsg(null) }} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+          <p className="text-sm text-white/50 shrink-0">{vehicles.length} vehículos registrados</p>
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+            <input
+              type="text"
+              placeholder="Buscar por placa, modelo, tipo o chofer..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full bg-[#152D46]/40 border border-[#2B5F8E]/30 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#2B5F8E] transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="self-end md:self-auto">
+          <AddButton label="NUEVO VEHÍCULO" onClick={() => { setCreating(true); setErrorMsg(null) }} />
+        </div>
       </div>
 
       {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
 
-      {isLoading ? <LoadingRows /> : vehicles.length === 0 ? (
-        <EmptyRow label="vehículos" onCreate={() => setCreating(true)} />
+      {isLoading ? <LoadingRows /> : filteredVehicles.length === 0 ? (
+        <EmptyRow label={search ? "vehículos que coincidan con la búsqueda" : "vehículos"} onCreate={() => setCreating(true)} />
       ) : (
-        <TableShell headers={['Placa', 'Modelo', 'Tipo', 'Capacidad', 'Chofer', 'Estado', 'Acciones']}>
-          {vehicles.map((v) => (
-            <tr key={v.id} className="hover:bg-[#2B5F8E]/10 transition-colors">
-              <td className="px-5 py-3 font-mono font-bold text-white">{v.placa}</td>
-              <td className="px-5 py-3 text-white/80">{v.modelo}</td>
-              <td className="px-5 py-3 text-white/60">{v.tipoVehiculoId ? typesMap[v.tipoVehiculoId] ?? '—' : '—'}</td>
-              <td className="px-5 py-3 text-white/60">{v.capacidadCargaKg} kg</td>
-              <td className="px-5 py-3 text-white/60">{v.choferId ? driversMap[v.choferId] ?? '—' : '—'}</td>
-              <td className="px-5 py-3">
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[v.estado]}`}>
-                  {VEHICLE_STATUS_LABELS[v.estado]}
-                </span>
-              </td>
-              <td className="px-5 py-3"><ActionButtons onEdit={() => { setEditing(v); setErrorMsg(null) }} onDelete={() => setDeleting(v)} /></td>
-            </tr>
-          ))}
-        </TableShell>
+        <>
+          {/* Vista Desktop (Tabla) */}
+          <div className="hidden md:block">
+            <TableShell headers={['Placa', 'Modelo', 'Tipo', 'Capacidad', 'Chofer', 'Estado', 'Acciones']}>
+              {filteredVehicles.map((v) => (
+                <tr key={v.id} className="hover:bg-[#2B5F8E]/10 transition-colors">
+                  <td className="px-5 py-3 font-mono font-bold text-white">{v.placa}</td>
+                  <td className="px-5 py-3 text-white/80">{v.modelo}</td>
+                  <td className="px-5 py-3 text-white/60">{v.tipoVehiculoId ? typesMap[v.tipoVehiculoId] ?? '—' : '—'}</td>
+                  <td className="px-5 py-3 text-white/60">{v.capacidadCargaKg} kg</td>
+                  <td className="px-5 py-3 text-white/60">{v.choferId ? driversMap[v.choferId] ?? '—' : '—'}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLORS[v.estado]}`}>
+                      {VEHICLE_STATUS_LABELS[v.estado]}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3"><ActionButtons onEdit={() => { setEditing(v); setErrorMsg(null) }} onDelete={() => setDeleting(v)} /></td>
+                </tr>
+              ))}
+            </TableShell>
+          </div>
+
+          {/* Vista Mobile (Cards) */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filteredVehicles.map((v) => (
+              <div key={v.id} className="p-4 rounded-2xl border border-[#2B5F8E]/30 bg-[#152D46]/60 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-mono font-bold text-white text-base">{v.placa}</span>
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold ${STATUS_COLORS[v.estado]}`}>
+                      {VEHICLE_STATUS_LABELS[v.estado]}
+                    </span>
+                  </div>
+                  <ActionButtons onEdit={() => { setEditing(v); setErrorMsg(null) }} onDelete={() => setDeleting(v)} />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Modelo</span>
+                    <span className="text-white font-medium">{v.modelo}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Tipo</span>
+                    <span className="text-white/80 font-medium">{v.tipoVehiculoId ? typesMap[v.tipoVehiculoId] ?? '—' : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Capacidad</span>
+                    <span className="text-white/80 font-medium">{v.capacidadCargaKg} kg</span>
+                  </div>
+                  <div>
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Chofer</span>
+                    <span className="text-white/80 font-medium">{v.choferId ? driversMap[v.choferId] ?? '—' : '—'}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {creating && <VehicleModal title="Nuevo vehículo" types={types} onClose={() => setCreating(false)} onSubmit={(d) => createMut.mutate(d)} isSubmitting={createMut.isPending} errorMsg={errorMsg} onDismissError={() => setErrorMsg(null)} />}
@@ -625,6 +702,7 @@ function DriversTab() {
   const [editing, setEditing] = useState<PublicDriver | null>(null)
   const [deleting, setDeleting] = useState<PublicDriver | null>(null)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   const { data: drivers = [], isLoading } = useQuery({ queryKey: ['fleet-drivers'], queryFn: fetchDrivers })
 
@@ -652,41 +730,116 @@ function DriversTab() {
     onError,
   })
 
+  const filteredDrivers = drivers.filter((d) => {
+    const query = search.toLowerCase()
+    return (
+      d.nombre.toLowerCase().includes(query) ||
+      d.apellido.toLowerCase().includes(query) ||
+      d.cedula.toLowerCase().includes(query) ||
+      d.licencia.toLowerCase().includes(query) ||
+      d.telefono.toLowerCase().includes(query)
+    )
+  })
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm text-white/50">{drivers.length} choferes registrados</p>
-        <AddButton label="NUEVO CHOFER" onClick={() => { setCreating(true); setErrorMsg(null) }} />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4 flex-1">
+          <p className="text-sm text-white/50 shrink-0">{drivers.length} choferes registrados</p>
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, cédula, licencia..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 pr-4 py-2 w-full bg-[#152D46]/40 border border-[#2B5F8E]/30 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-[#2B5F8E] transition-colors"
+            />
+            {search && (
+              <button
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+        <div className="self-end md:self-auto">
+          <AddButton label="NUEVO CHOFER" onClick={() => { setCreating(true); setErrorMsg(null) }} />
+        </div>
       </div>
 
       {errorMsg && <ErrorBanner msg={errorMsg} onDismiss={() => setErrorMsg(null)} />}
 
-      {isLoading ? <LoadingRows /> : drivers.length === 0 ? (
-        <EmptyRow label="choferes" onCreate={() => setCreating(true)} />
+      {isLoading ? <LoadingRows /> : filteredDrivers.length === 0 ? (
+        <EmptyRow label={search ? "choferes que coincidan con la búsqueda" : "choferes"} onCreate={() => setCreating(true)} />
       ) : (
-        <TableShell headers={['Chofer', 'Cédula', 'Licencia', 'Teléfono', 'Disponible', 'Acciones']}>
-          {drivers.map((d) => (
-            <tr key={d.id} className="hover:bg-[#2B5F8E]/10 transition-colors">
-              <td className="px-5 py-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-lg bg-[#2B5F8E] flex items-center justify-center text-xs font-bold text-white shrink-0">
-                    {d.nombre.charAt(0).toUpperCase()}
+        <>
+          {/* Vista Desktop (Tabla) */}
+          <div className="hidden md:block">
+            <TableShell headers={['Chofer', 'Cédula', 'Licencia', 'Teléfono', 'Disponible', 'Acciones']}>
+              {filteredDrivers.map((d) => (
+                <tr key={d.id} className="hover:bg-[#2B5F8E]/10 transition-colors">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg bg-[#2B5F8E] flex items-center justify-center text-xs font-bold text-white shrink-0">
+                        {d.nombre.charAt(0).toUpperCase()}
+                      </div>
+                      <span className="font-medium text-white">{d.nombre} {d.apellido}</span>
+                    </div>
+                  </td>
+                  <td className="px-5 py-3 text-white/60 font-mono text-xs">{d.cedula}</td>
+                  <td className="px-5 py-3 text-white/80 font-mono text-xs">{d.licencia}</td>
+                  <td className="px-5 py-3 text-white/60">{d.telefono}</td>
+                  <td className="px-5 py-3">
+                    <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${d.disponible ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                      {d.disponible ? 'Disponible' : 'No disponible'}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3"><ActionButtons onEdit={() => { setEditing(d); setErrorMsg(null) }} onDelete={() => setDeleting(d)} /></td>
+                </tr>
+              ))}
+            </TableShell>
+          </div>
+
+          {/* Vista Mobile (Cards) */}
+          <div className="flex flex-col gap-3 md:hidden">
+            {filteredDrivers.map((d) => (
+              <div key={d.id} className="p-4 rounded-2xl border border-[#2B5F8E]/30 bg-[#152D46]/60 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-[#2B5F8E] flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      {d.nombre.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <span className="font-medium text-white block">{d.nombre} {d.apellido}</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold mt-0.5 ${d.disponible ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
+                        {d.disponible ? 'Disponible' : 'No disponible'}
+                      </span>
+                    </div>
                   </div>
-                  <span className="font-medium text-white">{d.nombre} {d.apellido}</span>
+                  <ActionButtons onEdit={() => { setEditing(d); setErrorMsg(null) }} onDelete={() => setDeleting(d)} />
                 </div>
-              </td>
-              <td className="px-5 py-3 text-white/60 font-mono text-xs">{d.cedula}</td>
-              <td className="px-5 py-3 text-white/80 font-mono text-xs">{d.licencia}</td>
-              <td className="px-5 py-3 text-white/60">{d.telefono}</td>
-              <td className="px-5 py-3">
-                <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${d.disponible ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'}`}>
-                  {d.disponible ? 'Disponible' : 'No disponible'}
-                </span>
-              </td>
-              <td className="px-5 py-3"><ActionButtons onEdit={() => { setEditing(d); setErrorMsg(null) }} onDelete={() => setDeleting(d)} /></td>
-            </tr>
-          ))}
-        </TableShell>
+                
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div>
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Cédula</span>
+                    <span className="text-white font-mono font-medium">{d.cedula}</span>
+                  </div>
+                  <div>
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Teléfono</span>
+                    <span className="text-white font-medium">{d.telefono}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-[#C8DCF0]/40 block uppercase tracking-wider text-[10px] font-semibold mb-0.5">Licencia</span>
+                    <span className="text-white/80 font-mono font-medium">{d.licencia}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {creating && <DriverCreateModal onClose={() => setCreating(false)} onSubmit={(d) => createMut.mutate(d)} isSubmitting={createMut.isPending} errorMsg={errorMsg} onDismissError={() => setErrorMsg(null)} />}
