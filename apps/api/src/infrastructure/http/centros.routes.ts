@@ -7,7 +7,7 @@ import type { UpsertHub } from "../../application/resources/upsert-hub";
 import type { ReplaceHubInventory } from "../../application/resources/replace-hub-inventory";
 import type { DeleteHub } from "../../application/resources/delete-hub";
 import { ResourceError } from "../../domain/resources/errors";
-import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
+import { authentication, optionalAuthentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
 /**
  * Anti-Corruption Layer: translates the legacy Spanish `Centro` contract
@@ -105,8 +105,9 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
    * Upsert hub + replace inventory atomically.
    * Returns { success: true, centro }.
    * REQ-15: requires authentication + ZODI_DESTINATION, ADMIN, or MANAGER role.
+   * Exception: unauthenticated users are allowed to propose hubs if tipo is "acopio" (COLLECTION).
    */
-  router.post("/", authentication, requireRole("ZODI_DESTINATION", "ADMIN", "MANAGER"), async (c) => {
+  router.post("/", optionalAuthentication, async (c) => {
     const parsed = centroSchema.safeParse(
       await c.req.json().catch(() => null),
     );
@@ -118,6 +119,19 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
     }
 
     const centro = parsed.data;
+
+    // Hub Write Guard (REQ-15)
+    // If it's not a collection hub ("acopio"), require authentication + ZODI_DESTINATION, ADMIN, or MANAGER role.
+    if (centro.tipo !== "acopio") {
+      const actor = c.get("actor");
+      if (!actor) {
+        return c.json({ error: "No autenticado" }, 401);
+      }
+      const allowedRoles = ["ZODI_DESTINATION", "ADMIN", "MANAGER"];
+      if (!allowedRoles.includes(actor.role)) {
+        return c.json({ error: "No autorizado" }, 403);
+      }
+    }
 
     try {
       const savedHub = await deps.upsertHub.execute({

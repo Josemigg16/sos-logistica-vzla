@@ -23,6 +23,7 @@ import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
+import { getToken } from "@/lib/auth/token-store";
 import isotipo from "@/assets/branding/white-isotipo-blue-background.webp";
 
 
@@ -722,11 +723,16 @@ export default function App() {
           onSubmit={async (data) => {
             setIsSaving(true);
             try {
+              const token = getToken();
+              const headers: HeadersInit = {
+                "Content-Type": "application/json",
+              };
+              if (token) {
+                headers["Authorization"] = `Bearer ${token}`;
+              }
               const res = await fetch(`${API_URL}/centros`, {
                 method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
+                headers,
                 body: JSON.stringify({
                   ...data,
                   inventario: {}, // Se registra sin inventario inicial

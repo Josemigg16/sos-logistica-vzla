@@ -226,7 +226,7 @@ describe("DELETE /centros/:id", () => {
 // ────────────────────────────────────────────────────────────────────────────
 
 describe("REQ-15 — Hub write guard on /centros", () => {
-  test("S15.1 — unauthenticated POST /centros returns 401", async () => {
+  test("S15.1 — unauthenticated POST /centros returns 401 for non-acopio types", async () => {
     const app = buildApp();
     const res = await app.request("/centros", {
       method: "POST",
@@ -234,6 +234,18 @@ describe("REQ-15 — Hub write guard on /centros", () => {
       body: JSON.stringify(makeCentro({ tipo: "destino" })),
     });
     expect(res.status).toBe(401);
+  });
+
+  test("S15.1.2 — unauthenticated POST /centros succeeds (200) for acopio (collection) type", async () => {
+    const app = buildApp();
+    const res = await app.request("/centros", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(makeCentro({ tipo: "acopio" })),
+    });
+    expect(res.status).toBe(200);
+    const body = await res.json() as any;
+    expect(body.success).toBe(true);
   });
 
   test("S15.2 — POST /centros with wrong role (DRIVER) returns 403", async () => {
