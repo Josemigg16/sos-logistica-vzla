@@ -42,4 +42,5 @@ export * from "./incidents";
 export * from "./resources";
 export * from "./operations";
 export * from "./needs";
+export * from "./fleet";
 

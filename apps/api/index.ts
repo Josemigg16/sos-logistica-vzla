@@ -13,6 +13,7 @@ import { hubs, resources, products, needs } from "./src/infrastructure/persisten
 import { createIdentityModule } from "./src/infrastructure/identity.module";
 import { createResourcesModule } from "./src/infrastructure/resources.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
+import { createFleetModule } from "./src/infrastructure/fleet.module";
 
 const app = new Hono();
 
@@ -70,6 +71,9 @@ app.route("/api/resources", createResourcesModule().routes);
 
 // Bounded context `operations` — planificación de viajes bajo /api/operations.
 app.route("/api/operations", createOperationsModule().routes);
+
+// Bounded context `fleet` — choferes, vehículos y tipos de vehículo bajo /api/fleet.
+app.route("/api/fleet", createFleetModule().routes);
 
 // --- Endpoints del Servidor ---
 

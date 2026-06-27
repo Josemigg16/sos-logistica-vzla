@@ -14,6 +14,7 @@ import { OPERATION_STATUSES } from "@sos/shared";
 import { users } from "./users.schema";
 import { incidents } from "./incidents.schema";
 import { hubs, lotesCarga, traspasosCarga, resources } from "./resources.schema";
+import { tiposVehiculo } from "./fleet.schema";
 
 // --- ENUMS ---
 export const operationStatusEnum = pgEnum(
@@ -69,6 +70,7 @@ export const vehiculos = pgTable("vehiculos", {
   estado: estadoVehiculoEnum("estado").notNull().default("DISPONIBLE"),
   choferId: uuid("chofer_id").references(() => choferes.id, { onDelete: "set null" }),
   centroOrigenId: uuid("centro_origen_id").references(() => hubs.id, { onDelete: "set null" }),
+  tipoVehiculoId: uuid("tipo_vehiculo_id").references(() => tiposVehiculo.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
