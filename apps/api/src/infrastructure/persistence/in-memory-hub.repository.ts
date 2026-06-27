@@ -12,6 +12,13 @@ export class InMemoryHubRepository implements HubRepository {
     return this.byId.get(id) ?? null;
   }
 
+  async findByCoordinator(coordinatorId: string): Promise<Hub | null> {
+    for (const hub of this.byId.values()) {
+      if (hub.toPublic().coordinatorId === coordinatorId) return hub;
+    }
+    return null;
+  }
+
   async findAll(): Promise<Hub[]> {
     return [...this.byId.values()];
   }

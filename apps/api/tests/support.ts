@@ -1,6 +1,7 @@
 import type { PasswordHasher } from "../src/application/identity/ports/password-hasher";
 import { AuthenticateUser } from "../src/application/identity/authenticate-user";
 import { RegisterUser } from "../src/application/identity/register-user";
+import { SelfRegisterCoordinator } from "../src/application/identity/self-register-coordinator";
 import { RefreshSession } from "../src/application/identity/refresh-session";
 import { RevokeSession } from "../src/application/identity/revoke-session";
 import { InMemoryUserRepository } from "../src/infrastructure/persistence/in-memory-user.repository";
@@ -32,6 +33,7 @@ export async function buildAuthApp() {
 
   const useCases = {
     registerUser: new RegisterUser(users, hasher),
+    selfRegisterCoordinator: new SelfRegisterCoordinator(users, hasher),
     authenticateUser: new AuthenticateUser(
       users,
       sessions,

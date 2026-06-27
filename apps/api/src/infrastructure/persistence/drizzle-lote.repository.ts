@@ -21,7 +21,7 @@ async function withItems(loteRows: (typeof lotes.$inferSelect)[]): Promise<Lote[
   const itemRows = await db
     .select()
     .from(loteItems)
-    .where(ids.length === 1 ? eq(loteItems.loteId, ids[0]) : inArray(loteItems.loteId, ids));
+    .where(inArray(loteItems.loteId, ids));
 
   return loteRows.map((r) => {
     const items = itemRows

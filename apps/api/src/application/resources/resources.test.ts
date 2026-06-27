@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { RegisterHub } from "./register-hub";
 import { ListHubs } from "./list-hubs";
+import { GetHubByCoordinator } from "./get-hub-by-coordinator";
 import { StockResource } from "./stock-resource";
 import { ListResourcesByHub } from "./list-resources-by-hub";
 import { InMemoryHubRepository } from "../../infrastructure/persistence/in-memory-hub.repository";
@@ -27,9 +28,42 @@ describe("RegisterHub / ListHubs", () => {
     });
 
     expect(hub.type).toBe("COLLECTION");
+    expect(hub.coordinatorId).toBeNull();
     const all = await list.execute();
     expect(all).toHaveLength(1);
     expect(all[0]!.name).toBe("Centro Catia");
+  });
+});
+
+describe("GetHubByCoordinator", () => {
+  let hubs: InMemoryHubRepository;
+
+  beforeEach(() => {
+    hubs = new InMemoryHubRepository();
+  });
+
+  test("devuelve el hub asociado a un coordinador", async () => {
+    const register = new RegisterHub(hubs);
+    const getMine = new GetHubByCoordinator(hubs);
+
+    const created = await register.execute({
+      name: "Centro Coordinador",
+      address: "Calle 2",
+      contact: "x",
+      type: "COLLECTION",
+      latitude: 9,
+      longitude: -67,
+      coordinatorId: "coord-1",
+    });
+
+    expect(created.coordinatorId).toBe("coord-1");
+    const mine = await getMine.execute("coord-1");
+    expect(mine?.id).toBe(created.id);
+  });
+
+  test("devuelve null cuando el coordinador no tiene hub", async () => {
+    const getMine = new GetHubByCoordinator(hubs);
+    expect(await getMine.execute("sin-hub")).toBeNull();
   });
 });
 
