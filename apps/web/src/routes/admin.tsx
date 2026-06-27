@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, Navigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2 } from 'lucide-react'
+import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
 import { hasAnyRole, ROLES_VIEW_ADMIN } from '@/lib/session'
@@ -171,10 +171,11 @@ function SidebarContent({
           Panel interno
         </div>
 
-        <nav className="flex flex-col gap-1">
-          <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
-          <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
-        </nav>
+          <nav className="flex flex-col gap-1">
+            <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
+            <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
+            <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Centros de acopio" />
+          </nav>
       </div>
 
       <div className="p-5 pt-4 border-t border-[#2B5F8E]/20 shrink-0">

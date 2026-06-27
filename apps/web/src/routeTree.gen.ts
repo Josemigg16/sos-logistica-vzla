@@ -16,6 +16,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminNeedsRouteImport } from './routes/admin/needs'
+import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 
 const PortalRoute = PortalRouteImport.update({
   id: '/portal',
@@ -52,6 +53,11 @@ const AdminNeedsRoute = AdminNeedsRouteImport.update({
   path: '/needs',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHubsRoute = AdminHubsRouteImport.update({
+  id: '/hubs',
+  path: '/hubs',
+  getParentRoute: () => AdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -59,6 +65,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/portal': typeof PortalRoute
+  '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -67,6 +74,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/portal': typeof PortalRoute
+  '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin': typeof AdminIndexRoute
 }
@@ -77,6 +85,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/portal': typeof PortalRoute
+  '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/': typeof AdminIndexRoute
 }
@@ -88,10 +97,18 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/portal'
+    | '/admin/hubs'
     | '/admin/needs'
     | '/admin/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/map' | '/portal' | '/admin/needs' | '/admin'
+  to:
+    | '/'
+    | '/login'
+    | '/map'
+    | '/portal'
+    | '/admin/hubs'
+    | '/admin/needs'
+    | '/admin'
   id:
     | '__root__'
     | '/'
@@ -99,6 +116,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/portal'
+    | '/admin/hubs'
     | '/admin/needs'
     | '/admin/'
   fileRoutesById: FileRoutesById
@@ -162,15 +180,24 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminNeedsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/hubs': {
+      id: '/admin/hubs'
+      path: '/hubs'
+      fullPath: '/admin/hubs'
+      preLoaderRoute: typeof AdminHubsRouteImport
+      parentRoute: typeof AdminRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
+  AdminHubsRoute: typeof AdminHubsRoute
   AdminNeedsRoute: typeof AdminNeedsRoute
   AdminIndexRoute: typeof AdminIndexRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminHubsRoute: AdminHubsRoute,
   AdminNeedsRoute: AdminNeedsRoute,
   AdminIndexRoute: AdminIndexRoute,
 }

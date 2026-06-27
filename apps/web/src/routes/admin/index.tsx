@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { PackagePlus, ChevronRight, ShieldCheck } from 'lucide-react'
+import { PackagePlus, ChevronRight, ShieldCheck, MapPin } from 'lucide-react'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
@@ -42,6 +42,13 @@ function AdminDashboard() {
           title="Necesidades"
           description="Crear, editar y cerrar requerimientos públicos."
           stat="8 ítems activos"
+        />
+        <AdminSectionCard
+          to="/admin/hubs"
+          icon={<MapPin className="w-6 h-6" />}
+          title="Centros de Acopio"
+          description="Registrar nuevos puntos y actualizar sus inventarios."
+          stat="Gestionar puntos"
         />
       </div>
     </div>

@@ -5,7 +5,10 @@
     "direccion": "Av. Francisco de Miranda, Altamira, Caracas",
     "contacto": "+58 212 555 0199",
     "responsable": "Dra. Sofía Mendoza",
-    "coordenadas": [-66.8482, 10.4961],
+    "coordenadas": [
+      -66.8482,
+      10.4961
+    ],
     "tipo": "acopio",
     "inventario": {
       "Víveres": 85,
@@ -52,7 +55,10 @@
     "direccion": "Av. Las Delicias, Maracay",
     "contacto": "+58 243 241 1289",
     "responsable": "Cnel. Luis Gómez",
-    "coordenadas": [-67.6053, 10.2442],
+    "coordenadas": [
+      -67.6053,
+      10.2442
+    ],
     "tipo": "salida",
     "inventario": {
       "Víveres": 45,
@@ -99,7 +105,10 @@
     "direccion": "Redoma de Araure, Araure, Portuguesa",
     "contacto": "+58 255 555 0123",
     "responsable": "Lic. Marcos Dávila",
-    "coordenadas": [-69.22162, 9.58324],
+    "coordenadas": [
+      -69.22162,
+      9.58324
+    ],
     "tipo": "acopio",
     "inventario": {
       "Víveres": 70,
@@ -109,6 +118,27 @@
       "Productos de limpieza": 80,
       "Abrigo y refugio": 35,
       "Artículos para bebés y grupos vulnerables": 90
+    }
+  },
+  {
+    "id": "centro-1782524652308",
+    "nombre": "asd",
+    "direccion": "asdasd",
+    "contacto": "2131234134133",
+    "responsable": "maikol",
+    "coordenadas": [
+      -69.2216,
+      9.5832
+    ],
+    "tipo": "acopio",
+    "inventario": {
+      "Víveres": 0,
+      "Medicamentos": 0,
+      "Higiene personal": 0,
+      "Productos de limpieza": 0,
+      "Abrigo y refugio": 0,
+      "Herramientas": 0,
+      "Artículos para bebés y grupos vulnerables": 0
     }
   }
 ]

@@ -453,9 +453,16 @@ export default function App() {
             <div className="flex items-start justify-between">
               <div>
                 <h2 className="text-base font-bold text-foreground tracking-tight leading-snug text-balance">{selectedCentro.nombre}</h2>
-                <div className="flex items-center gap-1.5 mt-1 text-muted-foreground">
-                  <MapPin className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
-                  <p className="text-[11px] font-medium leading-none">{selectedCentro.direccion}</p>
+                <div className="flex flex-col gap-1 mt-1 text-muted-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400 shrink-0" />
+                    <p className="text-[11px] font-medium leading-none">{selectedCentro.direccion}</p>
+                  </div>
+                  <div className="text-[10px] font-mono text-muted-foreground/60 flex items-center gap-1.5 pl-5 select-text">
+                    <span>Lat: {selectedCentro.coordenadas[1].toFixed(5)}°</span>
+                    <span className="text-muted-foreground/20">•</span>
+                    <span>Lng: {selectedCentro.coordenadas[0].toFixed(5)}°</span>
+                  </div>
                 </div>
               </div>
               <button

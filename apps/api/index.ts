@@ -239,6 +239,26 @@ app.post("/api/centros", async (c) => {
   }
 });
 
+// Eliminar un centro
+app.delete("/api/centros/:id", async (c) => {
+  try {
+    const id = c.req.param("id");
+    const centros = await readCentros();
+    const existingIndex = centros.findIndex((item) => item.id === id);
+    if (existingIndex === -1) {
+      return c.json({ error: "Centro no encontrado" }, 404);
+    }
+    centros.splice(existingIndex, 1);
+    const saved = await writeCentros(centros);
+    if (!saved) {
+      return c.json({ error: "Error interno al guardar los datos" }, 500);
+    }
+    return c.json({ success: true });
+  } catch (error) {
+    return c.json({ error: "Error en la petición" }, 400);
+  }
+});
+
 // --- Needs (necesidades) — public read + admin CRUD, persistido en JSON local ---
 
 app.get("/api/necesidades", async (c) => {
@@ -311,7 +331,7 @@ app.delete("/api/necesidades/:id", async (c) => {
   return c.json({ ok: true });
 });
 
-const port = Number(process.env.PORT ?? 3000);
+const port = Number(process.env.PORT ?? 8081);
 
 export default {
   port,
