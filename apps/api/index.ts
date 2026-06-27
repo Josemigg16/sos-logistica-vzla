@@ -3,7 +3,6 @@ import { cors } from "hono/cors";
 import { centroSchema, type Centro } from "@sos/shared";
 import { join } from "path";
 import { createIdentityModule } from "./src/infrastructure/identity.module";
-import { createResourcesModule } from "./src/infrastructure/resources.module";
 
 const app = new Hono();
 
@@ -18,9 +17,6 @@ app.use(
 
 // Bounded context `identity` — autenticación bajo /auth.
 app.route("/auth", createIdentityModule().routes);
-
-// Bounded context `resources` — inventario y centros de acopio bajo /resources.
-app.route("/resources", createResourcesModule().routes);
 
 const DATA_FILE_PATH = join(import.meta.dir, "data", "centros.json");
 const NEEDS_FILE_PATH = join(import.meta.dir, "data", "needs.json");
