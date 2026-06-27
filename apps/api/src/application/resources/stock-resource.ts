@@ -2,7 +2,9 @@ import type { PublicResource, StockResourceRequest } from "@sos/shared";
 import type { HubRepository } from "../../domain/resources/repositories/hub.repository";
 import type { ResourceRepository } from "../../domain/resources/repositories/resource.repository";
 import type { ProductRepository } from "../../domain/resources/repositories/product.repository";
+import type { InventoryBatchRepository } from "../../domain/resources/repositories/inventory-batch.repository";
 import { Resource } from "../../domain/resources/entities/resource";
+import { InventoryBatch } from "../../domain/resources/entities/inventory-batch";
 import { InventoryCategory } from "../../domain/resources/value-objects/inventory-category";
 import { HubNotFoundError, ProductNotFoundError } from "../../domain/resources/errors";
 
@@ -16,6 +18,7 @@ export class StockResource {
     private readonly hubs: HubRepository,
     private readonly resources: ResourceRepository,
     private readonly products: ProductRepository,
+    private readonly batches: InventoryBatchRepository,
   ) {}
 
   async execute(command: StockResourceRequest): Promise<PublicResource> {
@@ -44,6 +47,16 @@ export class StockResource {
 
     resource.addStock(command.quantity);
     await this.resources.save(resource);
+
+    // Guardar el registro en el histórico de ingresos (inventory_batches)
+    const batch = InventoryBatch.register({
+      id: crypto.randomUUID(),
+      hubId: command.hubId,
+      productId: command.productId,
+      quantityBatches: command.quantity,
+    });
+    await this.batches.save(batch);
+
     return resource.toPublic();
   }
 }

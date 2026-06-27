@@ -8,6 +8,8 @@ import { InMemoryHubRepository } from "../../infrastructure/persistence/in-memor
 import { InMemoryResourceRepository } from "../../infrastructure/persistence/in-memory-resource.repository";
 import { InMemoryProductRepository } from "../../infrastructure/persistence/in-memory-product.repository";
 import { Product } from "../../domain/resources/entities/product";
+import { InMemoryInventoryBatchRepository } from "../../infrastructure/persistence/in-memory-inventory-batch.repository";
+
 
 describe("RegisterHub / ListHubs", () => {
   let hubs: InMemoryHubRepository;
@@ -73,12 +75,14 @@ describe("StockResource / ListResourcesByHub", () => {
   let hubs: InMemoryHubRepository;
   let resources: InMemoryResourceRepository;
   let products: InMemoryProductRepository;
+  let batches: InMemoryInventoryBatchRepository;
   let arroz: { id: string };
 
   beforeEach(async () => {
     hubs = new InMemoryHubRepository();
     resources = new InMemoryResourceRepository();
     products = new InMemoryProductRepository();
+    batches = new InMemoryInventoryBatchRepository();
     const product = Product.create({
       id: crypto.randomUUID(),
       name: "Arroz blanco",
@@ -99,7 +103,7 @@ describe("StockResource / ListResourcesByHub", () => {
       latitude: 10,
       longitude: -66,
     });
-    const stock = new StockResource(hubs, resources, products);
+    const stock = new StockResource(hubs, resources, products, batches);
 
     await stock.execute({ hubId: hub.id, productId: arroz.id, quantity: 10 });
     const second = await stock.execute({ hubId: hub.id, productId: arroz.id, quantity: 5 });
@@ -111,10 +115,16 @@ describe("StockResource / ListResourcesByHub", () => {
     const list = await new ListResourcesByHub(resources).execute(hub.id);
     expect(list).toHaveLength(1);
     expect(list[0]!.quantity).toBe(15);
+
+    // Verificar que se guardaron los batches en el histórico de ingresos
+    const batchList = await batches.findByHub(hub.id);
+    expect(batchList).toHaveLength(2);
+    expect(batchList[0]!.quantityBatches).toBe(10);
+    expect(batchList[1]!.quantityBatches).toBe(5);
   });
 
   test("rechaza stockear en un hub inexistente", async () => {
-    const stock = new StockResource(hubs, resources, products);
+    const stock = new StockResource(hubs, resources, products, batches);
     await expect(
       stock.execute({ hubId: crypto.randomUUID(), productId: arroz.id, quantity: 1 }),
     ).rejects.toThrow();
@@ -129,7 +139,7 @@ describe("StockResource / ListResourcesByHub", () => {
       latitude: 11,
       longitude: -67,
     });
-    const stock = new StockResource(hubs, resources, products);
+    const stock = new StockResource(hubs, resources, products, batches);
     await expect(
       stock.execute({ hubId: hub.id, productId: crypto.randomUUID(), quantity: 1 }),
     ).rejects.toThrow();
