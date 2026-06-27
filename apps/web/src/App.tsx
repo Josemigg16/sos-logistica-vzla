@@ -11,8 +11,10 @@ import {
   Sun,
   Moon,
   Layers,
-  HeartHandshake
+  HeartHandshake,
+  ArrowLeft
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
 import centrosData from "@/data/centros.json";
 
@@ -178,15 +180,23 @@ export default function App() {
       
       {/* HEADER DE LA APP */}
       <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
+          <Link
+            to="/"
+            className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shrink-0"
+            title="Volver a necesidades"
+            aria-label="Volver a necesidades"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
           <img
             src="/src/assets/branding/white-isotipo-blue-background.webp"
             alt="Portuguesa Unida"
             className="w-10 h-10 rounded-lg object-cover"
           />
-          <div>
+          <div className="min-w-0">
             <h1
-              className="text-sm font-black text-foreground m-0 leading-none tracking-wide"
+              className="text-sm font-black text-foreground m-0 leading-none tracking-wide truncate"
               style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
             >
               PORTUGUESA UNIDA
