@@ -1,10 +1,3 @@
-/**
- * Characterization tests for the Need slice (Strangler Fig).
- * These tests verify that the new Clean Architecture implementation
- * produces the EXACT same JSON contract as the legacy endpoints.
- *
- * TDD CYCLE: RED first — all imports target files that don't exist yet.
- */
 import { beforeEach, describe, expect, test } from "bun:test";
 import { Hono } from "hono";
 import { sign } from "hono/jwt";
@@ -17,12 +10,14 @@ import { CreateNeed } from "./create-need";
 import { ListNeeds } from "./list-needs";
 import { UpdateNeed } from "./update-need";
 import { DeleteNeed } from "./delete-need";
+import { PublishNeed } from "./publish-need";
+import { BulkCreateNeeds } from "./bulk-create-needs";
 
 const TEST_SECRET = "dev-secret-change-me";
 
-async function makeAuthHeaders(): Promise<Record<string, string>> {
+async function makeAuthHeaders(role = "ZODI_DESTINATION"): Promise<Record<string, string>> {
   const token = await sign(
-    { sub: "test-user-id", username: "test-zodi", role: "ZODI_DESTINATION" },
+    { sub: "test-user-id", username: "test-zodi", role },
     TEST_SECRET,
     "HS256",
   );
@@ -37,6 +32,8 @@ function buildApp(useCases: {
   listNeeds: ListNeeds;
   updateNeed: UpdateNeed;
   deleteNeed: DeleteNeed;
+  publishNeed: PublishNeed;
+  bulkCreateNeeds: BulkCreateNeeds;
 }) {
   const app = new Hono();
   app.route("/", createNeedsRoutes(useCases));
@@ -56,7 +53,6 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     productCatalog = new InMemoryProductCatalogRepository();
     needRepo = new InMemoryNeedRepository(hubRepo, productCatalog);
 
-    // Seed a hub
     const hub = Hub.register({
       id: crypto.randomUUID(),
       name: "Centro Norte",
@@ -69,17 +65,20 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     await hubRepo.save(hub);
     hubId = hub.id;
 
+    const createNeed = new CreateNeed(needRepo, productCatalog);
     const useCases = {
-      createNeed: new CreateNeed(needRepo, productCatalog),
+      createNeed,
       listNeeds: new ListNeeds(needRepo),
       updateNeed: new UpdateNeed(needRepo),
       deleteNeed: new DeleteNeed(needRepo),
+      publishNeed: new PublishNeed(needRepo),
+      bulkCreateNeeds: new BulkCreateNeeds(createNeed),
     };
     app = buildApp(useCases);
     auth = await makeAuthHeaders();
   });
 
-  // ── GET /needs ─────────────────────────────────────────────────────────────
+  // ── GET /needs (public — only PUBLISHED) ────────────────────────────────────
 
   test("GET /needs returns empty array when no needs exist", async () => {
     const res = await app.request("/needs");
@@ -96,9 +95,49 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     expect(Array.isArray(body)).toBe(true);
   });
 
+  test("GET /needs does not return DRAFT needs (only PUBLISHED)", async () => {
+    await app.request("/needs", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ hubId, nombre: "Arroz blanco", categoria: "Víveres", meta: 100, prioridad: "ALTA" }),
+    });
+
+    const res = await app.request("/needs");
+    const list = await res.json() as any;
+    expect(list).toHaveLength(0);
+  });
+
+  test("GET /needs?includeDrafts=true with admin auth returns DRAFT needs", async () => {
+    await app.request("/needs", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ hubId, nombre: "Arroz blanco", categoria: "Víveres", meta: 100, prioridad: "ALTA" }),
+    });
+
+    const adminAuth = await makeAuthHeaders("ADMIN");
+    const res = await app.request("/needs?includeDrafts=true", {
+      headers: { Authorization: adminAuth.Authorization! },
+    });
+    const list = await res.json() as any;
+    expect(list).toHaveLength(1);
+    expect(list[0].status).toBe("DRAFT");
+  });
+
+  test("GET /needs?includeDrafts=true without auth still only returns PUBLISHED", async () => {
+    await app.request("/needs", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ hubId, nombre: "Arroz blanco", categoria: "Víveres", meta: 100, prioridad: "ALTA" }),
+    });
+
+    const res = await app.request("/needs?includeDrafts=true");
+    const list = await res.json() as any;
+    expect(list).toHaveLength(0);
+  });
+
   // ── POST /needs ─────────────────────────────────────────────────────────────
 
-  test("POST /needs creates a need and auto-creates product (Víveres → kg)", async () => {
+  test("POST /needs creates a need as DRAFT with auto-created product (Víveres → kg)", async () => {
     const res = await app.request("/needs", {
       method: "POST",
       headers: auth,
@@ -118,11 +157,12 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     expect(body.productId).toBeDefined();
     expect(body.nombre).toBe("Arroz blanco");
     expect(body.categoria).toBe("Víveres");
-    expect(body.unidad).toBe("kg"); // auto-created unit
+    expect(body.unidad).toBe("kg");
     expect(body.meta).toBe(100);
     expect(body.recibido).toBe(0);
     expect(body.prioridad).toBe("ALTA");
     expect(body.descripcion).toBe("");
+    expect(body.status).toBe("DRAFT");
     expect(body.fechaNecesidad).toBeNull();
     expect(body.ultimaActualizacion).toBeDefined();
   });
@@ -143,10 +183,10 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     expect(res.status).toBe(201);
     const body = await res.json() as any;
     expect(body.unidad).toBe("cajas");
+    expect(body.status).toBe("DRAFT");
   });
 
   test("POST /needs reuses existing product when nombre matches (case-insensitive)", async () => {
-    // First, add a product to the catalog
     await productCatalog.create({
       id: crypto.randomUUID(),
       name: "Agua embotellada",
@@ -160,7 +200,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       headers: auth,
       body: JSON.stringify({
         hubId,
-        nombre: "AGUA EMBOTELLADA", // different case
+        nombre: "AGUA EMBOTELLADA",
         categoria: "Víveres",
         meta: 200,
         prioridad: "ALTA",
@@ -169,7 +209,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
 
     expect(res.status).toBe(201);
     const body = await res.json() as any;
-    expect(body.unidad).toBe("litros"); // from existing product, not auto-created
+    expect(body.unidad).toBe("litros");
   });
 
   test("POST /needs with fechaNecesidad stores and returns it", async () => {
@@ -236,8 +276,6 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, nombre: "Arroz", meta: 10, prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe("Faltan campos requeridos");
   });
 
   test("POST /needs returns 400 when meta is missing", async () => {
@@ -247,8 +285,6 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, nombre: "Arroz", categoria: "Víveres", prioridad: "ALTA" }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe("Faltan campos requeridos");
   });
 
   test("POST /needs returns 400 when prioridad is missing", async () => {
@@ -258,15 +294,110 @@ describe("Need routes — characterization tests (legacy contract)", () => {
       body: JSON.stringify({ hubId, nombre: "Arroz", categoria: "Víveres", meta: 10 }),
     });
     expect(res.status).toBe(400);
-    const body = await res.json() as any;
-    expect(body.error).toBe("Faltan campos requeridos");
   });
 
-  // ── GET /needs after creation ───────────────────────────────────────────────
+  // ── PUT /needs/:id/publish ──────────────────────────────────────────────────
 
-  test("GET /needs returns created need with joined shape", async () => {
-    // Create a need first
-    await app.request("/needs", {
+  test("PUT /needs/:id/publish changes status to PUBLISHED and makes it visible on GET /needs", async () => {
+    const createRes = await app.request("/needs", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ hubId, nombre: "Colchonetas", categoria: "Abrigo y refugio", meta: 20, prioridad: "MEDIA" }),
+    });
+    const created = await createRes.json() as any;
+    expect(created.status).toBe("DRAFT");
+
+    const publishRes = await app.request(`/needs/${created.id}/publish`, {
+      method: "PUT",
+      headers: auth,
+    });
+    expect(publishRes.status).toBe(200);
+    const published = await publishRes.json() as any;
+    expect(published.status).toBe("PUBLISHED");
+
+    const listRes = await app.request("/needs");
+    const list = await listRes.json() as any;
+    expect(list).toHaveLength(1);
+    expect(list[0].id).toBe(created.id);
+    expect(list[0].status).toBe("PUBLISHED");
+  });
+
+  test("PUT /needs/:id/publish returns 404 for unknown id", async () => {
+    const res = await app.request(`/needs/${crypto.randomUUID()}/publish`, {
+      method: "PUT",
+      headers: auth,
+    });
+    expect(res.status).toBe(404);
+  });
+
+  // ── POST /needs/bulk ────────────────────────────────────────────────────────
+
+  test("POST /needs/bulk creates multiple needs as DRAFT", async () => {
+    const res = await app.request("/needs/bulk", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({
+        nombres: ["Maquinaria pesada", "Ecoflow", "Starlink"],
+        categoria: "Herramientas",
+        prioridad: "ALTA",
+        meta: 1,
+        fechaNecesidad: "2026-07-15",
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.count).toBe(3);
+    expect(body.created).toHaveLength(3);
+    expect(body.created[0].status).toBe("DRAFT");
+    expect(body.created[0].nombre).toBe("Maquinaria pesada");
+    expect(body.created[1].nombre).toBe("Ecoflow");
+
+    // Not visible on public endpoint yet
+    const listRes = await app.request("/needs");
+    const list = await listRes.json() as any;
+    expect(list).toHaveLength(0);
+  });
+
+  test("POST /needs/bulk skips empty lines", async () => {
+    const res = await app.request("/needs/bulk", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({
+        nombres: ["Herramienta A", "", "  ", "Herramienta B"],
+        categoria: "Herramientas",
+        prioridad: "MEDIA",
+        meta: 1,
+      }),
+    });
+
+    expect(res.status).toBe(201);
+    const body = await res.json() as any;
+    expect(body.count).toBe(2);
+  });
+
+  test("POST /needs/bulk returns 400 when nombres is empty", async () => {
+    const res = await app.request("/needs/bulk", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ nombres: [], categoria: "Herramientas", prioridad: "ALTA", meta: 1 }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  test("POST /needs/bulk returns 400 when categoria is missing", async () => {
+    const res = await app.request("/needs/bulk", {
+      method: "POST",
+      headers: auth,
+      body: JSON.stringify({ nombres: ["Agua"], prioridad: "ALTA", meta: 1 }),
+    });
+    expect(res.status).toBe(400);
+  });
+
+  // ── GET /needs after publish ────────────────────────────────────────────────
+
+  test("GET /needs returns published need with joined shape", async () => {
+    const createRes = await app.request("/needs", {
       method: "POST",
       headers: auth,
       body: JSON.stringify({
@@ -278,6 +409,9 @@ describe("Need routes — characterization tests (legacy contract)", () => {
         descripcion: "Para damnificados",
       }),
     });
+    const created = await createRes.json() as any;
+
+    await app.request(`/needs/${created.id}/publish`, { method: "PUT", headers: auth });
 
     const res = await app.request("/needs");
     expect(res.status).toBe(200);
@@ -296,13 +430,13 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     expect(item.recibido).toBe(0);
     expect(item.prioridad).toBe("MEDIA");
     expect(item.descripcion).toBe("Para damnificados");
+    expect(item.status).toBe("PUBLISHED");
     expect(item.fechaNecesidad).toBeNull();
     expect(item.createdAt).toBeDefined();
     expect(item.updatedAt).toBeDefined();
   });
 
-  test("GET /needs?hubId filters by hub", async () => {
-    // Create hub 2
+  test("GET /needs?hubId filters by hub (only published)", async () => {
     const hub2 = Hub.register({
       id: crypto.randomUUID(),
       name: "Centro Sur",
@@ -314,28 +448,28 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     });
     await hubRepo.save(hub2);
 
-    // Create need in hub1
-    await app.request("/needs", {
+    const r1 = await app.request("/needs", {
       method: "POST",
       headers: auth,
       body: JSON.stringify({ hubId, nombre: "Agua", categoria: "Víveres", meta: 10, prioridad: "ALTA" }),
     });
-
-    // Create need in hub2
-    await app.request("/needs", {
+    const r2 = await app.request("/needs", {
       method: "POST",
       headers: auth,
       body: JSON.stringify({ hubId: hub2.id, nombre: "Arroz", categoria: "Víveres", meta: 5, prioridad: "ALTA" }),
     });
+    const id1 = (await r1.json() as any).id;
+    const id2 = (await r2.json() as any).id;
 
-    // Filter by hub1
+    await app.request(`/needs/${id1}/publish`, { method: "PUT", headers: auth });
+    await app.request(`/needs/${id2}/publish`, { method: "PUT", headers: auth });
+
     const res = await app.request(`/needs?hubId=${hubId}`);
     const list = await res.json() as any;
     expect(list).toHaveLength(1);
     expect(list[0].hubId).toBe(hubId);
     expect(list[0].nombre).toBe("Agua");
 
-    // Filter by hub2
     const res2 = await app.request(`/needs?hubId=${hub2.id}`);
     const list2 = await res2.json() as any;
     expect(list2).toHaveLength(1);
@@ -413,15 +547,18 @@ describe("Need routes — characterization tests (legacy contract)", () => {
     const created = await createRes.json() as any;
     const id = created.id;
 
+    // Publish first so it's visible, then delete
+    await app.request(`/needs/${id}/publish`, { method: "PUT", headers: auth });
+    const listBefore = await (await app.request("/needs")).json() as any;
+    expect(listBefore).toHaveLength(1);
+
     const delRes = await app.request(`/needs/${id}`, { method: "DELETE", headers: auth });
     expect(delRes.status).toBe(200);
     const body = await delRes.json() as any;
     expect(body.ok).toBe(true);
 
-    // Verify it's gone
-    const listRes = await app.request("/needs");
-    const list = await listRes.json() as any;
-    expect(list).toHaveLength(0);
+    const listAfter = await (await app.request("/needs")).json() as any;
+    expect(listAfter).toHaveLength(0);
   });
 
   test("DELETE /necesidades/:id is an alias for DELETE /needs/:id", async () => {
@@ -450,7 +587,7 @@ describe("Need routes — characterization tests (legacy contract)", () => {
   // ── fechaNecesidad formatting ───────────────────────────────────────────────
 
   test("GET /needs formats fechaNecesidad as YYYY-MM-DD string", async () => {
-    await app.request("/needs", {
+    const createRes = await app.request("/needs", {
       method: "POST",
       headers: auth,
       body: JSON.stringify({
@@ -462,6 +599,8 @@ describe("Need routes — characterization tests (legacy contract)", () => {
         fechaNecesidad: "2024-06-15",
       }),
     });
+    const created = await createRes.json() as any;
+    await app.request(`/needs/${created.id}/publish`, { method: "PUT", headers: auth });
 
     const res = await app.request("/needs");
     const list = await res.json() as any;

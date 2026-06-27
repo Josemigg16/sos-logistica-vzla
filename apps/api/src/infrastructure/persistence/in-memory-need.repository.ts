@@ -1,18 +1,10 @@
 import type { NeedRepository, NeedRow } from "../../domain/resources/repositories/need.repository";
 import type { Need } from "../../domain/resources/entities/need";
 
-/**
- * Interfaz mínima para resolver el nombre del hub a partir de su ID.
- * Se inyecta desde el test con InMemoryHubRepository, que satisface esta forma.
- */
 interface HubNameLookup {
   findById(id: string): Promise<{ name: string } | null>;
 }
 
-/**
- * Interfaz mínima para resolver datos del producto a partir de su ID.
- * Se inyecta desde el test con InMemoryProductCatalogRepository.
- */
 interface ProductLookup {
   findById(id: string): Promise<{ name: string; category: string; unit: string } | null>;
 }
@@ -51,11 +43,12 @@ export class InMemoryNeedRepository implements NeedRepository {
     return true;
   }
 
-  async listWithDetails(hubId?: string): Promise<NeedRow[]> {
-    let needs = [...this.byId.values()];
-    if (hubId) needs = needs.filter((n) => n.hubId != null && n.hubId === hubId);
+  async listWithDetails(hubId?: string, onlyPublished: boolean = true): Promise<NeedRow[]> {
+    let needsList = [...this.byId.values()];
+    if (hubId) needsList = needsList.filter((n) => n.hubId != null && n.hubId === hubId);
+    if (onlyPublished) needsList = needsList.filter((n) => n.status === "PUBLISHED");
 
-    const rows = await Promise.all(needs.map((n) => this.toRow(n)));
+    const rows = await Promise.all(needsList.map((n) => this.toRow(n)));
     return rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
 
@@ -74,6 +67,7 @@ export class InMemoryNeedRepository implements NeedRepository {
       recibido: need.recibido,
       prioridad: need.prioridad,
       descripcion: need.descripcion,
+      status: need.status,
       fechaNecesidad: need.fechaNecesidad
         ? need.fechaNecesidad.toISOString().split("T")[0]!
         : null,

@@ -1,0 +1,2 @@
+CREATE TYPE "need_status" AS ENUM('DRAFT', 'PUBLISHED');
+ALTER TABLE "needs" ADD COLUMN "status" "need_status" NOT NULL DEFAULT 'PUBLISHED';

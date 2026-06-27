@@ -57,6 +57,13 @@
       "when": 1782557320794,
       "tag": "0011_make_cedula_optional",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1751034000000,
+      "tag": "0012_needs_draft_status",
+      "breakpoints": true
     }
   ]
 }

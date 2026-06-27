@@ -1,3 +1,5 @@
+export type NeedStatus = "DRAFT" | "PUBLISHED";
+
 export interface NeedProps {
   id: string;
   hubId?: string;
@@ -7,6 +9,7 @@ export interface NeedProps {
   prioridad: string;
   descripcion: string;
   fechaNecesidad: Date | null;
+  status: NeedStatus;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -42,6 +45,7 @@ export class Need {
       prioridad: input.prioridad,
       descripcion: input.descripcion ?? "",
       fechaNecesidad: input.fechaNecesidad ?? null,
+      status: "DRAFT",
       createdAt: now,
       updatedAt: now,
     });
@@ -55,6 +59,7 @@ export class Need {
   get prioridad(): string { return this.props.prioridad; }
   get descripcion(): string { return this.props.descripcion; }
   get fechaNecesidad(): Date | null { return this.props.fechaNecesidad; }
+  get status(): NeedStatus { return this.props.status; }
   get createdAt(): Date { return this.props.createdAt; }
   get updatedAt(): Date { return this.props.updatedAt; }
 
@@ -70,6 +75,11 @@ export class Need {
     if (fields.prioridad !== undefined) this.props.prioridad = fields.prioridad;
     if (fields.descripcion !== undefined) this.props.descripcion = fields.descripcion;
     if (fields.fechaNecesidad !== undefined) this.props.fechaNecesidad = fields.fechaNecesidad;
+    this.props.updatedAt = new Date();
+  }
+
+  publish(): void {
+    this.props.status = "PUBLISHED";
     this.props.updatedAt = new Date();
   }
 

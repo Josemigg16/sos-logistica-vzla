@@ -215,7 +215,7 @@ export default function App() {
       
       {/* HEADER DE LA APP */}
       <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-96 flex items-center justify-between p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
           <Link
             to="/"
             className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shrink-0"
@@ -227,9 +227,9 @@ export default function App() {
           <img
             src="/src/assets/branding/white-isotipo-blue-background.webp"
             alt="Portuguesa Unida"
-            className="w-10 h-10 rounded-lg object-cover"
+            className="w-10 h-10 rounded-lg object-cover shrink-0"
           />
-          <div className="min-w-0">
+          <div className="hidden sm:block min-w-0">
             <h1
               className="text-sm font-black text-foreground m-0 leading-none tracking-wide truncate"
               style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
@@ -239,7 +239,7 @@ export default function App() {
             <p className="text-[10px] text-muted-foreground mt-0.5 leading-none font-medium">Centros de Acopio</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 md:gap-2 shrink-0">
           <button
             onClick={() => {
               setShowSupplyRoute(prev => !prev);
@@ -250,7 +250,7 @@ export default function App() {
                 setCustomRoutePoints([]);
               }
             }}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer ${
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0 ${
               showSupplyRoute 
                 ? "bg-emerald-500 text-zinc-950 border-emerald-400 shadow-md shadow-emerald-500/20" 
                 : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
@@ -271,7 +271,7 @@ export default function App() {
                 return newValue;
               });
             }}
-            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer ${
+            className={`flex items-center justify-center w-8 h-8 rounded-lg border transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0 ${
               isCustomRoutingMode 
                 ? "bg-amber-500 text-zinc-950 border-amber-400 shadow-md shadow-amber-500/20" 
                 : "bg-secondary/80 border-border text-foreground hover:bg-secondary"
@@ -282,20 +282,21 @@ export default function App() {
           </button>
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer"
+            className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
             title="Cambiar tema"
           >
             {theme === "dark" ? <Sun className="w-4 h-4 text-blue-300" /> : <Moon className="w-4 h-4 text-blue-700" />}
           </button>
           <button
             onClick={() => setIsRegistering(true)}
-            className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10"
+            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:px-2.5 md:py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
             title="Proponer nuevo centro de acopio"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" /> Proponer
+            <Plus className="w-3.5 h-3.5 stroke-[3]" />
+            <span className="hidden md:inline ml-1">Proponer</span>
           </button>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20">
+          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
             Público
           </div>
@@ -574,8 +575,11 @@ export default function App() {
                     animation: pulse-scale 2.5s infinite ease-in-out;
                   }
                 `}</style>
-                <button
-                  onClick={() => setActiveImageUrl("/reglas_de_embalage.png")}
+                <a
+                  href="/NORMAS DE EMBALAJE .pdf"
+                  download="NORMAS DE EMBALAJE .pdf"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="w-full relative flex items-center justify-between p-3.5 rounded-xl border bg-gradient-to-r from-blue-600/10 to-blue-500/5 hover:from-blue-600/20 hover:to-blue-500/10 text-blue-400 hover:text-blue-300 transition-all duration-300 active:scale-[0.98] cursor-pointer overflow-hidden group animate-border-glow animate-pulse-scale"
                 >
                   {/* Subtle pulsing background dot */}
@@ -587,13 +591,13 @@ export default function App() {
                     </div>
                     <div className="text-left">
                       <p className="text-[11px] leading-tight font-extrabold tracking-wide text-white group-hover:text-blue-300 transition-colors">📦 REGLAS DE EMBALAJE</p>
-                      <p className="text-[9px] text-muted-foreground font-normal lowercase tracking-normal mt-0.5 normal-case">Presiona para ver las normas del centro</p>
+                      <p className="text-[9px] text-muted-foreground font-normal lowercase tracking-normal mt-0.5 normal-case">Presiona para descargar las normas en PDF</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1.5 z-10 bg-blue-500/20 text-blue-400 px-2 py-1 rounded-md text-[9px] font-black border border-blue-500/30 group-hover:bg-blue-500 group-hover:text-white transition-colors duration-300">
-                    VER
+                    PDF
                   </div>
-                </button>
+                </a>
               </div>
 
               {/* Inventario por Categorías */}

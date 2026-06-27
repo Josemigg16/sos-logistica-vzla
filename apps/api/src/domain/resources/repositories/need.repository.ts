@@ -1,4 +1,4 @@
-import type { Need } from "../entities/need";
+import type { Need, NeedStatus } from "../entities/need";
 
 /**
  * Read model — datos enriquecidos con JOIN a hubs y products.
@@ -17,6 +17,7 @@ export interface NeedRow {
   recibido: number;
   prioridad: string;
   descripcion: string;
+  status: NeedStatus;
   /** "YYYY-MM-DD" or null — ya formateado para el contrato de la API */
   fechaNecesidad: string | null;
   createdAt: Date;
@@ -31,5 +32,5 @@ export interface NeedRepository {
   findByIdWithDetails(id: string): Promise<NeedRow | null>;
   save(need: Need): Promise<void>;
   delete(id: string): Promise<boolean>;
-  listWithDetails(hubId?: string): Promise<NeedRow[]>;
+  listWithDetails(hubId?: string, onlyPublished?: boolean): Promise<NeedRow[]>;
 }

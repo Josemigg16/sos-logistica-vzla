@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { db } from "./db";
 import { needs, hubs, products } from "./schema/resources.schema";
 import type { NeedRepository, NeedRow } from "../../domain/resources/repositories/need.repository";
@@ -16,6 +16,7 @@ function toDomain(row: NeedRecord): Need {
     prioridad: row.prioridad,
     descripcion: row.descripcion ?? "",
     fechaNecesidad: row.fechaNecesidad ?? null,
+    status: row.status,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -33,6 +34,7 @@ function toRow(joined: {
   recibido: number;
   prioridad: string;
   descripcion: string | null;
+  status: "DRAFT" | "PUBLISHED";
   fechaNecesidad: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -49,6 +51,7 @@ function toRow(joined: {
     recibido: joined.recibido,
     prioridad: joined.prioridad,
     descripcion: joined.descripcion ?? "",
+    status: joined.status,
     fechaNecesidad: joined.fechaNecesidad
       ? joined.fechaNecesidad.toISOString().split("T")[0]!
       : null,
@@ -69,6 +72,7 @@ const SELECT_JOINED = {
   recibido: needs.recibido,
   prioridad: needs.prioridad,
   descripcion: needs.descripcion,
+  status: needs.status,
   fechaNecesidad: needs.fechaNecesidad,
   createdAt: needs.createdAt,
   updatedAt: needs.updatedAt,
@@ -107,6 +111,7 @@ export class DrizzleNeedRepository implements NeedRepository {
         recibido: data.recibido,
         prioridad: data.prioridad,
         descripcion: data.descripcion,
+        status: data.status,
         fechaNecesidad: data.fechaNecesidad,
         createdAt: data.createdAt,
         updatedAt: data.updatedAt,
@@ -118,6 +123,7 @@ export class DrizzleNeedRepository implements NeedRepository {
           recibido: data.recibido,
           prioridad: data.prioridad,
           descripcion: data.descripcion,
+          status: data.status,
           fechaNecesidad: data.fechaNecesidad,
           updatedAt: data.updatedAt,
         },
@@ -129,18 +135,19 @@ export class DrizzleNeedRepository implements NeedRepository {
     return deleted.length > 0;
   }
 
-  async listWithDetails(hubId?: string): Promise<NeedRow[]> {
-    let query = db
+  async listWithDetails(hubId?: string, onlyPublished: boolean = true): Promise<NeedRow[]> {
+    const rows = await db
       .select(SELECT_JOINED)
       .from(needs)
       .leftJoin(hubs, eq(needs.hubId, hubs.id))
-      .innerJoin(products, eq(needs.productId, products.id));
-
-    if (hubId) {
-      query = query.where(eq(needs.hubId, hubId)) as typeof query;
-    }
-
-    const rows = await query.orderBy(desc(needs.createdAt));
+      .innerJoin(products, eq(needs.productId, products.id))
+      .where(
+        and(
+          onlyPublished ? eq(needs.status, "PUBLISHED") : undefined,
+          hubId ? eq(needs.hubId, hubId) : undefined,
+        ),
+      )
+      .orderBy(desc(needs.createdAt));
     return rows.map(toRow);
   }
 }

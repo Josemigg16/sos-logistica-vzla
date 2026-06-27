@@ -633,6 +633,45 @@ function NecesidadesPage() {
               <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
             </Link>
 
+            {/* Tertiary CTA — "Normas de embalaje" → PDF Download */}
+            <a
+              href="/NORMAS DE EMBALAJE .pdf"
+              download="NORMAS DE EMBALAJE .pdf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden
+                         border border-[#2B5F8E]/30 bg-gradient-to-br from-[#152D46]/80 to-[#0F2337]/90
+                         shadow-[0_4px_24px_rgba(15,35,55,0.5)]
+                         hover:border-[#2B5F8E]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
+                         active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
+            >
+              {/* Shimmer on hover */}
+              <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+
+              <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
+                <Package className="w-6 h-6 animate-pulse" strokeWidth={2.2} />
+              </div>
+
+              <div className="relative flex-1 min-w-0">
+                <span
+                  className="block text-white leading-[0.95] tracking-tight"
+                  style={{
+                    fontFamily: "'Barlow Condensed', sans-serif",
+                    fontStyle: 'italic',
+                    fontWeight: 800,
+                    fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)',
+                  }}
+                >
+                  NORMAS DE<br />EMBALAJE (PDF)
+                </span>
+                <span className="block text-[11px] text-white/55 mt-1 font-medium leading-snug">
+                  Descarga las guías de preparación y entrega
+                </span>
+              </div>
+
+              <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
+            </a>
+
             </div>
           </div>
         </header>

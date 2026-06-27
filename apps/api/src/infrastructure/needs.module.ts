@@ -2,6 +2,8 @@ import { CreateNeed } from "../application/needs/create-need";
 import { ListNeeds } from "../application/needs/list-needs";
 import { UpdateNeed } from "../application/needs/update-need";
 import { DeleteNeed } from "../application/needs/delete-need";
+import { PublishNeed } from "../application/needs/publish-need";
+import { BulkCreateNeeds } from "../application/needs/bulk-create-needs";
 import { DrizzleNeedRepository } from "./persistence/drizzle-need.repository";
 import { DrizzleProductCatalogRepository } from "./persistence/drizzle-product-catalog.repository";
 import { createNeedsRoutes } from "./http/needs.routes";
@@ -14,12 +16,15 @@ import { createNeedsRoutes } from "./http/needs.routes";
 export function createNeedsModule() {
   const needRepo = new DrizzleNeedRepository();
   const productCatalog = new DrizzleProductCatalogRepository();
+  const createNeed = new CreateNeed(needRepo, productCatalog);
 
   const useCases = {
-    createNeed: new CreateNeed(needRepo, productCatalog),
+    createNeed,
     listNeeds: new ListNeeds(needRepo),
     updateNeed: new UpdateNeed(needRepo),
     deleteNeed: new DeleteNeed(needRepo),
+    publishNeed: new PublishNeed(needRepo),
+    bulkCreateNeeds: new BulkCreateNeeds(createNeed),
   };
 
   return {

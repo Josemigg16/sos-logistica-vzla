@@ -9,7 +9,7 @@ import {
   text,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
-import { HUB_STATUSES, HUB_TYPES, INVENTORY_CATEGORIES, LOTE_STATUSES } from "@sos/shared";
+import { HUB_STATUSES, HUB_TYPES, INVENTORY_CATEGORIES, LOTE_STATUSES, NEED_STATUSES } from "@sos/shared";
 import { users } from "./users.schema";
 import { viajes, vehiculos, operations } from "./operations.schema";
 
@@ -18,6 +18,7 @@ export const hubTypeEnum = pgEnum("hub_type", HUB_TYPES);
 export const hubStatusEnum = pgEnum("hub_status", HUB_STATUSES);
 export const inventoryCategoryEnum = pgEnum("inventory_category", INVENTORY_CATEGORIES);
 export const estadoLoteEnum = pgEnum("estado_lote", LOTE_STATUSES);
+export const needStatusEnum = pgEnum("need_status", NEED_STATUSES);
 export const accionCargaEnum = pgEnum("accion_carga", ["RECEPCION", "EMBALAJE", "DESPACHO", "ENTREGA", "TRASPASO"]);
 
 // --- TABLAS ---
@@ -47,6 +48,7 @@ export const needs = pgTable("needs", {
   recibido: integer("recibido").notNull().default(0),
   prioridad: varchar("prioridad", { length: 20 }).notNull().default("ALTA"),
   descripcion: text("descripcion").default(""),
+  status: needStatusEnum("status").notNull().default("PUBLISHED"),
   fechaNecesidad: timestamp("fecha_necesidad", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

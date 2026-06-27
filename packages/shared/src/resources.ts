@@ -27,6 +27,9 @@ export const INVENTORY_CATEGORIES = [
 export const inventoryCategorySchema = z.enum(INVENTORY_CATEGORIES);
 export type InventoryCategoryName = z.infer<typeof inventoryCategorySchema>;
 
+export const NEED_STATUSES = ["DRAFT", "PUBLISHED"] as const;
+export type NeedStatus = (typeof NEED_STATUSES)[number];
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(1).max(160),
   category: inventoryCategorySchema,

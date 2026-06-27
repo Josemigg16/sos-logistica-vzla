@@ -7,7 +7,7 @@ import type { NeedRepository, NeedRow } from "../../domain/resources/repositorie
 export class ListNeeds {
   constructor(private readonly needs: NeedRepository) {}
 
-  async execute(hubId?: string): Promise<NeedRow[]> {
-    return this.needs.listWithDetails(hubId);
+  async execute(hubId?: string, onlyPublished = true): Promise<NeedRow[]> {
+    return this.needs.listWithDetails(hubId, onlyPublished);
   }
 }

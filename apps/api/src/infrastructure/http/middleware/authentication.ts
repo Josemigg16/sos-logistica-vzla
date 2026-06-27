@@ -48,6 +48,27 @@ export function requireRole(...roles: RoleName[]): MiddlewareHandler<AuthEnv> {
   };
 }
 
+/**
+ * Intenta verificar el JWT si está presente, pero no falla si no hay token.
+ * Úsalo en rutas que son públicas pero que sirven contenido distinto a admins.
+ */
+export const optionalAuthentication: MiddlewareHandler<AuthEnv> = async (c, next) => {
+  const header = c.req.header("Authorization");
+  if (header?.startsWith("Bearer ")) {
+    try {
+      const payload = await verify(header.slice(7), config.jwtSecret, "HS256");
+      c.set("actor", {
+        userId: String(payload.sub),
+        username: String(payload.username),
+        role: payload.role as RoleName,
+      });
+    } catch {
+      // Token inválido — se trata como no autenticado
+    }
+  }
+  await next();
+};
+
 export const isAdmin = requireRole("ADMIN");
 export const isManager = requireRole("MANAGER");
 export const isZodiSender = requireRole("ZODI_SENDER");

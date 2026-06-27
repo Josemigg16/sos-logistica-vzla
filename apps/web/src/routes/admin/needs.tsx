@@ -13,6 +13,10 @@ import {
   AlertTriangle,
   MapPin,
   ChevronDown,
+  Globe,
+  EyeOff,
+  Upload,
+  ListPlus,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_NEEDS } from '@/lib/session'
@@ -34,6 +38,7 @@ function NeedsGate() {
 
 // --- Types ---
 type Priority = 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'
+type NeedStatus = 'DRAFT' | 'PUBLISHED'
 
 interface Need {
   id: string
@@ -47,11 +52,12 @@ interface Need {
   recibido: number
   prioridad: Priority
   descripcion: string
+  status: NeedStatus
   ultimaActualizacion: string
   fechaNecesidad: string
 }
 
-type NeedDraft = Omit<Need, 'id' | 'ultimaActualizacion' | 'hubName' | 'productId'> & {
+type NeedDraft = Omit<Need, 'id' | 'ultimaActualizacion' | 'hubName' | 'productId' | 'status'> & {
   hubId?: string
 }
 
@@ -98,7 +104,9 @@ function authHeaders(): HeadersInit {
 }
 
 async function fetchNeeds(): Promise<Need[]> {
-  const res = await fetch(`${API_URL}/needs`)
+  const token = getToken()
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {}
+  const res = await fetch(`${API_URL}/needs?includeDrafts=true`, { headers })
   if (!res.ok) throw new Error('No se pudieron cargar las necesidades')
   return res.json()
 }
@@ -124,6 +132,15 @@ async function updateNeed(id: string, draft: NeedDraft): Promise<Need> {
   return res.json()
 }
 
+async function publishNeed(id: string): Promise<Need> {
+  const res = await fetch(`${API_URL}/needs/${id}/publish`, {
+    method: 'PUT',
+    headers: authHeaders(),
+  })
+  if (!res.ok) throw new Error('No se pudo publicar la necesidad')
+  return res.json()
+}
+
 async function deleteNeed(id: string): Promise<string> {
   const res = await fetch(`${API_URL}/needs/${id}`, {
     method: 'DELETE',
@@ -133,6 +150,24 @@ async function deleteNeed(id: string): Promise<string> {
   return id
 }
 
+async function bulkCreateNeeds(payload: {
+  nombres: string[]
+  categoria: string
+  prioridad: Priority
+  meta: number
+  fechaNecesidad: string
+  descripcion?: string
+  hubId?: string
+}): Promise<{ created: Need[]; count: number }> {
+  const res = await fetch(`${API_URL}/needs/bulk`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  })
+  if (!res.ok) throw new Error('No se pudo importar la lista')
+  return res.json()
+}
+
 // --- Page ---
 function AdminNeedsPage() {
   const queryClient = useQueryClient()
@@ -140,11 +175,14 @@ function AdminNeedsPage() {
   const [editing, setEditing] = useState<Need | null>(null)
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<Need | null>(null)
+  const [bulkImporting, setBulkImporting] = useState(false)
 
   const { data: needs = [], isLoading } = useQuery({
     queryKey: ['necesidades'],
     queryFn: fetchNeeds,
   })
+
+  const draftCount = needs.filter((n) => n.status === 'DRAFT').length
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['necesidades'] })
 
@@ -153,7 +191,7 @@ function AdminNeedsPage() {
     onSuccess: (need) => {
       invalidate()
       setCreating(false)
-      toast.success('Necesidad creada', `"${need.nombre}" ya aparece en el panel público.`)
+      toast.success('Borrador creado', `"${need.nombre}" está listo para publicar.`)
     },
     onError: (e: Error) => toast.error('No se pudo crear la necesidad', e.message),
   })
@@ -168,16 +206,50 @@ function AdminNeedsPage() {
     onError: (e: Error) => toast.error('No se pudo guardar', e.message),
   })
 
+  const publishMutation = useMutation({
+    mutationFn: publishNeed,
+    onSuccess: (need) => {
+      invalidate()
+      toast.success('¡Publicado!', `"${need.nombre}" ya es visible en el panel público.`)
+    },
+    onError: (e: Error) => toast.error('No se pudo publicar', e.message),
+  })
+
   const deleteMutation = useMutation({
     mutationFn: deleteNeed,
     onSuccess: () => {
       const name = deleting?.nombre
       invalidate()
       setDeleting(null)
-      toast.success('Necesidad eliminada', name ? `"${name}" dejó de mostrarse en el panel público.` : 'Dejó de mostrarse en el panel público.')
+      toast.success(
+        'Necesidad eliminada',
+        name ? `"${name}" dejó de mostrarse.` : 'Dejó de mostrarse.',
+      )
     },
     onError: (e: Error) => toast.error('No se pudo eliminar', e.message),
   })
+
+  const bulkMutation = useMutation({
+    mutationFn: bulkCreateNeeds,
+    onSuccess: (result) => {
+      invalidate()
+      setBulkImporting(false)
+      toast.success(
+        `${result.count} borradores creados`,
+        'Revisalos y publicá los que estén listos.',
+      )
+    },
+    onError: (e: Error) => toast.error('No se pudo importar', e.message),
+  })
+
+  const publishAllDrafts = async () => {
+    const drafts = needs.filter((n) => n.status === 'DRAFT')
+    for (const d of drafts) {
+      await publishNeed(d.id)
+    }
+    invalidate()
+    toast.success(`${drafts.length} necesidades publicadas`, 'Ya son visibles en el panel público.')
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-6xl mx-auto lg:mx-0">
@@ -203,17 +275,56 @@ function AdminNeedsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => setCreating(true)}
-          className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#0F2337] font-bold
-                     shadow-[0_4px_16px_rgba(255,255,255,0.15)]
-                     hover:shadow-[0_8px_24px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0]
-                     active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200"
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '0.95rem', letterSpacing: '0.05em' }}
-        >
-          <Plus className="w-4 h-4" strokeWidth={3} />
-          NUEVA NECESIDAD
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          {draftCount > 0 && (
+            <button
+              onClick={publishAllDrafts}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#2B5F8E] text-white font-bold
+                         border border-[#4A89C0]/50
+                         hover:bg-[#4A89C0] active:scale-[0.96] transition-[transform,background-color] duration-200"
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontStyle: 'italic',
+                fontSize: '0.9rem',
+                letterSpacing: '0.05em',
+              }}
+            >
+              <Globe className="w-4 h-4" strokeWidth={2.5} />
+              PUBLICAR {draftCount} {draftCount === 1 ? 'BORRADOR' : 'BORRADORES'}
+            </button>
+          )}
+          <button
+            onClick={() => setBulkImporting(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 text-white font-bold
+                       border border-white/20
+                       hover:bg-white/20 active:scale-[0.96] transition-[transform,background-color] duration-200"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontStyle: 'italic',
+              fontSize: '0.9rem',
+              letterSpacing: '0.05em',
+            }}
+          >
+            <ListPlus className="w-4 h-4" strokeWidth={2.5} />
+            CARGAR LISTA
+          </button>
+          <button
+            onClick={() => setCreating(true)}
+            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#0F2337] font-bold
+                       shadow-[0_4px_16px_rgba(255,255,255,0.15)]
+                       hover:shadow-[0_8px_24px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0]
+                       active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontStyle: 'italic',
+              fontSize: '0.95rem',
+              letterSpacing: '0.05em',
+            }}
+          >
+            <Plus className="w-4 h-4" strokeWidth={3} />
+            NUEVA NECESIDAD
+          </button>
+        </div>
       </div>
 
       {/* Table */}
@@ -223,10 +334,10 @@ function AdminNeedsPage() {
           Cargando...
         </div>
       ) : needs.length === 0 ? (
-        <EmptyState onCreate={() => setCreating(true)} />
+        <EmptyState onCreate={() => setCreating(true)} onBulk={() => setBulkImporting(true)} />
       ) : (
         <div className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/60 backdrop-blur-sm overflow-hidden">
-          {/* Desktop table — only on wide screens */}
+          {/* Desktop table */}
           <div className="hidden lg:block overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -234,6 +345,7 @@ function AdminNeedsPage() {
                   <th className="text-left px-5 py-3">Ítem</th>
                   <th className="text-left px-5 py-3">Centro</th>
                   <th className="text-left px-5 py-3">Categoría</th>
+                  <th className="text-left px-5 py-3">Estado</th>
                   <th className="text-left px-5 py-3">Prioridad</th>
                   <th className="text-left px-5 py-3">Fecha</th>
                   <th className="text-left px-5 py-3">Progreso</th>
@@ -247,6 +359,8 @@ function AdminNeedsPage() {
                     need={need}
                     onEdit={() => setEditing(need)}
                     onDelete={() => setDeleting(need)}
+                    onPublish={() => publishMutation.mutate(need.id)}
+                    isPublishing={publishMutation.isPending && publishMutation.variables === need.id}
                   />
                 ))}
               </tbody>
@@ -261,6 +375,8 @@ function AdminNeedsPage() {
                 need={need}
                 onEdit={() => setEditing(need)}
                 onDelete={() => setDeleting(need)}
+                onPublish={() => publishMutation.mutate(need.id)}
+                isPublishing={publishMutation.isPending && publishMutation.variables === need.id}
               />
             ))}
           </div>
@@ -293,17 +409,58 @@ function AdminNeedsPage() {
           isDeleting={deleteMutation.isPending}
         />
       )}
+      {bulkImporting && (
+        <BulkImportModal
+          onClose={() => setBulkImporting(false)}
+          onSubmit={(payload) => bulkMutation.mutate(payload)}
+          isSubmitting={bulkMutation.isPending}
+        />
+      )}
     </div>
   )
 }
 
+// --- Status badge ---
+function StatusBadge({ status }: { status: NeedStatus }) {
+  if (status === 'PUBLISHED') {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#2B5F8E]/30 text-[#C8DCF0] border border-[#4A89C0]/30">
+        <Globe className="w-2.5 h-2.5" />
+        Publicado
+      </span>
+    )
+  }
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/8 text-white/50 border border-white/15">
+      <EyeOff className="w-2.5 h-2.5" />
+      Borrador
+    </span>
+  )
+}
+
 // --- Row ---
-function NeedRow({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; onDelete: () => void }) {
+function NeedRow({
+  need,
+  onEdit,
+  onDelete,
+  onPublish,
+  isPublishing,
+}: {
+  need: Need
+  onEdit: () => void
+  onDelete: () => void
+  onPublish: () => void
+  isPublishing: boolean
+}) {
   const pct = getPct(need.recibido, need.meta)
   const isCovered = pct >= 100
 
   return (
-    <tr className="border-b border-[#2B5F8E]/20 last:border-b-0 hover:bg-[#2B5F8E]/15 transition-colors duration-150">
+    <tr
+      className={`border-b border-[#2B5F8E]/20 last:border-b-0 hover:bg-[#2B5F8E]/15 transition-colors duration-150 ${
+        need.status === 'DRAFT' ? 'opacity-70' : ''
+      }`}
+    >
       <td className="px-5 py-4">
         <div className="font-semibold text-white text-[13px]">{need.nombre}</div>
         <div className="text-[11px] text-white/40 mt-0.5 line-clamp-1">{need.descripcion}</div>
@@ -316,6 +473,9 @@ function NeedRow({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; o
       </td>
       <td className="px-5 py-4 text-[12px] text-white/60">{need.categoria}</td>
       <td className="px-5 py-4">
+        <StatusBadge status={need.status} />
+      </td>
+      <td className="px-5 py-4">
         <span
           className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${PRIORITY_STYLES[need.prioridad]}`}
         >
@@ -325,7 +485,12 @@ function NeedRow({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; o
       <td className="px-5 py-4">
         <div className="flex items-center gap-1.5 text-[12px] text-white/70 tabular-nums">
           <CalendarClock className="w-3 h-3 text-white/40 shrink-0" />
-          {new Date(need.fechaNecesidad).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}
+          {need.fechaNecesidad
+            ? new Date(need.fechaNecesidad).toLocaleDateString('es-VE', {
+                day: 'numeric',
+                month: 'short',
+              })
+            : '—'}
         </div>
       </td>
       <td className="px-5 py-4 min-w-[140px]">
@@ -341,13 +506,28 @@ function NeedRow({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; o
         </div>
         <div className="flex justify-between mt-1 text-[10px] text-white/30 tabular-nums">
           <span>{need.recibido.toLocaleString('es-VE')}</span>
-          <span>{need.meta.toLocaleString('es-VE')} {need.unidad}</span>
+          <span>
+            {need.meta.toLocaleString('es-VE')} {need.unidad}
+          </span>
         </div>
       </td>
       <td className="px-5 py-4">
         <div className="flex items-center justify-end gap-1">
-          <IconButton onClick={onEdit} label="Editar"><Pencil className="w-3.5 h-3.5" /></IconButton>
-          <IconButton onClick={onDelete} label="Eliminar" variant="danger"><Trash2 className="w-3.5 h-3.5" /></IconButton>
+          {need.status === 'DRAFT' && (
+            <IconButton onClick={onPublish} label="Publicar" variant="publish">
+              {isPublishing ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Upload className="w-3.5 h-3.5" />
+              )}
+            </IconButton>
+          )}
+          <IconButton onClick={onEdit} label="Editar">
+            <Pencil className="w-3.5 h-3.5" />
+          </IconButton>
+          <IconButton onClick={onDelete} label="Eliminar" variant="danger">
+            <Trash2 className="w-3.5 h-3.5" />
+          </IconButton>
         </div>
       </td>
     </tr>
@@ -355,12 +535,24 @@ function NeedRow({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; o
 }
 
 // --- Mobile card ---
-function NeedMobileCard({ need, onEdit, onDelete }: { need: Need; onEdit: () => void; onDelete: () => void }) {
+function NeedMobileCard({
+  need,
+  onEdit,
+  onDelete,
+  onPublish,
+  isPublishing,
+}: {
+  need: Need
+  onEdit: () => void
+  onDelete: () => void
+  onPublish: () => void
+  isPublishing: boolean
+}) {
   const pct = getPct(need.recibido, need.meta)
   const isCovered = pct >= 100
 
   return (
-    <div className="p-4">
+    <div className={`p-4 ${need.status === 'DRAFT' ? 'opacity-75' : ''}`}>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="min-w-0">
           <h3 className="font-semibold text-white text-sm truncate">{need.nombre}</h3>
@@ -368,7 +560,10 @@ function NeedMobileCard({ need, onEdit, onDelete }: { need: Need; onEdit: () => 
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="truncate">{need.hubName || 'Global'}</span>
           </div>
-          <p className="text-[11px] text-white/40">{need.categoria}</p>
+          <div className="flex items-center gap-1.5">
+            <StatusBadge status={need.status} />
+            <span className="text-[10px] text-white/40">{need.categoria}</span>
+          </div>
         </div>
         <span
           className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${PRIORITY_STYLES[need.prioridad]}`}
@@ -377,12 +572,17 @@ function NeedMobileCard({ need, onEdit, onDelete }: { need: Need; onEdit: () => 
         </span>
       </div>
 
-      <div className="flex items-center gap-2 text-[11px] text-white/60 mb-2">
-        <CalendarClock className="w-3 h-3 text-white/40" />
-        <span className="tabular-nums">
-          {new Date(need.fechaNecesidad).toLocaleDateString('es-VE', { day: 'numeric', month: 'short' })}
-        </span>
-      </div>
+      {need.fechaNecesidad && (
+        <div className="flex items-center gap-2 text-[11px] text-white/60 mb-2">
+          <CalendarClock className="w-3 h-3 text-white/40" />
+          <span className="tabular-nums">
+            {new Date(need.fechaNecesidad).toLocaleDateString('es-VE', {
+              day: 'numeric',
+              month: 'short',
+            })}
+          </span>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden">
@@ -395,6 +595,20 @@ function NeedMobileCard({ need, onEdit, onDelete }: { need: Need; onEdit: () => 
       </div>
 
       <div className="flex gap-2">
+        {need.status === 'DRAFT' && (
+          <button
+            onClick={onPublish}
+            disabled={isPublishing}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B5F8E]/60 border border-[#4A89C0]/40 text-[#C8DCF0] text-[11px] font-semibold hover:bg-[#4A89C0]/40 active:scale-[0.97] transition-[transform,background-color] duration-200 disabled:opacity-50"
+          >
+            {isPublishing ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <Upload className="w-3 h-3" />
+            )}
+            Publicar
+          </button>
+        )}
         <button
           onClick={onEdit}
           className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-[#2B5F8E]/40 border border-[#2B5F8E]/60 text-white/90 text-[11px] font-semibold hover:bg-[#2B5F8E]/60 active:scale-[0.97] transition-[transform,background-color] duration-200"
@@ -422,7 +636,7 @@ function IconButton({
   onClick: () => void
   label: string
   children: React.ReactNode
-  variant?: 'default' | 'danger'
+  variant?: 'default' | 'danger' | 'publish'
 }) {
   return (
     <button
@@ -432,7 +646,9 @@ function IconButton({
       className={`flex items-center justify-center w-8 h-8 rounded-lg active:scale-[0.96] transition-[transform,background-color,color] duration-200 ${
         variant === 'danger'
           ? 'text-white/40 hover:text-white hover:bg-white/10'
-          : 'text-[#C8DCF0]/70 hover:text-[#C8DCF0] hover:bg-[#2B5F8E]/40'
+          : variant === 'publish'
+            ? 'text-[#C8DCF0]/70 hover:text-[#C8DCF0] hover:bg-[#2B5F8E]/60'
+            : 'text-[#C8DCF0]/70 hover:text-[#C8DCF0] hover:bg-[#2B5F8E]/40'
       }`}
     >
       {children}
@@ -441,27 +657,291 @@ function IconButton({
 }
 
 // --- Empty state ---
-function EmptyState({ onCreate }: { onCreate: () => void }) {
+function EmptyState({ onCreate, onBulk }: { onCreate: () => void; onBulk: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl border border-dashed border-[#2B5F8E]/40 bg-[#152D46]/40">
       <Package className="w-12 h-12 text-white/15 mb-4" />
       <h3 className="text-white font-bold text-base mb-1.5">No hay necesidades registradas</h3>
       <p className="text-white/40 text-xs max-w-xs mb-5">
-        Crea la primera necesidad para que aparezca en el panel público.
+        Crea la primera necesidad o importá una lista para que aparezca en el panel público.
       </p>
-      <button
-        onClick={onCreate}
-        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-[#0F2337] font-bold text-[12px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200"
-        style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.05em' }}
-      >
-        <Plus className="w-4 h-4" strokeWidth={3} />
-        Crear necesidad
-      </button>
+      <div className="flex gap-2">
+        <button
+          onClick={onBulk}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/10 border border-white/20 text-white font-bold text-[12px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200"
+          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.05em' }}
+        >
+          <ListPlus className="w-4 h-4" strokeWidth={2.5} />
+          Cargar lista
+        </button>
+        <button
+          onClick={onCreate}
+          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-[#0F2337] font-bold text-[12px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200"
+          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.05em' }}
+        >
+          <Plus className="w-4 h-4" strokeWidth={3} />
+          Crear necesidad
+        </button>
+      </div>
     </div>
   )
 }
 
-// --- Form modal ---
+// --- Bulk import modal ---
+interface BulkImportPayload {
+  nombres: string[]
+  categoria: string
+  prioridad: Priority
+  meta: number
+  fechaNecesidad: string
+  descripcion?: string
+  hubId?: string
+}
+
+function BulkImportModal({
+  onClose,
+  onSubmit,
+  isSubmitting,
+}: {
+  onClose: () => void
+  onSubmit: (payload: BulkImportPayload) => void
+  isSubmitting: boolean
+}) {
+  const [rawText, setRawText] = useState('')
+  const [categoria, setCategoria] = useState<string>(CATEGORIES[5]) // Herramientas
+  const [prioridad, setPrioridad] = useState<Priority>('ALTA')
+  const [meta, setMeta] = useState(1)
+  const [fechaNecesidad, setFechaNecesidad] = useState(todayIso())
+  const [descripcion, setDescripcion] = useState('')
+  const [hubId, setHubId] = useState('')
+
+  const { data: centers = [] } = useQuery<any[]>({
+    queryKey: ['centros'],
+    queryFn: async () => {
+      const res = await fetch(`${API_URL}/centros`)
+      if (!res.ok) throw new Error('API error')
+      return res.json()
+    },
+  })
+
+  const nombres = useMemo(
+    () =>
+      rawText
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean),
+    [rawText],
+  )
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (nombres.length === 0) return
+    onSubmit({
+      nombres,
+      categoria,
+      prioridad,
+      meta,
+      fechaNecesidad,
+      descripcion: descripcion || undefined,
+      hubId: hubId || undefined,
+    })
+  }
+
+  return (
+    <FormSheet
+      title="Cargar lista"
+      size="lg"
+      isDirty={rawText.length > 0}
+      isSubmitting={isSubmitting}
+      onClose={onClose}
+      onSubmit={handleSubmit}
+      footer={(requestClose) => (
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={requestClose}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-white/5 border border-white/10 text-white/70 font-semibold text-sm hover:bg-white/10 active:scale-[0.97] transition-[transform,background-color] duration-200"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting || nombres.length === 0}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-[#0F2337] font-bold text-sm active:scale-[0.97] transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
+          >
+            {isSubmitting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Upload className="w-4 h-4" />
+            )}
+            {isSubmitting
+              ? 'CREANDO...'
+              : nombres.length > 0
+                ? `CREAR ${nombres.length} BORRADOR${nombres.length === 1 ? '' : 'ES'}`
+                : 'PEGAR LISTA PRIMERO'}
+          </button>
+        </div>
+      )}
+    >
+      <div className="flex flex-col gap-4">
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-white/70 flex items-center gap-1.5">
+            Lista de ítems
+            <span className="text-[#C8DCF0]">*</span>
+            <span className="text-[10px] font-normal text-white/40 ml-1">— un ítem por línea</span>
+          </span>
+          <textarea
+            value={rawText}
+            onChange={(e) => setRawText(e.target.value)}
+            rows={8}
+            placeholder={`Maquinaria pesada (línea amarilla)\nEcoflow\nStarlink\nGuantes de carnaza\n...`}
+            className="w-full px-3 py-2.5 rounded-xl bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-sm text-white focus:outline-none focus:border-[#4A89C0]/50 placeholder:text-white/20 resize-none font-mono"
+          />
+          {nombres.length > 0 && (
+            <p className="text-[10px] text-[#C8DCF0]/60 font-semibold">
+              ✓ {nombres.length} ítem{nombres.length === 1 ? '' : 's'} detectado
+              {nombres.length === 1 ? '' : 's'}
+            </p>
+          )}
+        </label>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-white/70">
+              Categoría <span className="text-[#C8DCF0]">*</span>
+            </span>
+            <div className="relative">
+              <select
+                value={categoria}
+                onChange={(e) => setCategoria(e.target.value)}
+                className="input w-full appearance-none cursor-pointer"
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-white/70">
+              Prioridad <span className="text-[#C8DCF0]">*</span>
+            </span>
+            <div className="relative">
+              <select
+                value={prioridad}
+                onChange={(e) => setPrioridad(e.target.value as Priority)}
+                className="input w-full appearance-none cursor-pointer"
+              >
+                {PRIORITIES.map((p) => (
+                  <option key={p.value} value={p.value}>
+                    {p.label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-3 pointer-events-none" />
+            </div>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-white/70">
+              Meta (cantidad) <span className="text-[#C8DCF0]">*</span>
+            </span>
+            <input
+              type="number"
+              min={1}
+              value={meta || ''}
+              onChange={(e) => setMeta(Number(e.target.value))}
+              required
+              className="input tabular-nums"
+              placeholder="1"
+            />
+          </label>
+
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[11px] font-semibold text-white/70">
+              Fecha de necesidad <span className="text-[#C8DCF0]">*</span>
+            </span>
+            <input
+              type="date"
+              value={fechaNecesidad}
+              onChange={(e) => setFechaNecesidad(e.target.value)}
+              required
+              className="input"
+            />
+          </label>
+        </div>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-white/70">Centro de Acopio</span>
+          <div className="relative">
+            <select
+              value={hubId}
+              onChange={(e) => setHubId(e.target.value)}
+              className="input w-full appearance-none cursor-pointer"
+            >
+              <option value="">Sin centro específico (global)</option>
+              {centers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-3 pointer-events-none" />
+          </div>
+        </label>
+
+        <label className="flex flex-col gap-1.5">
+          <span className="text-[11px] font-semibold text-white/70">
+            Descripción
+            <span className="text-[10px] font-normal text-white/40 ml-1">— aplica a todos los ítems</span>
+          </span>
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            rows={2}
+            maxLength={300}
+            className="input resize-none"
+            placeholder="Ej. Equipos para respuesta a tragedia en La Guaira"
+          />
+        </label>
+
+        <style>{`
+          .input {
+            width: 100%;
+            padding: 0.6rem 0.85rem;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(43,95,142,0.4);
+            border-radius: 0.5rem;
+            color: white;
+            font-size: 0.875rem;
+            font-family: 'DM Sans', system-ui, sans-serif;
+            transition: border-color 200ms, background-color 200ms;
+          }
+          .input:focus {
+            outline: none;
+            border-color: rgba(74,137,192,0.8);
+            background: rgba(255,255,255,0.06);
+          }
+          .input::placeholder { color: rgba(255,255,255,0.3); }
+          .input option { background: #0F2337; }
+        `}</style>
+      </div>
+    </FormSheet>
+  )
+}
+
+// --- Form modal (single need) ---
 function NeedFormModal({
   initial,
   onClose,
@@ -509,24 +989,20 @@ function NeedFormModal({
 
   const suggestions = useMemo(() => {
     if (!draft.nombre.trim()) return []
-    return products.filter(
-      (prod) =>
-        prod.name.toLowerCase().includes(draft.nombre.toLowerCase()) &&
-        prod.name.toLowerCase() !== draft.nombre.toLowerCase()
-    ).slice(0, 5)
+    return products
+      .filter(
+        (prod) =>
+          prod.name.toLowerCase().includes(draft.nombre.toLowerCase()) &&
+          prod.name.toLowerCase() !== draft.nombre.toLowerCase(),
+      )
+      .slice(0, 5)
   }, [products, draft.nombre])
 
   const selectProduct = (prod: ProductMaster) => {
-    setDraft({
-      ...draft,
-      nombre: prod.name,
-      categoria: prod.category,
-      unidad: prod.unit,
-    })
+    setDraft({ ...draft, nombre: prod.name, categoria: prod.category, unidad: prod.unit })
     setShowSuggestions(false)
   }
 
-  // --- Dirty tracking (baseline vs estado actual del draft) ---
   const snapshot = JSON.stringify({
     nombre: draft.nombre,
     categoria: draft.categoria,
@@ -569,147 +1045,159 @@ function NeedFormModal({
             type="submit"
             disabled={isSubmitting}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-white text-[#0F2337] font-bold text-sm active:scale-[0.97] transition-transform duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.04em' }}
+            style={{
+              fontFamily: "'Barlow Condensed', sans-serif",
+              fontStyle: 'italic',
+              letterSpacing: '0.04em',
+            }}
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {initial ? 'GUARDAR CAMBIOS' : 'CREAR NECESIDAD'}
+            {initial ? 'GUARDAR CAMBIOS' : 'CREAR BORRADOR'}
           </button>
         </div>
       )}
     >
       <div className="flex flex-col gap-4">
         <Field label="Centro de Acopio">
-            <div className="relative">
-              <select
-                value={draft.hubId ?? ''}
-                onChange={(e) => setDraft({ ...draft, hubId: e.target.value || undefined })}
-                disabled={!!initial}
-                className="w-full px-3 py-2.5 rounded-xl bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 appearance-none cursor-pointer"
-              >
-                <option value="">Selecciona el centro...</option>
-                {centers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-3.5 pointer-events-none" />
-            </div>
-          </Field>
-
-          <Field label="Nombre del ítem" required hint="Escribe para buscar sugerencias en el catálogo">
-            <div className="relative">
-              <input
-                type="text"
-                value={draft.nombre}
-                onChange={(e) => {
-                  setDraft({ ...draft, nombre: e.target.value })
-                  setShowSuggestions(true)
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                onBlur={() => {
-                  setTimeout(() => setShowSuggestions(false), 200)
-                }}
-                required
-                maxLength={120}
-                className="input"
-                placeholder="ej. Agua potable"
-              />
-              {showSuggestions && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 mt-1 z-50 rounded-lg border border-[#2B5F8E]/50 bg-[#0F2337] shadow-xl overflow-hidden max-h-48 overflow-y-auto">
-                  {suggestions.map((prod) => (
-                    <button
-                      key={prod.id}
-                      type="button"
-                      onClick={() => selectProduct(prod)}
-                      className="w-full text-left px-3 py-2 text-xs text-white/80 hover:text-white hover:bg-[#2B5F8E]/40 border-b border-[#2B5F8E]/10 last:border-0 flex items-center justify-between cursor-pointer"
-                    >
-                      <span>{prod.name}</span>
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/50">
-                        {prod.category} • {prod.unit}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </Field>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Categoría" required>
-              <select
-                value={draft.categoria}
-                onChange={(e) => setDraft({ ...draft, categoria: e.target.value })}
-                className="input"
-              >
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </Field>
-
-            <Field label="Prioridad" required>
-              <select
-                value={draft.prioridad}
-                onChange={(e) => setDraft({ ...draft, prioridad: e.target.value as Priority })}
-                className="input"
-              >
-                {PRIORITIES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-              </select>
-            </Field>
+          <div className="relative">
+            <select
+              value={draft.hubId ?? ''}
+              onChange={(e) => setDraft({ ...draft, hubId: e.target.value || undefined })}
+              disabled={!!initial}
+              className="w-full px-3 py-2.5 rounded-xl bg-[#0F2337]/90 border border-[#2B5F8E]/40 text-xs text-white focus:outline-none focus:border-[#4A89C0]/50 appearance-none cursor-pointer"
+            >
+              <option value="">Selecciona el centro...</option>
+              {centers.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-4 h-4 text-white/40 absolute right-3 top-3.5 pointer-events-none" />
           </div>
+        </Field>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <Field label="Unidad" required>
-              <input
-                type="text"
-                value={draft.unidad}
-                onChange={(e) => setDraft({ ...draft, unidad: e.target.value })}
-                required
-                maxLength={32}
-                className="input"
-                placeholder="litros, kg…"
-              />
-            </Field>
-            <Field label="Meta" required>
-              <input
-                type="number"
-                min={1}
-                value={draft.meta || ''}
-                onChange={(e) => setDraft({ ...draft, meta: Number(e.target.value) })}
-                required
-                className="input tabular-nums"
-              />
-            </Field>
-            <Field label="Recibido">
-              <input
-                type="number"
-                min={0}
-                value={draft.recibido || 0}
-                onChange={(e) => setDraft({ ...draft, recibido: Number(e.target.value) })}
-                className="input tabular-nums"
-              />
-            </Field>
-          </div>
-
-          <Field label="Fecha de necesidad" required hint="Cuándo se necesita para">
+        <Field label="Nombre del ítem" required hint="Escribe para buscar sugerencias en el catálogo">
+          <div className="relative">
             <input
-              type="date"
-              value={draft.fechaNecesidad}
-              onChange={(e) => setDraft({ ...draft, fechaNecesidad: e.target.value })}
+              type="text"
+              value={draft.nombre}
+              onChange={(e) => {
+                setDraft({ ...draft, nombre: e.target.value })
+                setShowSuggestions(true)
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => {
+                setTimeout(() => setShowSuggestions(false), 200)
+              }}
               required
+              maxLength={120}
               className="input"
+              placeholder="ej. Agua potable"
             />
+            {showSuggestions && suggestions.length > 0 && (
+              <div className="absolute left-0 right-0 mt-1 z-50 rounded-lg border border-[#2B5F8E]/50 bg-[#0F2337] shadow-xl overflow-hidden max-h-48 overflow-y-auto">
+                {suggestions.map((prod) => (
+                  <button
+                    key={prod.id}
+                    type="button"
+                    onClick={() => selectProduct(prod)}
+                    className="w-full text-left px-3 py-2 text-xs text-white/80 hover:text-white hover:bg-[#2B5F8E]/40 border-b border-[#2B5F8E]/10 last:border-0 flex items-center justify-between cursor-pointer"
+                  >
+                    <span>{prod.name}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-white/50">
+                      {prod.category} • {prod.unit}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </Field>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <Field label="Categoría" required>
+            <select
+              value={draft.categoria}
+              onChange={(e) => setDraft({ ...draft, categoria: e.target.value })}
+              className="input"
+            >
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
           </Field>
 
-          <Field label="Descripción" hint="Contexto visible en el panel público">
-            <textarea
-              value={draft.descripcion}
-              onChange={(e) => setDraft({ ...draft, descripcion: e.target.value })}
-              rows={3}
-              maxLength={300}
-              className="input resize-none"
-              placeholder="Ej. Agua purificada para consumo humano en zonas sin servicio."
+          <Field label="Prioridad" required>
+            <select
+              value={draft.prioridad}
+              onChange={(e) => setDraft({ ...draft, prioridad: e.target.value as Priority })}
+              className="input"
+            >
+              {PRIORITIES.map((p) => (
+                <option key={p.value} value={p.value}>
+                  {p.label}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <Field label="Unidad" required>
+            <input
+              type="text"
+              value={draft.unidad}
+              onChange={(e) => setDraft({ ...draft, unidad: e.target.value })}
+              required
+              maxLength={32}
+              className="input"
+              placeholder="litros, kg…"
             />
           </Field>
+          <Field label="Meta" required>
+            <input
+              type="number"
+              min={1}
+              value={draft.meta || ''}
+              onChange={(e) => setDraft({ ...draft, meta: Number(e.target.value) })}
+              required
+              className="input tabular-nums"
+            />
+          </Field>
+          <Field label="Recibido">
+            <input
+              type="number"
+              min={0}
+              value={draft.recibido || 0}
+              onChange={(e) => setDraft({ ...draft, recibido: Number(e.target.value) })}
+              className="input tabular-nums"
+            />
+          </Field>
+        </div>
+
+        <Field label="Fecha de necesidad" required hint="Cuándo se necesita para">
+          <input
+            type="date"
+            value={draft.fechaNecesidad}
+            onChange={(e) => setDraft({ ...draft, fechaNecesidad: e.target.value })}
+            required
+            className="input"
+          />
+        </Field>
+
+        <Field label="Descripción" hint="Contexto visible en el panel público">
+          <textarea
+            value={draft.descripcion}
+            onChange={(e) => setDraft({ ...draft, descripcion: e.target.value })}
+            rows={3}
+            maxLength={300}
+            className="input resize-none"
+            placeholder="Ej. Agua purificada para consumo humano en zonas sin servicio."
+          />
+        </Field>
 
         <style>{`
           .input {
@@ -737,7 +1225,17 @@ function NeedFormModal({
 }
 
 // --- Field wrapper ---
-function Field({ label, hint, required, children }: { label: string; hint?: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  hint,
+  required,
+  children,
+}: {
+  label: string
+  hint?: string
+  required?: boolean
+  children: React.ReactNode
+}) {
   return (
     <label className="flex flex-col gap-1.5">
       <span className="text-[11px] font-semibold text-white/70 flex items-center gap-1.5">
@@ -763,7 +1261,10 @@ function DeleteConfirmModal({
   isDeleting: boolean
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={onCancel}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+      onClick={onCancel}
+    >
       <div
         className="w-full max-w-sm bg-[#0F2337] border border-[#2B5F8E]/50 rounded-2xl shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-6"
         onClick={(e) => e.stopPropagation()}
@@ -773,7 +1274,12 @@ function DeleteConfirmModal({
         </div>
         <h3
           className="text-white text-center mb-2"
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 700, fontSize: '1.3rem' }}
+          style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontStyle: 'italic',
+            fontWeight: 700,
+            fontSize: '1.3rem',
+          }}
         >
           ¿ELIMINAR ESTA NECESIDAD?
         </h3>
@@ -781,7 +1287,8 @@ function DeleteConfirmModal({
           <span className="font-semibold text-white">{need.nombre}</span>
         </p>
         <p className="text-xs text-white/40 text-center mb-5">
-          Esta acción no se puede deshacer. La necesidad dejará de mostrarse en el panel público.
+          Esta acción no se puede deshacer.
+          {need.status === 'PUBLISHED' && ' La necesidad dejará de mostrarse en el panel público.'}
         </p>
         <div className="flex gap-2">
           <button
