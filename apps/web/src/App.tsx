@@ -366,9 +366,6 @@ export default function App() {
           )}
           {filteredCentros.map(c => {
             const getMarkerColor = (centroObj: Centro) => {
-              if (centroObj.isInformal) {
-                return "#f59e0b"; // Naranja / Amber para informal
-              }
               switch (centroObj.tipo) {
                 case "acopio":
                   return "#3b82f6"; // Azul
@@ -402,10 +399,6 @@ export default function App() {
             <div className="flex items-center gap-2.5">
               <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
               <span className="text-[11px] font-medium text-foreground">Hub Interno (Acopio)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-3 h-3 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.6)]"></span>
-              <span className="text-[11px] font-medium text-foreground">Hub Informal (Informativo)</span>
             </div>
             <div className="flex items-center gap-2.5">
               <span className="w-3 h-3 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></span>

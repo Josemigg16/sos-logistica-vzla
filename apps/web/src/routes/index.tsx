@@ -594,7 +594,6 @@ function NecesidadesPage() {
                       key={c.id}
                       coordinates={c.coordenadas}
                       color={
-                        c.isInformal ? '#f59e0b' :
                         c.tipo === 'acopio' ? '#3b82f6' :
                         c.tipo === 'salida' ? '#ef4444' :
                         c.tipo === 'destino' ? '#22c55e' :
