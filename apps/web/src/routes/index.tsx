@@ -460,10 +460,6 @@ function NecesidadesPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#2B5F8E]/40 border border-[#4A89C0]/30">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#C8DCF0] animate-pulse" />
-                <span className="text-[10px] font-bold text-[#C8DCF0] uppercase tracking-wider">En vivo</span>
-              </div>
               <Link
                 to="/login"
                 className="group flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 active:scale-[0.97] transition-[transform,background-color,border-color] duration-200"
@@ -497,6 +493,50 @@ function NecesidadesPage() {
                 Estas son las necesidades urgentes de los centros de acopio activos.
                 Cada donación se registra y actualiza estas cifras en tiempo real.
               </p>
+
+              <Link
+                to="/map"
+                className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden mb-3 border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
+              >
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-black/5 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+                <HandHeart className="relative w-6 h-6 text-[#0F2337] shrink-0" strokeWidth={2.2} />
+                <div className="relative flex-1 min-w-0">
+                  <span className="block text-[#0F2337] leading-[0.95] tracking-tight" style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 800, fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)' }}>
+                    QUIERO AYUDAR
+                  </span>
+                  <span className="block text-[11px] text-[#0F2337]/55 mt-1 font-medium leading-snug">
+                    Encuentra dónde y cómo donar cerca de ti
+                  </span>
+                </div>
+                <ChevronRight className="relative w-5 h-5 text-[#0F2337] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
+              </Link>
+
+              {/* Tengo un centro de acopio — only visible on mobile; desktop shows it in the side CTA stack */}
+              <Link
+                to="/register"
+                className="lg:hidden group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden mb-6
+                           border border-[#4A89C0]/30 bg-gradient-to-br from-[#152D46] to-[#0F2337]
+                           shadow-[0_4px_24px_rgba(15,35,55,0.5)]
+                           hover:border-[#4A89C0]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
+                           active:scale-[0.98] transition-[transform,box-shadow,border-color] duration-300"
+              >
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-white/10 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
+                <div className="relative flex items-center justify-center w-12 h-12 rounded-xl bg-[#2B5F8E] text-[#C8DCF0] shadow-[0_4px_16px_rgba(43,95,142,0.5)] shrink-0">
+                  <Warehouse className="w-6 h-6" strokeWidth={2.2} />
+                </div>
+                <div className="relative flex-1 min-w-0">
+                  <span
+                    className="block text-white leading-[0.95] tracking-tight"
+                    style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 800, fontSize: 'clamp(1.1rem, 1.8vw, 1.35rem)' }}
+                  >
+                    TENGO UN CENTRO<br />DE ACOPIO
+                  </span>
+                  <span className="block text-[11px] text-white/55 mt-1 font-medium leading-snug">
+                    Regístralo y publica tus necesidades
+                  </span>
+                </div>
+                <ChevronRight className="relative w-5 h-5 text-[#C8DCF0] group-hover:translate-x-1 transition-transform duration-300 shrink-0" strokeWidth={2.5} />
+              </Link>
 
               {/* Stats */}
               <div className="flex flex-wrap gap-2 mb-4">
@@ -623,10 +663,10 @@ function NecesidadesPage() {
               </div>
             </Link>
 
-            {/* Secondary CTA — "Tengo un centro de acopio" → /register */}
+            {/* Secondary CTA — "Tengo un centro de acopio" → /register (desktop only; mobile shows it above stats) */}
             <Link
               to="/register"
-              className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden
+              className="hidden lg:flex group relative items-center gap-4 p-5 rounded-2xl overflow-hidden
                          border border-[#4A89C0]/30 bg-gradient-to-br from-[#152D46] to-[#0F2337]
                          shadow-[0_4px_24px_rgba(15,35,55,0.5)]
                          hover:border-[#4A89C0]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]
@@ -772,17 +812,6 @@ function NecesidadesPage() {
               ? 'Aunque algunas metas ya están cubiertas, los centros siguen activos y las familias siguen llegando. Lo que sobre hoy se convierte en reserva para mañana.'
               : 'Los centros de acopio están activos y recibiendo donaciones todos los días. Cada ítem entregado actualiza estas cifras en tiempo real.'}
           </p>
-
-          {/* Footer CTA — same as header */}
-          <Link
-            to="/map"
-            className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-xl bg-white text-[#0F2337] font-bold uppercase tracking-wide shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0] active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200 mb-8"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '1.05rem', letterSpacing: '0.05em' }}
-          >
-            <HandHeart className="w-5 h-5" strokeWidth={2.5} />
-            <span>Quiero ayudar ahora</span>
-            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-          </Link>
 
           <div className="flex items-center justify-center gap-3 text-[11px] text-white/20">
             <img src={logotipo} alt="Portuguesa Unida" className="h-5 w-auto opacity-30 object-contain" />
