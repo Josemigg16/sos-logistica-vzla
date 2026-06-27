@@ -5,3 +5,4 @@ export * from "./resources.schema";
 export * from "./operations.schema";
 export * from "./fleet.schema";
 export * from "./cargo.schema";
+export * from "./convoys.schema";
