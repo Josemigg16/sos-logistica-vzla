@@ -1,4 +1,4 @@
-import type { HubType, PublicHub } from "@sos/shared";
+import type { HubStatus, HubType, PublicHub } from "@sos/shared";
 import type { HubRepository } from "../../domain/resources/repositories/hub.repository";
 import { Hub } from "../../domain/resources/entities/hub";
 
@@ -8,6 +8,7 @@ export interface UpsertHubCommand {
   address: string;
   contact: string;
   type: HubType;
+  status?: HubStatus;
   latitude: number;
   longitude: number;
 }

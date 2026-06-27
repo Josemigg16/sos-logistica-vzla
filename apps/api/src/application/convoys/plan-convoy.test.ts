@@ -1,4 +1,4 @@
-import type { CreateConvoyRequest, HubType, RoleName } from "@sos/shared";
+import type { CreateConvoyRequest, HubStatus, HubType, RoleName } from "@sos/shared";
 import { beforeEach, describe, expect, test } from "bun:test";
 import { PlanConvoy } from "./plan-convoy";
 import { ConvoyError } from "../../domain/convoys/errors";
@@ -63,6 +63,18 @@ describe("PlanConvoy", () => {
     await expectConvoyError(plan.execute(command), "DESTINATION_NOT_DESTINATION");
   });
 
+  test("rechaza planificar si el hub de origen está INACTIVO", async () => {
+    const command = await seedValidPlanningContext({ originStatus: "INACTIVO" });
+
+    await expectConvoyError(plan.execute(command), "ORIGIN_HUB_INACTIVE");
+  });
+
+  test("rechaza planificar si el hub de destino está INACTIVO", async () => {
+    const command = await seedValidPlanningContext({ destinationStatus: "INACTIVO" });
+
+    await expectConvoyError(plan.execute(command), "DESTINATION_HUB_INACTIVE");
+  });
+
   test("rechaza planificar si no existe el escolta", async () => {
     const command = await seedValidPlanningContext();
     await users.delete(command.escoltaId);
@@ -79,10 +91,18 @@ describe("PlanConvoy", () => {
   async function seedValidPlanningContext(overrides: {
     originType?: HubType;
     destinationType?: HubType;
+    originStatus?: HubStatus;
+    destinationStatus?: HubStatus;
     escortRole?: RoleName;
   } = {}): Promise<CreateConvoyRequest> {
-    const origin = buildHub({ type: overrides.originType ?? "DISPATCH" });
-    const destination = buildHub({ type: overrides.destinationType ?? "DESTINATION" });
+    const origin = buildHub({
+      type: overrides.originType ?? "DISPATCH",
+      status: overrides.originStatus,
+    });
+    const destination = buildHub({
+      type: overrides.destinationType ?? "DESTINATION",
+      status: overrides.destinationStatus,
+    });
     const escort = buildUser({ role: overrides.escortRole ?? "ZODI_SENDER" });
 
     await hubs.save(origin);
@@ -98,13 +118,14 @@ describe("PlanConvoy", () => {
   }
 });
 
-function buildHub(input: { type: HubType }): Hub {
+function buildHub(input: { type: HubType; status?: HubStatus }): Hub {
   return Hub.register({
     id: crypto.randomUUID(),
     name: `Hub ${input.type}`,
     address: "Av. Principal",
     contact: "0212-555",
     type: input.type,
+    status: input.status ?? "ACTIVO",
     latitude: 10.5,
     longitude: -66.9,
   });

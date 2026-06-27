@@ -44,7 +44,6 @@ const HUB_TYPE_LABELS: Record<HubType, string> = {
   COLLECTION: 'Acopio (recolección)',
   DISPATCH: 'Despacho (salida)',
   DESTINATION: 'Destino (llegada)',
-  ZODI_BASE: 'Base ZODI (militar)',
 }
 
 const LOTE_STATUS_META: Record<LoteStatus, { label: string; color: string }> = {

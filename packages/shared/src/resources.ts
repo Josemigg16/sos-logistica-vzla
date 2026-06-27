@@ -6,9 +6,13 @@ import { z } from "zod";
  * Las categorías de inventario son labels de UI (en español, por diseño).
  */
 
-export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION", "ZODI_BASE"] as const;
+export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION"] as const;
 export const hubTypeSchema = z.enum(HUB_TYPES);
 export type HubType = z.infer<typeof hubTypeSchema>;
+
+export const HUB_STATUSES = ["ACTIVO", "INACTIVO"] as const;
+export const hubStatusSchema = z.enum(HUB_STATUSES);
+export type HubStatus = z.infer<typeof hubStatusSchema>;
 
 // Catálogo de categorías de inventario. Valores = labels de UI en español.
 export const INVENTORY_CATEGORIES = [
@@ -46,6 +50,7 @@ export const createHubSchema = z.object({
   type: hubTypeSchema,
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
+  status: hubStatusSchema.optional(),
 });
 export type CreateHubRequest = z.infer<typeof createHubSchema>;
 
@@ -62,6 +67,7 @@ export interface PublicHub {
   address: string;
   contact: string;
   type: HubType;
+  status: HubStatus;
   latitude: number;
   longitude: number;
   coordinatorId: string | null;

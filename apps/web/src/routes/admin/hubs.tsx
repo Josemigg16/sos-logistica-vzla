@@ -17,7 +17,7 @@ import {
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_MANAGE_HUBS } from '@/lib/session'
 import { useToast } from '@/components/ui/toast'
-import type { Centro, TipoCentro } from '@sos/shared'
+import type { Centro, HubStatus, TipoCentro } from '@sos/shared'
 import { API_URL } from '@/lib/auth/config'
 import { getToken } from '@/lib/auth/token-store'
 import centrosData from '@/data/centros.json'
@@ -272,9 +272,12 @@ function HubRow({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => void; on
         <div className="text-[11px] text-white/40 mt-0.5 line-clamp-1">{hub.direccion}</div>
       </td>
       <td className="px-5 py-4">
-        <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${tipoInfo?.color ?? ''}`}>
-          {tipoInfo?.label ?? hub.tipo}
-        </span>
+        <div className="flex flex-col items-start gap-1">
+          <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${tipoInfo?.color ?? ''}`}>
+            {tipoInfo?.label ?? hub.tipo}
+          </span>
+          <StatusBadge estado={hub.estado} />
+        </div>
       </td>
       <td className="px-5 py-4">
         <div className="text-[12px] text-white/70 flex items-center gap-1">
@@ -312,9 +315,12 @@ function HubMobileCard({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => v
           <h3 className="font-semibold text-white text-sm truncate">{hub.nombre}</h3>
           <p className="text-[11px] text-white/40 line-clamp-1">{hub.direccion}</p>
         </div>
-        <span className={`shrink-0 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${tipoInfo?.color ?? ''}`}>
-          {tipoInfo?.label ?? hub.tipo}
-        </span>
+        <div className="shrink-0 flex flex-col items-end gap-1">
+          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${tipoInfo?.color ?? ''}`}>
+            {tipoInfo?.label ?? hub.tipo}
+          </span>
+          <StatusBadge estado={hub.estado} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-[11px] text-white/60 mb-3 bg-[#152D46]/40 p-2.5 rounded-lg border border-[#2B5F8E]/20">
@@ -385,7 +391,8 @@ function HubFormModal({
   const [contacto, setContacto] = useState(initial?.contacto ?? '')
   const [responsable, setResponsable] = useState(initial?.responsable ?? '')
   const [tipo, setTipo] = useState<TipoCentro>(initial?.tipo ?? 'acopio')
-  
+  const [estado, setEstado] = useState<HubStatus>(initial?.estado ?? 'ACTIVO')
+
   // Coordenadas iniciales (centro de Portuguesa o del centro seleccionado)
   const [latitud, setLatitud] = useState<string>(initial?.coordenadas ? initial.coordenadas[1].toString() : '9.5832')
   const [longitud, setLongitud] = useState<string>(initial?.coordenadas ? initial.coordenadas[0].toString() : '-69.2216')
@@ -420,6 +427,7 @@ function HubFormModal({
       contacto,
       responsable,
       tipo,
+      estado,
       coordenadas: [lng, lat],
       inventario,
       verificacion: initial?.verificacion,
@@ -479,6 +487,27 @@ function HubFormModal({
               </select>
             </Field>
           </div>
+
+          <Field label="Estado operativo" hint="Un centro inactivo no puede usarse como origen ni destino de caravanas">
+            <div className="grid grid-cols-2 gap-2">
+              {(['ACTIVO', 'INACTIVO'] as const).map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => setEstado(s)}
+                  className={`px-4 py-2.5 rounded-lg text-sm font-semibold border transition-colors duration-150 ${
+                    estado === s
+                      ? s === 'ACTIVO'
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200'
+                        : 'bg-red-500/15 border-red-500/40 text-red-200'
+                      : 'bg-white/5 border-[#2B5F8E]/40 text-white/50 hover:text-white hover:bg-white/10'
+                  }`}
+                >
+                  {s === 'ACTIVO' ? 'Activo' : 'Inactivo'}
+                </button>
+              ))}
+            </div>
+          </Field>
 
           <Field label="Dirección Física" required>
             <input
@@ -734,6 +763,22 @@ function DeleteConfirmModal({
         </div>
       </div>
     </div>
+  )
+}
+
+function StatusBadge({ estado }: { estado?: HubStatus }) {
+  const active = estado !== 'INACTIVO'
+  return (
+    <span
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide border ${
+        active
+          ? 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10'
+          : 'text-red-300 border-red-500/30 bg-red-500/10'
+      }`}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-400' : 'bg-red-400'}`} />
+      {active ? 'Activo' : 'Inactivo'}
+    </span>
   )
 }
 
