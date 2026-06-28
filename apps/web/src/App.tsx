@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { HubNeed, HubNeedType, PublicConvoy } from "@sos/shared";
-import { Map, MapControls, MapMarker, MapRoute } from "@/components/ui/map";
+import { Map, MapControls, MapMarker, MapRoute, MapUserLocationMarker } from "@/components/ui/map";
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
@@ -231,13 +231,17 @@ export default function App() {
     return 8; // Zoom default Portuguesa
   });
 
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+
   useEffect(() => {
     localStorage.setItem("has_entered_map", "true");
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setMapCenter([position.coords.longitude, position.coords.latitude]);
+          const coords: [number, number] = [position.coords.longitude, position.coords.latitude];
+          setMapCenter(coords);
           setMapZoom(12);
+          setUserLocation(coords);
         },
         () => {}
       );
@@ -371,6 +375,9 @@ export default function App() {
           {showSupplyRoute && (
             <MapRoute coordinates={routeCoordinates} color="#10b981" />
           )}
+          {userLocation && (
+            <MapUserLocationMarker coordinates={userLocation} />
+          )}
           {isRegistering && clickedCoordinates && (
             <MapMarker
               coordinates={clickedCoordinates}
@@ -482,6 +489,17 @@ export default function App() {
               <div className="flex items-center gap-2.5 border-t border-border/50 pt-1.5 mt-0.5 animate-in fade-in duration-300">
                 <span className="w-6 h-1 rounded bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>
                 <span className="text-[11px] font-medium text-foreground">Ruta Terrestre Activa</span>
+              </div>
+            )}
+            {userLocation && (
+              <div className="flex items-center gap-2.5 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
+                <span className="relative flex items-center justify-center w-3 h-3 shrink-0">
+                  <span className="absolute inline-flex w-full h-full rounded-full bg-[#4A89C0] opacity-60 animate-ping"></span>
+                  <span className="relative inline-flex items-center justify-center w-3 h-3 rounded-full bg-white shadow-[0_0_8px_rgba(74,137,192,0.6)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#2B5F8E]"></span>
+                  </span>
+                </span>
+                <span className="text-[11px] font-medium text-foreground">Tu ubicación actual</span>
               </div>
             )}
           </div>

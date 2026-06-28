@@ -150,8 +150,22 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
           50% { transform: scale(1.15); opacity: 0.35; }
         }
         .needs-halo-pulse { animation: needs-halo-pulse 1.6s ease-in-out infinite; }
+        @keyframes user-location-ripple {
+          0% { transform: scale(0.4); opacity: 0.7; }
+          100% { transform: scale(2.6); opacity: 0; }
+        }
+        .user-location-ripple { animation: user-location-ripple 2s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+        .user-location-ripple-delayed { animation: user-location-ripple 2s cubic-bezier(0.22, 1, 0.36, 1) infinite; animation-delay: 1s; }
+        @keyframes user-location-dot-breathe {
+          0%, 100% { transform: scale(1); box-shadow: 0 0 0 4px rgba(74, 137, 192, 0.25), 0 2px 8px rgba(0, 0, 0, 0.35); }
+          50% { transform: scale(1.08); box-shadow: 0 0 0 6px rgba(74, 137, 192, 0.15), 0 2px 12px rgba(0, 0, 0, 0.4); }
+        }
+        .user-location-dot { animation: user-location-dot-breathe 2.4s ease-in-out infinite; }
         @media (prefers-reduced-motion: reduce) {
-          .needs-halo-pulse { animation: none; }
+          .needs-halo-pulse,
+          .user-location-ripple,
+          .user-location-ripple-delayed,
+          .user-location-dot { animation: none; }
         }
       `}</style>
     </div>
@@ -301,6 +315,84 @@ export function MapMarker({
   }, [map, color, active, draggable, hasNeeds]);
 
   // Sincronizar posición sin recrear el marcador
+  useEffect(() => {
+    if (markerRef.current && isValidLngLat(coordinates[0], coordinates[1])) {
+      const currentLngLat = markerRef.current.getLngLat();
+      if (currentLngLat.lng !== coordinates[0] || currentLngLat.lat !== coordinates[1]) {
+        markerRef.current.setLngLat(coordinates);
+      }
+    }
+  }, [coordinates]);
+
+  return null;
+}
+
+interface MapUserLocationMarkerProps {
+  coordinates: [number, number];
+}
+
+export function MapUserLocationMarker({ coordinates }: MapUserLocationMarkerProps) {
+  const { map } = useContext(MapContext);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+
+  useEffect(() => {
+    if (!map || !isValidLngLat(coordinates[0], coordinates[1])) return;
+
+    const el = document.createElement("div");
+    el.className = "relative flex items-center justify-center";
+    el.style.width = "56px";
+    el.style.height = "56px";
+    el.style.pointerEvents = "none";
+
+    // Onda expansiva — pulso radial estilo "estoy aquí"
+    const ripple = document.createElement("div");
+    ripple.className = "absolute rounded-full user-location-ripple";
+    ripple.style.width = "56px";
+    ripple.style.height = "56px";
+    ripple.style.backgroundColor = "rgba(74, 137, 192, 0.45)";
+    el.appendChild(ripple);
+
+    // Segunda onda desfasada para ritmo continuo
+    const rippleDelayed = document.createElement("div");
+    rippleDelayed.className = "absolute rounded-full user-location-ripple-delayed";
+    rippleDelayed.style.width = "56px";
+    rippleDelayed.style.height = "56px";
+    rippleDelayed.style.backgroundColor = "rgba(74, 137, 192, 0.45)";
+    el.appendChild(rippleDelayed);
+
+    // Anillo blanco — separa visualmente del fondo del mapa
+    const ring = document.createElement("div");
+    ring.className = "absolute rounded-full";
+    ring.style.width = "26px";
+    ring.style.height = "26px";
+    ring.style.backgroundColor = "#ffffff";
+    ring.style.boxShadow = "0 2px 6px rgba(0, 0, 0, 0.3)";
+    el.appendChild(ring);
+
+    // Punto azul central — corazón del marcador
+    const dot = document.createElement("div");
+    dot.className = "absolute rounded-full user-location-dot";
+    dot.style.width = "18px";
+    dot.style.height = "18px";
+    dot.style.background = "radial-gradient(circle at 30% 30%, #6BA3D4 0%, #2B5F8E 70%, #1E4A6E 100%)";
+    el.appendChild(dot);
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat(coordinates)
+      .addTo(map);
+
+    markerRef.current = marker;
+
+    return () => {
+      try {
+        marker.remove();
+      } catch (err) {
+        console.warn("Error removing user-location marker:", err);
+      }
+      markerRef.current = null;
+    };
+  }, [map]);
+
   useEffect(() => {
     if (markerRef.current && isValidLngLat(coordinates[0], coordinates[1])) {
       const currentLngLat = markerRef.current.getLngLat();
