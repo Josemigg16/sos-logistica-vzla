@@ -1,9 +1,9 @@
 import { createFileRoute, Link, Navigate, useNavigate } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
-import { ArrowLeft, Copy, CheckCircle2, CreditCard, Loader2, Lock, Phone } from "lucide-react";
+import { ArrowLeft, Copy, CheckCircle2, CreditCard, Eye, EyeOff, Loader2, Lock, Phone } from "lucide-react";
 import { signupSchema } from "@sos/shared";
 import { useAuth } from "@/lib/auth/auth-context";
-import { signupHub } from "@/lib/auth/auth-client";
+import { signupHub, AuthError } from "@/lib/auth/auth-client";
 
 import logotipo from "@/assets/branding/white-logotipo.webp";
 
@@ -18,12 +18,15 @@ function RegisterPage() {
   const navigate = useNavigate();
 
   const [telefono, setTelefono] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [documentType, setDocumentType] = useState<"V" | "J">("V");
   const [cedula, setCedula] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string | undefined>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [registered, setRegistered] = useState(false);
   const [copied, setCopied] = useState(false);
 
   if (status === "authenticated") return <Navigate to="/admin" />;
@@ -33,36 +36,57 @@ function RegisterPage() {
     setFormError(null);
     setFieldErrors({});
 
+    const passwordUp = password.toUpperCase();
+    if (passwordUp !== confirmPassword.toUpperCase()) {
+      setFieldErrors({ confirmPassword: "Las contraseñas no coinciden" });
+      return;
+    }
+
     const cedulaTrim = cedula.trim();
 
     const parsed = signupSchema.safeParse({
       telefono,
       documentType: cedulaTrim ? documentType : undefined,
       cedula: cedulaTrim || undefined,
+      password: passwordUp,
     });
     if (!parsed.success) {
       const flat = parsed.error.flatten().fieldErrors;
       setFieldErrors({
         telefono: flat.telefono?.[0],
         cedula: flat.cedula?.[0],
+        password: flat.password?.[0],
       });
       return;
     }
 
     setSubmitting(true);
     try {
-      const result = await signupHub(parsed.data.telefono);
+      const result = await signupHub(parsed.data.telefono, {
+        password: parsed.data.password,
+        documentType: parsed.data.documentType,
+        cedula: parsed.data.cedula,
+      });
       loginWithToken(result.accessToken, result.user);
-      setGeneratedPassword(result.generatedPassword);
+      setRegistered(true);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.");
+      if (err instanceof AuthError) {
+        if (err.code === "USERNAME_TAKEN") {
+          setFieldErrors({ telefono: err.message });
+        } else if (err.code === "CEDULA_TAKEN") {
+          setFieldErrors({ cedula: err.message });
+        } else {
+          setFormError(err.message);
+        }
+      } else {
+        setFormError(err instanceof Error ? err.message : "Ocurrió un error. Intenta de nuevo.");
+      }
       setSubmitting(false);
     }
   }
 
-  async function copyPassword() {
-    if (!generatedPassword) return;
-    await navigator.clipboard.writeText(generatedPassword);
+  async function copyPhone() {
+    await navigator.clipboard.writeText(telefono);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -102,27 +126,24 @@ function RegisterPage() {
           />
         </div>
 
-        {generatedPassword ? (
+        {registered ? (
           <div className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/80 p-8 shadow-[0_8px_40px_rgba(15,35,55,0.6)] backdrop-blur-sm text-center">
             <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-emerald-400" strokeWidth={1.5} />
             <h2 className="mb-2 text-xl font-bold text-white">¡Cuenta creada!</h2>
-            <p className="mb-1 text-sm text-white/60">
-              Tu acceso es tu número de teléfono.
-            </p>
             <p className="mb-6 text-sm text-white/60">
-              Anotá esta contraseña — solo se muestra una vez:
+              Tu usuario es tu número de teléfono:
             </p>
 
             <div className="mb-6 flex items-center gap-2 rounded-xl border border-[#4A89C0]/40 bg-[#0F2337]/70 px-4 py-3">
-              <Lock className="h-4 w-4 shrink-0 text-white/40" />
+              <Phone className="h-4 w-4 shrink-0 text-white/40" />
               <span className="flex-1 font-mono text-lg font-bold tracking-widest text-white">
-                {generatedPassword}
+                {telefono}
               </span>
               <button
                 type="button"
-                onClick={copyPassword}
+                onClick={copyPhone}
                 className="text-white/40 transition-colors duration-150 hover:text-white/80"
-                aria-label="Copiar contraseña"
+                aria-label="Copiar teléfono"
               >
                 {copied ? (
                   <CheckCircle2 className="h-4 w-4 text-emerald-400" />
@@ -165,6 +186,45 @@ function RegisterPage() {
               value={telefono} onChange={setTelefono} type="tel" autoComplete="tel"
               placeholder="ej: +584141234567" error={fieldErrors.telefono} disabled={submitting} />
 
+            <Field
+              id="password"
+              label="Contraseña *"
+              icon={<Lock className="h-4 w-4" />}
+              value={password}
+              onChange={setPassword}
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Mínimo 5 caracteres"
+              error={fieldErrors.password}
+              disabled={submitting}
+              uppercase
+              trailing={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  className="text-white/40 transition-colors duration-150 hover:text-white/70"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
+            />
+
+            <Field
+              id="confirmPassword"
+              label="Confirmar contraseña *"
+              icon={<Lock className="h-4 w-4" />}
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              type={showPassword ? "text" : "password"}
+              autoComplete="new-password"
+              placeholder="Repite tu contraseña"
+              error={fieldErrors.confirmPassword}
+              disabled={submitting}
+              uppercase
+            />
+
             <DocumentField
               documentType={documentType}
               onDocumentTypeChange={setDocumentType}
@@ -173,10 +233,6 @@ function RegisterPage() {
               error={fieldErrors.cedula}
               disabled={submitting}
             />
-
-            <div className="mb-5 rounded-lg border border-[#2B5F8E]/30 bg-[#0F2337]/40 px-4 py-3 text-[11px] text-white/50">
-              Tu teléfono será tu usuario. La contraseña se genera automáticamente y te la mostramos al registrarte.
-            </div>
 
             <button
               type="submit"
@@ -225,9 +281,11 @@ interface FieldProps {
   placeholder?: string;
   error?: string;
   disabled?: boolean;
+  uppercase?: boolean;
+  trailing?: React.ReactNode;
 }
 
-function Field({ id, label, icon, value, onChange, type = "text", autoComplete, placeholder, error, disabled }: FieldProps) {
+function Field({ id, label, icon, value, onChange, type = "text", autoComplete, placeholder, error, disabled, uppercase, trailing }: FieldProps) {
   return (
     <div className="mb-5">
       <label htmlFor={id} className="mb-1.5 block text-[11px] font-semibold uppercase tracking-wider text-white/50">
@@ -241,8 +299,12 @@ function Field({ id, label, icon, value, onChange, type = "text", autoComplete, 
           autoComplete={autoComplete} placeholder={placeholder} disabled={disabled}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? `${id}-error` : undefined}
-          className={`w-full rounded-xl border bg-[#0F2337]/70 py-3 pl-11 pr-4 text-sm text-white placeholder:text-white/25 transition-[border-color,box-shadow] duration-150 outline-none focus:border-[#4A89C0] focus:ring-2 focus:ring-[#4A89C0]/30 disabled:opacity-60 ${error ? "border-[#C8DCF0]/50" : "border-[#2B5F8E]/40"}`}
+          style={uppercase ? { textTransform: "uppercase" } : undefined}
+          className={`w-full rounded-xl border bg-[#0F2337]/70 py-3 pl-11 ${trailing ? "pr-11" : "pr-4"} text-sm text-white placeholder:text-white/25 transition-[border-color,box-shadow] duration-150 outline-none focus:border-[#4A89C0] focus:ring-2 focus:ring-[#4A89C0]/30 disabled:opacity-60 ${error ? "border-[#C8DCF0]/50" : "border-[#2B5F8E]/40"}`}
         />
+        {trailing && (
+          <span className="absolute right-3.5 top-1/2 -translate-y-1/2">{trailing}</span>
+        )}
       </div>
       {error && <p id={`${id}-error`} className="mt-1.5 text-[11px] text-[#C8DCF0]">{error}</p>}
     </div>

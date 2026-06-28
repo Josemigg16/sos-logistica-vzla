@@ -114,6 +114,7 @@ export default function App() {
   const handleMapClick = (lngLat: [number, number]) => {
     setClickedCoordinates(lngLat);
     setIsRegistering(true);
+    setSelectedId(null);
     // En mobile el modal cubre ~70% de la pantalla — hacemos pan para que
     // el pin quede visible en el tercio superior del área expuesta.
     const isMobile = window.innerWidth < 768;
@@ -277,6 +278,8 @@ export default function App() {
     setSelectedId(centro.id);
     setMapCenter(centro.coordenadas);
     setMapZoom(11);
+    setIsRegistering(false);
+    setClickedCoordinates(null);
   };
 
 
@@ -330,6 +333,7 @@ export default function App() {
             onClick={() => {
               setClickedCoordinates(null);
               setIsRegistering(true);
+              setSelectedId(null);
             }}
             className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:px-2.5 md:py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
@@ -750,6 +754,7 @@ export default function App() {
             setShowWelcomeModal(false);
             setClickedCoordinates(null);
             setIsRegistering(true);
+            setSelectedId(null);
           }}
         />
       )}
@@ -995,9 +1000,14 @@ function WelcomeModal({ onClose, onRegisterHub }: { onClose: () => void; onRegis
   );
 }
 
+interface HubRegistrationData extends Omit<Centro, "inventario" | "verificacion" | "metadata"> {
+  documentType?: "V" | "J";
+  cedula?: string;
+}
+
 interface PublicHubModalProps {
   onClose: () => void;
-  onSubmit: (data: Omit<Centro, "inventario" | "verificacion" | "metadata">) => Promise<void>;
+  onSubmit: (data: HubRegistrationData) => Promise<void>;
   isSubmitting: boolean;
   initialCoordinates?: [number, number] | null;
 }
@@ -1007,6 +1017,8 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
   const [direccion, setDireccion] = useState("");
   const [responsable, setResponsable] = useState("");
   const [contacto, setContacto] = useState("");
+  const [documentType, setDocumentType] = useState<"V" | "J">("V");
+  const [cedula, setCedula] = useState("");
   const [latitud, setLatitud] = useState(() => initialCoordinates ? initialCoordinates[1].toFixed(5) : "9.5832");
   const [longitud, setLongitud] = useState(() => initialCoordinates ? initialCoordinates[0].toFixed(5) : "-69.2216");
 
@@ -1031,6 +1043,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
     const lat = parseFloat(latitud);
     const lng = parseFloat(longitud);
     if (isNaN(lat) || isNaN(lng)) return;
+    const cedulaTrim = cedula.trim();
     onSubmit({
       id: crypto.randomUUID(),
       nombre,
@@ -1040,7 +1053,9 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
       tipo: "acopio",
       coordenadas: [lng, lat],
       isInformal: true,
-    } as any);
+      documentType: cedulaTrim ? documentType : undefined,
+      cedula: cedulaTrim || undefined,
+    } as HubRegistrationData);
   };
 
   return (
@@ -1176,6 +1191,37 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
 
 
 
+            <div className="space-y-1.5">
+              <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                Cédula / RIF{" "}
+                <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
+              </label>
+              <div className="flex items-stretch rounded-xl border border-border bg-secondary/50 focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
+                <div className="relative flex items-center">
+                  <select
+                    value={documentType}
+                    onChange={(e) => setDocumentType(e.target.value as "V" | "J")}
+                    aria-label="Tipo de documento"
+                    className="h-full appearance-none rounded-l-xl border-r border-border bg-secondary/60 py-2.5 pl-3 pr-6 text-xs font-semibold text-foreground outline-none"
+                  >
+                    <option value="V">V</option>
+                    <option value="J">J</option>
+                  </select>
+                  <svg className="pointer-events-none absolute right-1.5 h-2.5 w-2.5 text-muted-foreground" viewBox="0 0 12 8" fill="none">
+                    <path d="M1 1.5L6 6.5L11 1.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={cedula}
+                  onChange={(e) => setCedula(e.target.value)}
+                  placeholder="ej: 12345678"
+                  className="flex-1 rounded-r-xl bg-transparent py-2.5 pl-2.5 pr-3 text-xs text-foreground placeholder:text-muted-foreground/50 outline-none"
+                />
+              </div>
+            </div>
+
             <div className="flex items-start gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl text-[9.5px] text-blue-400/80">
               <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-400" />
               <span>Solo puedes registrar centros de acopio. Los puntos de despacho y destinos son gestionados por coordinadores autorizados.</span>
@@ -1260,7 +1306,7 @@ function GeneratedPasswordModal({ telefono, password, onClose }: GeneratedPasswo
           <div className="flex items-center gap-2 rounded-xl border border-[#2B5F8E]/40 bg-[#152D46]/60 px-4 py-2.5">
             <Lock className="h-4 w-4 shrink-0 text-white/40" />
             <span className="flex-1 text-sm font-medium text-white/80">Contraseña</span>
-            <span className="font-mono text-base font-bold tracking-widest text-white">{password}</span>
+            <span className="font-mono text-base font-bold tracking-widest text-white uppercase">{password}</span>
             <button
               type="button"
               onClick={copyPassword}

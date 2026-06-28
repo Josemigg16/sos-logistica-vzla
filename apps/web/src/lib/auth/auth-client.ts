@@ -131,14 +131,17 @@ export interface SignupHubResult {
  * Auto-registro público para coordinadores de hubs.
  * El backend genera la contraseña y devuelve tokens directamente.
  */
-export async function signupHub(telefono: string): Promise<SignupHubResult> {
+export async function signupHub(
+  telefono: string,
+  extra?: { cedula?: string; documentType?: "V" | "J"; password?: string },
+): Promise<SignupHubResult> {
   let res: Response;
   try {
     res = await fetch(`${API_URL}/auth/signup`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ telefono }),
+      body: JSON.stringify({ telefono, ...extra }),
     });
   } catch {
     throw new AuthError("NETWORK", messageFor("NETWORK"));

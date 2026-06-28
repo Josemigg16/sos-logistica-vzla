@@ -22,17 +22,29 @@ describe("SelfRegisterCoordinator", () => {
     expect(stored!.telefono).toBe("+584141000001");
   });
 
-  test("devuelve una contraseña generada no vacía", async () => {
+  test("devuelve una contraseña generada de 5 caracteres", async () => {
     const { generatedPassword } = await coordinator.execute({ telefono: "+584141000002" });
     expect(generatedPassword).toBeTruthy();
-    expect(generatedPassword.length).toBeGreaterThanOrEqual(8);
+    expect(generatedPassword!.length).toBe(5);
   });
 
   test("la contraseña generada es válida para autenticar", async () => {
     const { generatedPassword } = await coordinator.execute({ telefono: "+584141000003" });
     const stored = await users.findByUsername("+584141000003");
     const hasher = new FakeHasher();
-    const valid = await hasher.verify(generatedPassword, stored!.credential.hash);
+    const valid = await hasher.verify(generatedPassword!, stored!.credential.hash);
+    expect(valid).toBe(true);
+  });
+
+  test("acepta contraseña propia y devuelve generatedPassword null", async () => {
+    const { generatedPassword } = await coordinator.execute({
+      telefono: "+584141000004",
+      password: "MICLAVE123",
+    });
+    expect(generatedPassword).toBeNull();
+    const stored = await users.findByUsername("+584141000004");
+    const hasher = new FakeHasher();
+    const valid = await hasher.verify("MICLAVE123", stored!.credential.hash);
     expect(valid).toBe(true);
   });
 
