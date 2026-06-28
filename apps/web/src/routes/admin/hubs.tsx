@@ -177,24 +177,22 @@ function AdminHubsPage() {
           </h1>
           <p className="text-sm text-white/50 max-w-lg">
             {isCoordinatorView
-              ? 'Listado de centros de acopio asociados a tu cuenta. Toca uno para editar su inventario.'
+              ? 'Centros de acopio asociados a tu cuenta. Toca uno para editar su inventario o registra uno nuevo.'
               : 'Registra nuevos centros de acopio, bases de distribución ZODI o puntos destino, y edita sus niveles de inventario.'}
           </p>
         </div>
 
-        {canManageAllHubs && (
-          <button
-            onClick={() => setCreating(true)}
-            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#0F2337] font-bold
-                       shadow-[0_4px_16px_rgba(255,255,255,0.15)]
-                       hover:shadow-[0_8px_24px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0]
-                       active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200"
-            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '0.95rem', letterSpacing: '0.05em' }}
-          >
-            <Plus className="w-4 h-4" strokeWidth={3} />
-            NUEVO CENTRO
-          </button>
-        )}
+        <button
+          onClick={() => setCreating(true)}
+          className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#0F2337] font-bold
+                     shadow-[0_4px_16px_rgba(255,255,255,0.15)]
+                     hover:shadow-[0_8px_24px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0]
+                     active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200"
+          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '0.95rem', letterSpacing: '0.05em' }}
+        >
+          <Plus className="w-4 h-4" strokeWidth={3} />
+          NUEVO CENTRO
+        </button>
       </div>
 
       {/* List / Table */}
@@ -205,7 +203,7 @@ function AdminHubsPage() {
         </div>
       ) : hubs.length === 0 ? (
         isCoordinatorView ? (
-          <CoordinatorEmptyState />
+          <CoordinatorEmptyState onCreate={() => setCreating(true)} />
         ) : (
           <EmptyState onCreate={() => setCreating(true)} />
         )
@@ -259,6 +257,9 @@ function AdminHubsPage() {
           onSubmit={(newHub) => createMutation.mutate(newHub)}
           isSubmitting={createMutation.isPending}
           title="Nuevo centro de acopio"
+          lockedToCollection={isCoordinatorView}
+          presetContacto={isCoordinatorView ? user?.username : undefined}
+          presetResponsable={isCoordinatorView ? user?.username : undefined}
         />
       )}
 
@@ -390,14 +391,22 @@ function HubMobileCard({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canD
   )
 }
 
-function CoordinatorEmptyState() {
+function CoordinatorEmptyState({ onCreate }: { onCreate: () => void }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl border border-dashed border-[#2B5F8E]/40 bg-[#152D46]/40">
       <MapPin className="w-12 h-12 text-white/15 mb-4" />
-      <h3 className="text-white font-bold text-base mb-1.5">Aún no tienes centros asignados</h3>
-      <p className="text-white/40 text-xs max-w-sm">
-        Cuando el equipo de SOS Logística te asocie a uno o más centros de acopio, aparecerán aquí para que gestiones su inventario.
+      <h3 className="text-white font-bold text-base mb-1.5">Aún no tienes centros</h3>
+      <p className="text-white/40 text-xs max-w-sm mb-5">
+        Registra un centro de acopio. Quedará asociado a tu cuenta y arrancará inactivo hasta que un coordinador de SOS Logística lo verifique.
       </p>
+      <button
+        onClick={onCreate}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white text-[#0F2337] font-bold text-[12px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200"
+        style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', letterSpacing: '0.05em' }}
+      >
+        <Plus className="w-4 h-4" strokeWidth={3} />
+        Registrar Centro
+      </button>
     </div>
   )
 }
@@ -429,19 +438,36 @@ function HubFormModal({
   onSubmit,
   isSubmitting,
   title,
+  lockedToCollection = false,
+  presetContacto,
+  presetResponsable,
 }: {
   initial?: Centro
   onClose: () => void
   onSubmit: (hub: Centro) => void
   isSubmitting: boolean
   title: string
+  /**
+   * Si true (caso HUB_COORDINATOR creando un centro nuevo): el tipo queda fijo
+   * en "acopio", arranca INACTIVO (para que un rol interno lo verifique) y se
+   * ocultan los selectores de tipo / clasificación / estado / inventario.
+   * También se ocultan los campos de contacto / responsable porque se toman
+   * del usuario logueado.
+   */
+  lockedToCollection?: boolean
+  /** Pre-relleno opcional del campo contacto (usado cuando lockedToCollection). */
+  presetContacto?: string
+  /** Pre-relleno opcional del campo responsable (usado cuando lockedToCollection). */
+  presetResponsable?: string
 }) {
   const [nombre, setNombre] = useState(initial?.nombre ?? '')
   const [direccion, setDireccion] = useState(initial?.direccion ?? '')
-  const [contacto, setContacto] = useState(initial?.contacto ?? '')
-  const [responsable, setResponsable] = useState(initial?.responsable ?? '')
+  const [contacto, setContacto] = useState(initial?.contacto ?? presetContacto ?? '')
+  const [responsable, setResponsable] = useState(initial?.responsable ?? presetResponsable ?? '')
   const [tipo, setTipo] = useState<TipoCentro>(initial?.tipo ?? 'acopio')
-  const [estado, setEstado] = useState<HubStatus>(initial?.estado ?? 'ACTIVO')
+  const [estado, setEstado] = useState<HubStatus>(
+    initial?.estado ?? (lockedToCollection ? 'INACTIVO' : 'ACTIVO'),
+  )
   const [isInformal, setIsInformal] = useState<boolean>(initial?.isInformal ?? false)
 
   // Coordenadas iniciales (centro de Portuguesa o del centro seleccionado)
@@ -519,7 +545,7 @@ function HubFormModal({
       )}
     >
       <div className="flex flex-col gap-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className={`grid grid-cols-1 ${lockedToCollection ? '' : 'sm:grid-cols-2'} gap-4`}>
             <Field label="Nombre del Centro" required>
               <input
                 type="text"
@@ -532,73 +558,85 @@ function HubFormModal({
               />
             </Field>
 
-            <Field label="Tipo de Centro" required>
-              <select
-                value={tipo}
-                onChange={(e) => setTipo(e.target.value as TipoCentro)}
-                className="input"
-              >
-                {TIPOS_CENTRO.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            {!lockedToCollection && (
+              <Field label="Tipo de Centro" required>
+                <select
+                  value={tipo}
+                  onChange={(e) => setTipo(e.target.value as TipoCentro)}
+                  className="input"
+                >
+                  {TIPOS_CENTRO.map((t) => (
+                    <option key={t.value} value={t.value}>
+                      {t.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+            )}
           </div>
 
-          <Field label="Tipo de Registro / Clasificación">
-            <div className="flex items-center gap-6 p-4 rounded-xl border border-[#2B5F8E]/30 bg-[#152D46]/20">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  name="isInformal"
-                  checked={!isInformal}
-                  onChange={() => setIsInformal(false)}
-                  className="w-4 h-4 text-blue-500 bg-white/5 border-white/20 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">Interno (Con Usuario)</span>
-                  <span className="text-[10px] text-white/40 mt-0.5">Requiere un coordinador con credenciales de acceso</span>
-                </div>
-              </label>
+          {!lockedToCollection && (
+            <Field label="Tipo de Registro / Clasificación">
+              <div className="flex items-center gap-6 p-4 rounded-xl border border-[#2B5F8E]/30 bg-[#152D46]/20">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="isInformal"
+                    checked={!isInformal}
+                    onChange={() => setIsInformal(false)}
+                    className="w-4 h-4 text-blue-500 bg-white/5 border-white/20 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white uppercase tracking-wide">Interno (Con Usuario)</span>
+                    <span className="text-[10px] text-white/40 mt-0.5">Requiere un coordinador con credenciales de acceso</span>
+                  </div>
+                </label>
 
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="radio"
-                  name="isInformal"
-                  checked={isInformal}
-                  onChange={() => setIsInformal(true)}
-                  className="w-4 h-4 text-blue-500 bg-white/5 border-white/20 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                />
-                <div className="flex flex-col">
-                  <span className="text-xs font-bold text-white uppercase tracking-wide">Informal (Informativo)</span>
-                  <span className="text-[10px] text-white/40 mt-0.5">Punto en el mapa de carácter meramente informativo</span>
-                </div>
-              </label>
-            </div>
-          </Field>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="radio"
+                    name="isInformal"
+                    checked={isInformal}
+                    onChange={() => setIsInformal(true)}
+                    className="w-4 h-4 text-blue-500 bg-white/5 border-white/20 focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-white uppercase tracking-wide">Informal (Informativo)</span>
+                    <span className="text-[10px] text-white/40 mt-0.5">Punto en el mapa de carácter meramente informativo</span>
+                  </div>
+                </label>
+              </div>
+            </Field>
+          )}
 
-          <Field label="Estado operativo">
-            <div className="grid grid-cols-2 gap-2">
-              {(['ACTIVO', 'INACTIVO'] as const).map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  onClick={() => setEstado(s)}
-                  className={`px-4 py-2.5 rounded-lg text-sm font-semibold border transition-colors duration-150 ${
-                    estado === s
-                      ? s === 'ACTIVO'
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200'
-                        : 'bg-red-500/15 border-red-500/40 text-red-200'
-                      : 'bg-white/5 border-[#2B5F8E]/40 text-white/50 hover:text-white hover:bg-white/10'
-                  }`}
-                >
-                  {s === 'ACTIVO' ? 'Activo' : 'Inactivo'}
-                </button>
-              ))}
+          {!lockedToCollection && (
+            <Field label="Estado operativo">
+              <div className="grid grid-cols-2 gap-2">
+                {(['ACTIVO', 'INACTIVO'] as const).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setEstado(s)}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-semibold border transition-colors duration-150 ${
+                      estado === s
+                        ? s === 'ACTIVO'
+                          ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-200'
+                          : 'bg-red-500/15 border-red-500/40 text-red-200'
+                        : 'bg-white/5 border-[#2B5F8E]/40 text-white/50 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {s === 'ACTIVO' ? 'Activo' : 'Inactivo'}
+                  </button>
+                ))}
+              </div>
+            </Field>
+          )}
+
+          {lockedToCollection && (
+            <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 px-4 py-3 text-[11px] text-amber-200/90 leading-relaxed">
+              Tu centro queda registrado como <strong>centro de acopio</strong> y arranca <strong>inactivo</strong> hasta que un coordinador de SOS Logística lo verifique.
             </div>
-          </Field>
+          )}
 
           <Field label="Dirección Física" required>
             <input
@@ -612,31 +650,33 @@ function HubFormModal({
             />
           </Field>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Field label="Coordinador / Responsable" required>
-              <input
-                type="text"
-                value={responsable}
-                onChange={(e) => setResponsable(e.target.value)}
-                required
-                maxLength={100}
-                className="input"
-                placeholder="Nombre completo"
-              />
-            </Field>
+          {!lockedToCollection && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Coordinador / Responsable" required>
+                <input
+                  type="text"
+                  value={responsable}
+                  onChange={(e) => setResponsable(e.target.value)}
+                  required
+                  maxLength={100}
+                  className="input"
+                  placeholder="Nombre completo"
+                />
+              </Field>
 
-            <Field label="Contacto (WhatsApp / Celular)" required hint="ej. +58 412 123 4567">
-              <input
-                type="text"
-                value={contacto}
-                onChange={(e) => setContacto(e.target.value)}
-                required
-                maxLength={32}
-                className="input"
-                placeholder="+58 ..."
-              />
-            </Field>
-          </div>
+              <Field label="Contacto (WhatsApp / Celular)" required hint="ej. +58 412 123 4567">
+                <input
+                  type="text"
+                  value={contacto}
+                  onChange={(e) => setContacto(e.target.value)}
+                  required
+                  maxLength={32}
+                  className="input"
+                  placeholder="+58 ..."
+                />
+              </Field>
+            </div>
+          )}
 
           <div className="border-t border-[#2B5F8E]/20 pt-4">
             <div className="flex items-center gap-1.5 mb-3 text-[11px] font-bold text-[#C8DCF0]/50 uppercase tracking-[0.1em]">
@@ -702,51 +742,53 @@ function HubFormModal({
           </div>
 
           {/* Inventario Sliders */}
-          <div className="border-t border-[#2B5F8E]/20 pt-4">
-            <div className="flex items-center gap-1.5 mb-3 text-[11px] font-bold text-[#C8DCF0]/50 uppercase tracking-[0.1em]">
-              <Layers className="w-3.5 h-3.5 text-[#C8DCF0]/50" />
-              Inventario Inicial por Categoría
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
-              {INVENTORY_CATEGORIES.map((cat) => (
-                <div key={cat} className="flex flex-col gap-1">
-                  <div className="flex justify-between text-[11px] font-medium text-white/80">
-                    <span className="truncate">{cat}</span>
-                    <span className="font-mono text-[#C8DCF0]">{inventario[cat]}%</span>
+          {!lockedToCollection && (
+            <div className="border-t border-[#2B5F8E]/20 pt-4">
+              <div className="flex items-center gap-1.5 mb-3 text-[11px] font-bold text-[#C8DCF0]/50 uppercase tracking-[0.1em]">
+                <Layers className="w-3.5 h-3.5 text-[#C8DCF0]/50" />
+                Inventario Inicial por Categoría
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+                {INVENTORY_CATEGORIES.map((cat) => (
+                  <div key={cat} className="flex flex-col gap-1">
+                    <div className="flex justify-between text-[11px] font-medium text-white/80">
+                      <span className="truncate">{cat}</span>
+                      <span className="font-mono text-[#C8DCF0]">{inventario[cat]}%</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={inventario[cat]}
+                        onChange={(e) =>
+                          setInventario({
+                            ...inventario,
+                            [cat]: parseInt(e.target.value, 10),
+                          })
+                        }
+                        className="w-full accent-[#4A89C0] bg-white/10 h-1.5 rounded-lg appearance-none cursor-pointer"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={inventario[cat]}
+                        onChange={(e) => {
+                          const val = Math.min(Math.max(parseInt(e.target.value, 10) || 0, 0), 100)
+                          setInventario({
+                            ...inventario,
+                            [cat]: val,
+                          })
+                        }}
+                        className="w-14 px-1.5 py-0.5 text-center text-xs text-white rounded bg-white/5 border border-[#2B5F8E]/40 font-mono"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={inventario[cat]}
-                      onChange={(e) =>
-                        setInventario({
-                          ...inventario,
-                          [cat]: parseInt(e.target.value, 10),
-                        })
-                      }
-                      className="w-full accent-[#4A89C0] bg-white/10 h-1.5 rounded-lg appearance-none cursor-pointer"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={inventario[cat]}
-                      onChange={(e) => {
-                        const val = Math.min(Math.max(parseInt(e.target.value, 10) || 0, 0), 100)
-                        setInventario({
-                          ...inventario,
-                          [cat]: val,
-                        })
-                      }}
-                      className="w-14 px-1.5 py-0.5 text-center text-xs text-white rounded bg-white/5 border border-[#2B5F8E]/40 font-mono"
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
         <style>{`
           .input {
