@@ -328,11 +328,11 @@ export default function App() {
   return (
     <div className="mapa-layout relative flex flex-col select-none bg-background text-foreground transition-colors duration-300 antialiased">
       
-      <header className="absolute top-4 left-4 right-4 z-40 md:left-6 md:right-auto md:w-max md:max-w-[calc(100vw-48px)] flex items-center justify-between gap-4 md:gap-6 p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+      <header className="absolute top-3 left-3 right-3 z-40 md:top-4 md:left-6 md:right-auto md:w-max md:max-w-[calc(100vw-48px)] flex items-center justify-between gap-2 md:gap-6 p-2 md:p-3 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md transition-shadow transition-colors duration-300">
+        <div className="flex items-center gap-1.5 md:gap-2.5 min-w-0 flex-1">
           <Link
             to="/"
-            className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shrink-0"
+            className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shrink-0"
             title="Volver a necesidades"
             aria-label="Volver a necesidades"
           >
@@ -341,7 +341,7 @@ export default function App() {
           <img
             src={isotipo}
             alt="Portuguesa Unida"
-            className="w-10 h-10 rounded-lg object-cover shrink-0"
+            className="w-8 h-8 md:w-10 md:h-10 rounded-lg object-cover shrink-0"
           />
           <div className="hidden sm:block min-w-0">
             <h1
@@ -353,11 +353,11 @@ export default function App() {
             <p className="text-[10px] text-muted-foreground mt-0.5 leading-none font-medium">Centros de Acopio</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 md:gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 md:gap-2.5 shrink-0">
           <SupportPhoneHeaderButton />
           <button
             onClick={() => setShowWelcomeModal(true)}
-            className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
+            className="flex items-center justify-center w-8 h-8 md:w-9 md:h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
             title="¿Cómo usar el mapa?"
             aria-label="¿Cómo usar el mapa?"
           >
@@ -369,11 +369,11 @@ export default function App() {
               setIsRegistering(true);
               setSelectedId(null);
             }}
-            className="register-cta relative flex items-center justify-center gap-1.5 h-9 px-3.5 md:px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-black text-[12px] md:text-[13px] uppercase tracking-wide active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shadow-lg shadow-blue-600/40 shrink-0"
+            className="register-cta relative flex items-center justify-center gap-1 md:gap-1.5 h-8 md:h-9 px-2.5 md:px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-black text-[11px] md:text-[13px] uppercase tracking-wide active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shadow-lg shadow-blue-600/40 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
             title="Registrar nuevo centro de acopio"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3]" />
             <span>Registrar</span>
           </button>
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20 shrink-0">
@@ -534,7 +534,7 @@ export default function App() {
       </main>
 
       {/* CONTROLES FLOTANTES / FILTROS (MOBILE FIRST) */}
-      <div className="absolute top-24 left-4 right-4 z-30 md:left-6 md:right-auto md:w-96 flex flex-col gap-2">
+      <div className="absolute top-[68px] left-3 right-3 z-30 md:top-24 md:left-6 md:right-auto md:w-96 flex flex-col gap-2">
         {/* Barra de búsqueda */}
         <div className="relative flex items-center">
           <Search className="absolute left-3 w-4 h-4 text-muted-foreground pointer-events-none" />
