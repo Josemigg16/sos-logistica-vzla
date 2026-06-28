@@ -1,5 +1,6 @@
 services:
   db:
+    container_name: db
     image: postgres:18-alpine
     restart: unless-stopped
     environment:
@@ -20,6 +21,7 @@ services:
       retries: 5
 
   api:
+    container_name: api
     build:
       context: .
       dockerfile: docker/api.Dockerfile
@@ -41,6 +43,7 @@ services:
       retries: 5
 
   web:
+    container_name: web
     build:
       context: .
       dockerfile: docker/web.Dockerfile
