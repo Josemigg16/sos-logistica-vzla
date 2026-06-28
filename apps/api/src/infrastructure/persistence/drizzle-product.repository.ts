@@ -32,7 +32,7 @@ export class DrizzleProductRepository implements ProductRepository {
     const [row] = await db
       .select()
       .from(products)
-      .where(eq(sql`LOWER(${products.name})`, name.toLowerCase()))
+      .where(eq(sql`unaccent(lower(${products.name}))`, sql`unaccent(lower(${name}))`))
       .limit(1);
     return row ? toDomain(row) : null;
   }

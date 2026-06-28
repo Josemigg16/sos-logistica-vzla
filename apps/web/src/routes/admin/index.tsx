@@ -89,7 +89,7 @@ function AdminDashboard() {
               to="/admin/settings"
               icon={<SettingsIcon className="w-6 h-6" />}
               title="Ajustes"
-              description="Configurar el número de contacto de SOS Logística y otros datos globales."
+              description="Configurar el número de contacto de Portuguesa Unida y otros datos globales."
               stat="Configurar la app"
             />
           </>

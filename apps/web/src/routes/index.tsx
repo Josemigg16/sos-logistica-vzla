@@ -756,7 +756,7 @@ function NecesidadesPage() {
             <span className="text-[10px] font-bold text-[#C8DCF0]/60 uppercase tracking-[0.15em]">
               ¿Necesitas ayuda?
             </span>
-            <SupportContactBlock message="Hola, escribo desde la página de SOS Logística y necesito ayuda." />
+            <SupportContactBlock message="Hola, escribo desde la página de Portuguesa Unida y necesito ayuda." />
             <span className="text-[10.5px] text-white/40 leading-relaxed max-w-xs">
               Coordina donaciones, centros o resuelve dudas con nuestro equipo.
             </span>

@@ -63,7 +63,7 @@ app.get("/health", (c) =>
   c.json({ status: "ok", service: "sos-api", ts: new Date().toISOString() })
 );
 
-app.get("/", (c) => c.text("SOS Logística API"));
+app.get("/", (c) => c.text("Portuguesa Unida API"));
 
 const port = Number(process.env.PORT ?? 8081);
 

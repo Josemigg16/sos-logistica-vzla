@@ -397,7 +397,7 @@ function CoordinatorEmptyState({ onCreate }: { onCreate: () => void }) {
       <MapPin className="w-12 h-12 text-white/15 mb-4" />
       <h3 className="text-white font-bold text-base mb-1.5">Aún no tienes centros</h3>
       <p className="text-white/40 text-xs max-w-sm mb-5">
-        Registra un centro de acopio. Quedará asociado a tu cuenta y arrancará inactivo hasta que un coordinador de SOS Logística lo verifique.
+        Registra un centro de acopio. Quedará asociado a tu cuenta y arrancará inactivo hasta que un coordinador de Portuguesa Unida lo verifique.
       </p>
       <button
         onClick={onCreate}
@@ -634,7 +634,7 @@ function HubFormModal({
 
           {lockedToCollection && (
             <div className="rounded-xl border border-amber-400/30 bg-amber-400/5 px-4 py-3 text-[11px] text-amber-200/90 leading-relaxed">
-              Tu centro queda registrado como <strong>centro de acopio</strong> y arranca <strong>inactivo</strong> hasta que un coordinador de SOS Logística lo verifique.
+              Tu centro queda registrado como <strong>centro de acopio</strong> y arranca <strong>inactivo</strong> hasta que un coordinador de Portuguesa Unida lo verifique.
             </div>
           )}
 

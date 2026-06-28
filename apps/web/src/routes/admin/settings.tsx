@@ -89,7 +89,7 @@ function SupportPhoneSection() {
           <Phone className="w-5 h-5" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-white font-bold text-base sm:text-lg">Número de contacto de SOS Logística</h2>
+          <h2 className="text-white font-bold text-base sm:text-lg">Número de contacto de Portuguesa Unida</h2>
           <p className="text-sm text-white/50 mt-0.5 leading-relaxed">
             Se muestra a las personas que registran un centro de acopio desde el mapa público
             para que puedan llamar a un coordinador y verificar su centro.

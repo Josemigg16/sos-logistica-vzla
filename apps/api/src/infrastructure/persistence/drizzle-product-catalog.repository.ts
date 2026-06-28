@@ -9,16 +9,13 @@ function toEntry(row: ProductRow): ProductEntry {
   return { id: row.id, name: row.name, category: row.category, unit: row.unit };
 }
 
-/**
- * Adapter Drizzle del puerto ProductCatalogPort.
- * Búsqueda case-insensitive por nombre (replica comportamiento legacy con LOWER()).
- */
+/** Adapter Drizzle del puerto ProductCatalogPort. */
 export class DrizzleProductCatalogRepository implements ProductCatalogPort {
   async findByName(name: string): Promise<ProductEntry | null> {
     const [row] = await db
       .select()
       .from(products)
-      .where(eq(sql`LOWER(${products.name})`, name.toLowerCase()))
+      .where(eq(sql`unaccent(lower(${products.name}))`, sql`unaccent(lower(${name}))`))
       .limit(1);
     return row ? toEntry(row) : null;
   }

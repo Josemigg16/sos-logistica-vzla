@@ -1,19 +1,17 @@
 import type { ProductCatalogPort, ProductEntry } from "../../application/needs/ports/product-catalog.port";
 
+const normalize = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/\p{Mn}/gu, "");
+
 type StoredProduct = ProductEntry & { description: string };
 
-/**
- * Adapter in-memory del puerto ProductCatalogPort.
- * Para tests y para correr la API sin Postgres. Búsqueda case-insensitive
- * por nombre, igual que el adapter Drizzle.
- */
+/** Adapter in-memory del puerto ProductCatalogPort. */
 export class InMemoryProductCatalogRepository implements ProductCatalogPort {
   private readonly byId = new Map<string, StoredProduct>();
-  /** lowercase name → id */
   private readonly byName = new Map<string, string>();
 
   async findByName(name: string): Promise<ProductEntry | null> {
-    const id = this.byName.get(name.toLowerCase());
+    const id = this.byName.get(normalize(name));
     if (!id) return null;
     const entry = this.byId.get(id);
     return entry ?? null;
@@ -25,6 +23,6 @@ export class InMemoryProductCatalogRepository implements ProductCatalogPort {
 
   async create(product: StoredProduct): Promise<void> {
     this.byId.set(product.id, product);
-    this.byName.set(product.name.toLowerCase(), product.id);
+    this.byName.set(normalize(product.name), product.id);
   }
 }

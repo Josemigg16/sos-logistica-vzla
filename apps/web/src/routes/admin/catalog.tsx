@@ -193,7 +193,7 @@ function AdminCatalogPage() {
             CATÁLOGO DE PRODUCTOS
           </h1>
           <p className="text-sm text-white/50 max-w-lg">
-            Consulta el maestro oficial de productos y las unidades de medida estandarizadas para el sistema SOS Logística.
+            Consulta el maestro oficial de productos y las unidades de medida estandarizadas para el sistema Portuguesa Unida.
           </p>
         </div>
         <div>
