@@ -291,11 +291,13 @@ export default function App() {
 
   // Filtrar centros según búsqueda y tipo seleccionado
   const filteredCentros = useMemo(() => {
-    const term = searchTerm.toLowerCase();
+    const normalize = (s: string) =>
+      s.toLowerCase().normalize("NFD").replace(/\p{Mn}/gu, "");
+    const term = normalize(searchTerm);
     return publicCentros.filter(c =>
       activeTipos.has(c.tipo) &&
-      (c.nombre.toLowerCase().includes(term) ||
-        c.direccion.toLowerCase().includes(term))
+      (normalize(c.nombre).includes(term) ||
+        normalize(c.direccion).includes(term))
     );
   }, [publicCentros, searchTerm, activeTipos]);
 
