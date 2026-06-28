@@ -770,7 +770,20 @@ export default function App() {
           onSubmit={async (data) => {
             setIsSaving(true);
             try {
-              const token = getToken();
+              // Si el usuario aún no está autenticado, primero creamos su cuenta
+              // y obtenemos el token. Así el POST a /centros se hace CON token y
+              // el hub queda vinculado a su coordinatorId (no huérfano).
+              let signupResult: Awaited<ReturnType<typeof signupHub>> | null = null;
+              if (!user) {
+                try {
+                  signupResult = await signupHub(data.contacto);
+                  loginWithToken(signupResult.accessToken, signupResult.user);
+                } catch {
+                  // ignored — seguimos con POST sin token (queda como informativo)
+                }
+              }
+
+              const token = signupResult?.accessToken ?? getToken();
               const headers: HeadersInit = { "Content-Type": "application/json" };
               if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -793,12 +806,8 @@ export default function App() {
               if (user) {
                 navigate({ to: "/admin" });
               } else {
-                try {
-                  const result = await signupHub(data.contacto);
-                  loginWithToken(result.accessToken, result.user);
-                  setPendingCredentials({ telefono: data.contacto, password: result.generatedPassword });
-                } catch {
-                  // ignored
+                if (signupResult) {
+                  setPendingCredentials({ telefono: data.contacto, password: signupResult.generatedPassword });
                 }
                 setPendingVerificationHubName(data.nombre);
               }
