@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Route as RouteIcon, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
-import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_MANAGE_CONVOYS } from '@/lib/session'
+import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_MANAGE_CONVOYS, ROLES_MANAGE_NEEDS } from '@/lib/session'
 import { useScrollLock } from '@/lib/scroll-lock'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
@@ -186,10 +186,10 @@ function SidebarContent({
 
           <nav className="flex flex-col gap-1">
             {!isHubCoordinator && (
-              <>
-                <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
-                <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
-              </>
+              <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
+            )}
+            {hasAnyRole(user, ...ROLES_MANAGE_NEEDS) && (
+              <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
             )}
             <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Logistica" />
             {!isHubCoordinator && (
