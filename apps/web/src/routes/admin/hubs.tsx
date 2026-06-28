@@ -109,6 +109,7 @@ function AdminHubsPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const [creating, setCreating] = useState(false)
+  const [editing, setEditing] = useState<Centro | null>(null)
   const [deleting, setDeleting] = useState<Centro | null>(null)
 
   // Los coordinadores de centro solo ven los hubs asociados a su usuario.
@@ -141,6 +142,20 @@ function AdminHubsPage() {
       toast.success('Centro registrado', `"${created.nombre}" está disponible en logística.`)
     },
     onError: (e: Error) => toast.error('No se pudo registrar el centro', e.message),
+  })
+
+  // El endpoint POST /centros es upsert — al enviar un hub con id existente,
+  // se actualiza. Reusamos createHub aquí para mantener una única ruta de red.
+  const updateMutation = useMutation({
+    mutationFn: createHub,
+    onSuccess: (updated) => {
+      queryClient.setQueryData<Centro[]>(['centros'], (prev = []) =>
+        prev.map((item) => (item.id === updated.id ? updated : item)),
+      )
+      setEditing(null)
+      toast.success('Centro actualizado', `"${updated.nombre}" se guardó correctamente.`)
+    },
+    onError: (e: Error) => toast.error('No se pudo actualizar el centro', e.message),
   })
 
   const deleteMutation = useMutation({
@@ -228,6 +243,7 @@ function AdminHubsPage() {
                     hub={hub}
                     canDelete={canManageAllHubs}
                     onEdit={() => navigate({ to: '/admin/hubs/$hubId', params: { hubId: hub.id } })}
+                    onEditLocation={hub.estado === 'INACTIVO' ? () => setEditing(hub) : undefined}
                     onDelete={() => setDeleting(hub)}
                   />
                 ))}
@@ -243,6 +259,7 @@ function AdminHubsPage() {
                 hub={hub}
                 canDelete={canManageAllHubs}
                 onEdit={() => navigate({ to: '/admin/hubs/$hubId', params: { hubId: hub.id } })}
+                onEditLocation={hub.estado === 'INACTIVO' ? () => setEditing(hub) : undefined}
                 onDelete={() => setDeleting(hub)}
               />
             ))}
@@ -263,6 +280,16 @@ function AdminHubsPage() {
         />
       )}
 
+      {editing && (
+        <HubFormModal
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSubmit={(hub) => updateMutation.mutate(hub)}
+          isSubmitting={updateMutation.isPending}
+          title={`Editar ubicación — ${editing.nombre}`}
+        />
+      )}
+
       {deleting && (
         <DeleteConfirmModal
           hub={deleting}
@@ -277,7 +304,7 @@ function AdminHubsPage() {
 
 // --- Subcomponents ---
 
-function HubRow({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canDelete: boolean; onEdit: () => void; onDelete: () => void }) {
+function HubRow({ hub, canDelete, onEdit, onEditLocation, onDelete }: { hub: Centro; canDelete: boolean; onEdit: () => void; onEditLocation?: () => void; onDelete: () => void }) {
   const tipoInfo = TIPOS_CENTRO.find((t) => t.value === hub.tipo)
 
   return (
@@ -323,6 +350,9 @@ function HubRow({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canDelete: 
       </td>
       <td className="px-5 py-4">
         <div className="flex items-center justify-end gap-1">
+          {onEditLocation && (
+            <IconButton onClick={onEditLocation} label="Editar ubicación" variant="accent"><MapPin className="w-3.5 h-3.5" /></IconButton>
+          )}
           <IconButton onClick={onEdit} label="Editar"><Pencil className="w-3.5 h-3.5" /></IconButton>
           {canDelete && (
             <IconButton onClick={onDelete} label="Eliminar" variant="danger"><Trash2 className="w-3.5 h-3.5" /></IconButton>
@@ -333,7 +363,7 @@ function HubRow({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canDelete: 
   )
 }
 
-function HubMobileCard({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canDelete: boolean; onEdit: () => void; onDelete: () => void }) {
+function HubMobileCard({ hub, canDelete, onEdit, onEditLocation, onDelete }: { hub: Centro; canDelete: boolean; onEdit: () => void; onEditLocation?: () => void; onDelete: () => void }) {
   const tipoInfo = TIPOS_CENTRO.find((t) => t.value === hub.tipo)
 
   return (
@@ -378,6 +408,16 @@ function HubMobileCard({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canD
         >
           <Pencil className="w-3.5 h-3.5" /> Editar
         </button>
+        {onEditLocation && (
+          <button
+            onClick={onEditLocation}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-200 text-[11px] font-semibold hover:bg-amber-500/25 active:scale-[0.97] transition-[transform,background-color] duration-200"
+            title="Editar ubicación"
+            aria-label="Editar ubicación"
+          >
+            <MapPin className="w-3.5 h-3.5" /> Ubicación
+          </button>
+        )}
         {canDelete && (
           <button
             onClick={onDelete}
@@ -907,18 +947,20 @@ function IconButton({
   onClick: () => void
   label: string
   children: React.ReactNode
-  variant?: 'default' | 'danger'
+  variant?: 'default' | 'danger' | 'accent'
 }) {
+  const styles =
+    variant === 'danger'
+      ? 'text-white/40 hover:text-white hover:bg-white/10'
+      : variant === 'accent'
+        ? 'text-amber-300/80 hover:text-amber-200 hover:bg-amber-500/15 border border-amber-500/30'
+        : 'text-[#C8DCF0]/70 hover:text-[#C8DCF0] hover:bg-[#2B5F8E]/40'
   return (
     <button
       onClick={onClick}
       aria-label={label}
       title={label}
-      className={`flex items-center justify-center w-8 h-8 rounded-lg active:scale-[0.96] transition-[transform,background-color,color] duration-200 ${
-        variant === 'danger'
-          ? 'text-white/40 hover:text-white hover:bg-white/10'
-          : 'text-[#C8DCF0]/70 hover:text-[#C8DCF0] hover:bg-[#2B5F8E]/40'
-      }`}
+      className={`flex items-center justify-center w-8 h-8 rounded-lg active:scale-[0.96] transition-[transform,background-color,color] duration-200 ${styles}`}
     >
       {children}
     </button>
