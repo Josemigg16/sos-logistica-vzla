@@ -70,7 +70,7 @@ function HubDetailPage() {
       ) : (
         <div className="flex flex-col gap-6">
           {user?.role === 'HUB_COORDINATOR' && hub.status === 'INACTIVO' && (
-            <HubPendingVerification hubName={hub.name} variant="post-register" />
+            <HubPendingVerification hubName={hub.name} variant="inline" />
           )}
           <HubDashboard hub={hub} canManageVehicles={canManageVehicles} />
         </div>

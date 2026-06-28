@@ -7,14 +7,21 @@ import {
 interface HubPendingVerificationProps {
   /** Nombre del centro recién registrado o en edición. Opcional. */
   hubName?: string
-  /** Si true, usa el tono "centro ya registrado, ahora hay que verificarlo". */
-  variant?: "post-register" | "edit-locked"
+  /**
+   * `post-register` / `edit-locked` — bloque grande centrado (modal o standalone).
+   * `inline` — banner compacto horizontal para insertar arriba del dashboard de un hub.
+   */
+  variant?: "post-register" | "edit-locked" | "inline"
 }
 
 export function HubPendingVerification({
   hubName,
   variant = "edit-locked",
 }: HubPendingVerificationProps) {
+  if (variant === "inline") {
+    return <HubPendingVerificationInline hubName={hubName} />
+  }
+
   const isPostRegister = variant === "post-register"
 
   const title = isPostRegister
@@ -80,6 +87,49 @@ export function HubPendingVerification({
           visible en el mapa público.
         </p>
       </div>
+    </div>
+  )
+}
+
+/**
+ * Banner compacto horizontal para insertar arriba del dashboard de un hub
+ * inactivo cuando el coordinador entra a verlo. No interrumpe el flujo de la
+ * vista — solo recuerda el estado y muestra el contacto de soporte.
+ */
+function HubPendingVerificationInline({ hubName }: { hubName?: string }) {
+  const { data } = useSupportContact()
+  const phone = data?.phone?.trim() ?? ""
+  const waLink = phone
+    ? `https://wa.me/${toWhatsappNumber(phone)}?text=${encodeURIComponent("Hola, quiero verificar mi centro de acopio registrado en SOS Logística.")}`
+    : null
+
+  return (
+    <div className="flex items-start gap-3 rounded-xl border border-amber-400/30 bg-amber-400/5 px-4 py-3">
+      <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-400/15 border border-amber-400/30 text-amber-300 shrink-0">
+        <ShieldAlert className="w-4 h-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] font-semibold text-amber-100 leading-snug">
+          Centro pendiente de verificación
+        </p>
+        <p className="text-[11px] text-amber-200/70 leading-relaxed mt-0.5">
+          {hubName ? <><span className="font-semibold">{hubName}</span> está </> : 'Está '}
+          inactivo hasta que el equipo de SOS Logística lo verifique. Mientras tanto no aparece en el mapa público.
+        </p>
+      </div>
+      {waLink && phone && (
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-200 hover:text-emerald-100 text-[11px] font-semibold tracking-wide transition-colors active:scale-[0.97]"
+          title={`Contactar soporte: ${phone}`}
+        >
+          <Phone className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline tabular-nums">{phone}</span>
+          <span className="sm:hidden">Soporte</span>
+        </a>
+      )}
     </div>
   )
 }
