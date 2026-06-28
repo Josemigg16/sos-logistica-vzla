@@ -18,6 +18,10 @@ function CatalogGate() {
   if (!user) {
     return <Navigate to="/login" />
   }
+  // El HUB_COORDINATOR solo opera sobre sus centros — no toca el catálogo global.
+  if (user.role === 'HUB_COORDINATOR') {
+    return <Navigate to="/admin/hubs" />
+  }
   return <AdminCatalogPage />
 }
 

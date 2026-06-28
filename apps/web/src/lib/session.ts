@@ -21,6 +21,18 @@ export const ROLES_MANAGE_USERS: RoleName[] = ['ADMIN']
 export const ROLES_MANAGE_HUBS: RoleName[] = ['ADMIN', 'MANAGER', 'ZODI_SENDER']
 
 /**
+ * Roles autorizados a entrar a la pantalla de Logística. Los coordinadores de
+ * centro acceden con vista filtrada (solo sus propios hubs), los demás ven y
+ * gestionan todos los centros.
+ */
+export const ROLES_VIEW_LOGISTICS: RoleName[] = [
+  'ADMIN',
+  'MANAGER',
+  'ZODI_SENDER',
+  'HUB_COORDINATOR',
+]
+
+/**
  * Roles "internos" de SOS Logística que pueden verificar / activar / desactivar
  * un centro de acopio. Cualquier otro rol (incluyendo HUB_COORDINATOR) que
  * intente operar sobre un hub INACTIVO debe ver la pantalla de verificación
@@ -34,10 +46,7 @@ export const ROLES_VERIFY_HUBS: RoleName[] = [
 ]
 
 /** Roles autorizados para gestionar la flota (choferes, vehículos). */
-export const ROLES_MANAGE_FLEET: RoleName[] = ['ADMIN', 'MANAGER', 'HUB_COORDINATOR']
-
-/** Roles autorizados para coordinar un centro de acopio (hub + lotes). */
-export const ROLES_COORDINATE_HUB: RoleName[] = ['HUB_COORDINATOR', 'ADMIN', 'MANAGER']
+export const ROLES_MANAGE_FLEET: RoleName[] = ['ADMIN', 'MANAGER']
 
 /**
  * Roles autorizados para gestionar caravanas (convoys). El backend restringe

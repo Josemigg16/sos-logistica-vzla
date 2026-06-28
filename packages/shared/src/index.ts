@@ -32,6 +32,9 @@ export const centroSchema = z.object({
   tipo: tipoCentroSchema,
   estado: z.enum(HUB_STATUSES).optional(),
   isInformal: z.boolean().optional().default(false),
+  // Usuario coordinador asociado al hub. Permite a un HUB_COORDINATOR ver solo
+  // sus propios centros en la pantalla de Logística (varios hubs por usuario).
+  coordinatorId: z.string().nullable().optional(),
   inventario: z.record(z.string(), z.number()),
   needs: z.array(hubNeedSchema).optional().default([]),
   metadata: z.record(z.unknown()).optional(),

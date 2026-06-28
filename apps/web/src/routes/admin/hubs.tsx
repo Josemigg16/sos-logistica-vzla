@@ -15,7 +15,7 @@ import {
   Layers,
 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole, ROLES_MANAGE_HUBS } from '@/lib/session'
+import { hasAnyRole, ROLES_MANAGE_HUBS, ROLES_VIEW_LOGISTICS } from '@/lib/session'
 import { useToast } from '@/components/ui/toast'
 import { FormSheet } from '@/components/ui/form-sheet'
 import type { Centro, HubStatus, TipoCentro } from '@sos/shared'
@@ -30,7 +30,7 @@ export const Route = createFileRoute('/admin/hubs')({
 
 function HubsGate() {
   const { user } = useAuth()
-  if (!hasAnyRole(user, ...ROLES_MANAGE_HUBS)) {
+  if (!hasAnyRole(user, ...ROLES_VIEW_LOGISTICS)) {
     return <Navigate to="/admin" />
   }
   return <AdminHubsPage />
@@ -107,15 +107,25 @@ function AdminHubsPage() {
   const queryClient = useQueryClient()
   const toast = useToast()
   const navigate = useNavigate()
+  const { user } = useAuth()
   const [creating, setCreating] = useState(false)
   const [deleting, setDeleting] = useState<Centro | null>(null)
 
-  const { data: hubs = [], isLoading } = useQuery({
+  // Los coordinadores de centro solo ven los hubs asociados a su usuario.
+  // El resto de roles internos ve todo el listado.
+  const canManageAllHubs = hasAnyRole(user, ...ROLES_MANAGE_HUBS)
+  const isCoordinatorView = !canManageAllHubs && user?.role === 'HUB_COORDINATOR'
+
+  const { data: allHubs = [], isLoading } = useQuery({
     queryKey: ['centros'],
     queryFn: fetchHubs,
     placeholderData: centrosData as unknown as Centro[],
     staleTime: Infinity,
   })
+
+  const hubs = isCoordinatorView
+    ? allHubs.filter((h) => h.coordinatorId && h.coordinatorId === user?.id)
+    : allHubs
 
   const createMutation = useMutation({
     mutationFn: createHub,
@@ -166,21 +176,25 @@ function AdminHubsPage() {
             LOGISTICA
           </h1>
           <p className="text-sm text-white/50 max-w-lg">
-            Registra nuevos centros de acopio, bases de distribución ZODI o puntos destino, y edita sus niveles de inventario.
+            {isCoordinatorView
+              ? 'Listado de centros de acopio asociados a tu cuenta. Toca uno para editar su inventario.'
+              : 'Registra nuevos centros de acopio, bases de distribución ZODI o puntos destino, y edita sus niveles de inventario.'}
           </p>
         </div>
 
-        <button
-          onClick={() => setCreating(true)}
-          className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#0F2337] font-bold
-                     shadow-[0_4px_16px_rgba(255,255,255,0.15)]
-                     hover:shadow-[0_8px_24px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0]
-                     active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200"
-          style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '0.95rem', letterSpacing: '0.05em' }}
-        >
-          <Plus className="w-4 h-4" strokeWidth={3} />
-          NUEVO CENTRO
-        </button>
+        {canManageAllHubs && (
+          <button
+            onClick={() => setCreating(true)}
+            className="group flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-[#0F2337] font-bold
+                       shadow-[0_4px_16px_rgba(255,255,255,0.15)]
+                       hover:shadow-[0_8px_24px_rgba(255,255,255,0.25)] hover:bg-[#C8DCF0]
+                       active:scale-[0.96] transition-[transform,box-shadow,background-color] duration-200"
+            style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontSize: '0.95rem', letterSpacing: '0.05em' }}
+          >
+            <Plus className="w-4 h-4" strokeWidth={3} />
+            NUEVO CENTRO
+          </button>
+        )}
       </div>
 
       {/* List / Table */}
@@ -190,7 +204,11 @@ function AdminHubsPage() {
           Cargando...
         </div>
       ) : hubs.length === 0 ? (
-        <EmptyState onCreate={() => setCreating(true)} />
+        isCoordinatorView ? (
+          <CoordinatorEmptyState />
+        ) : (
+          <EmptyState onCreate={() => setCreating(true)} />
+        )
       ) : (
         <div className="rounded-2xl border border-[#2B5F8E]/40 bg-[#152D46]/60 backdrop-blur-sm overflow-hidden">
           {/* Desktop Table */}
@@ -210,6 +228,7 @@ function AdminHubsPage() {
                   <HubRow
                     key={hub.id}
                     hub={hub}
+                    canDelete={canManageAllHubs}
                     onEdit={() => navigate({ to: '/admin/hubs/$hubId', params: { hubId: hub.id } })}
                     onDelete={() => setDeleting(hub)}
                   />
@@ -224,6 +243,7 @@ function AdminHubsPage() {
               <HubMobileCard
                 key={hub.id}
                 hub={hub}
+                canDelete={canManageAllHubs}
                 onEdit={() => navigate({ to: '/admin/hubs/$hubId', params: { hubId: hub.id } })}
                 onDelete={() => setDeleting(hub)}
               />
@@ -256,7 +276,7 @@ function AdminHubsPage() {
 
 // --- Subcomponents ---
 
-function HubRow({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => void; onDelete: () => void }) {
+function HubRow({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canDelete: boolean; onEdit: () => void; onDelete: () => void }) {
   const tipoInfo = TIPOS_CENTRO.find((t) => t.value === hub.tipo)
 
   return (
@@ -303,14 +323,16 @@ function HubRow({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => void; on
       <td className="px-5 py-4">
         <div className="flex items-center justify-end gap-1">
           <IconButton onClick={onEdit} label="Editar"><Pencil className="w-3.5 h-3.5" /></IconButton>
-          <IconButton onClick={onDelete} label="Eliminar" variant="danger"><Trash2 className="w-3.5 h-3.5" /></IconButton>
+          {canDelete && (
+            <IconButton onClick={onDelete} label="Eliminar" variant="danger"><Trash2 className="w-3.5 h-3.5" /></IconButton>
+          )}
         </div>
       </td>
     </tr>
   )
 }
 
-function HubMobileCard({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => void; onDelete: () => void }) {
+function HubMobileCard({ hub, canDelete, onEdit, onDelete }: { hub: Centro; canDelete: boolean; onEdit: () => void; onDelete: () => void }) {
   const tipoInfo = TIPOS_CENTRO.find((t) => t.value === hub.tipo)
 
   return (
@@ -355,13 +377,27 @@ function HubMobileCard({ hub, onEdit, onDelete }: { hub: Centro; onEdit: () => v
         >
           <Pencil className="w-3.5 h-3.5" /> Editar
         </button>
-        <button
-          onClick={onDelete}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/15 text-white/60 text-[11px] font-semibold hover:bg-white/10 hover:text-white active:scale-[0.97] transition-[transform,background-color,color] duration-200"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        {canDelete && (
+          <button
+            onClick={onDelete}
+            className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/15 text-white/60 text-[11px] font-semibold hover:bg-white/10 hover:text-white active:scale-[0.97] transition-[transform,background-color,color] duration-200"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
+    </div>
+  )
+}
+
+function CoordinatorEmptyState() {
+  return (
+    <div className="flex flex-col items-center justify-center py-20 px-6 text-center rounded-2xl border border-dashed border-[#2B5F8E]/40 bg-[#152D46]/40">
+      <MapPin className="w-12 h-12 text-white/15 mb-4" />
+      <h3 className="text-white font-bold text-base mb-1.5">Aún no tienes centros asignados</h3>
+      <p className="text-white/40 text-xs max-w-sm">
+        Cuando el equipo de SOS Logística te asocie a uno o más centros de acopio, aparecerán aquí para que gestiones su inventario.
+      </p>
     </div>
   )
 }

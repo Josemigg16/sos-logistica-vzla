@@ -2,14 +2,14 @@ import { createFileRoute, Navigate, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole, ROLES_MANAGE_HUBS } from '@/lib/session'
+import { hasAnyRole, ROLES_VIEW_LOGISTICS } from '@/lib/session'
 import { HubDashboard, fetchHubById } from '@/components/hub-dashboard'
 
 export const Route = createFileRoute('/admin/hubs_/$hubId')({ component: HubDetailGate })
 
 function HubDetailGate() {
   const { user } = useAuth()
-  if (!hasAnyRole(user, ...ROLES_MANAGE_HUBS)) return <Navigate to="/admin" />
+  if (!hasAnyRole(user, ...ROLES_VIEW_LOGISTICS)) return <Navigate to="/admin" />
   return <HubDetailPage />
 }
 
@@ -20,6 +20,11 @@ function HubDetailPage() {
     queryKey: ['hub', hubId],
     queryFn: () => fetchHubById(hubId),
   })
+
+  // Un HUB_COORDINATOR solo puede ver los hubs asociados a su usuario.
+  if (hub && user?.role === 'HUB_COORDINATOR' && hub.coordinatorId !== user.id) {
+    return <Navigate to="/admin/hubs" />
+  }
 
   // ADMIN/MANAGER/ZODI_SENDER pueden asignar vehículos a lotes desde esta vista.
   const canManageVehicles =

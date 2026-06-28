@@ -57,7 +57,7 @@ function mapError(c: Context, error: unknown) {
 // ---------- helpers ----------
 
 async function buildCentroFromHub(
-  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number; isInformal: boolean; needs: HubNeed[] },
+  hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number; isInformal: boolean; needs: HubNeed[]; coordinatorId: string | null },
   listResourcesByHub: ListResourcesByHub,
 ): Promise<Centro> {
   const resources = await listResourcesByHub.execute(hub.id);
@@ -75,6 +75,7 @@ async function buildCentroFromHub(
     coordenadas: [hub.longitude, hub.latitude],
     tipo: HUB_TYPE_TO_TIPO[hub.type],
     estado: hub.status,
+    coordinatorId: hub.coordinatorId,
     inventario,
     isInformal: hub.isInformal,
     needs: hub.needs ?? [],

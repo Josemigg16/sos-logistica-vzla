@@ -17,15 +17,12 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminUsersRouteImport } from './routes/admin/users'
-import { Route as AdminTraspasoRouteImport } from './routes/admin/traspaso'
 import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
 import { Route as AdminNeedsRouteImport } from './routes/admin/needs'
 import { Route as AdminHubsRouteImport } from './routes/admin/hubs'
 import { Route as AdminFleetRouteImport } from './routes/admin/fleet'
-import { Route as AdminCoordinatorRouteImport } from './routes/admin/coordinator'
 import { Route as AdminConvoysRouteImport } from './routes/admin/convoys'
 import { Route as AdminCatalogRouteImport } from './routes/admin/catalog'
-import { Route as AdminCargarRouteImport } from './routes/admin/cargar'
 import { Route as AdminHubsHubIdRouteImport } from './routes/admin/hubs_.$hubId'
 
 const RegisterRoute = RegisterRouteImport.update({
@@ -68,11 +65,6 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/users',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminTraspasoRoute = AdminTraspasoRouteImport.update({
-  id: '/traspaso',
-  path: '/traspaso',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminSettingsRoute = AdminSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
@@ -93,11 +85,6 @@ const AdminFleetRoute = AdminFleetRouteImport.update({
   path: '/fleet',
   getParentRoute: () => AdminRoute,
 } as any)
-const AdminCoordinatorRoute = AdminCoordinatorRouteImport.update({
-  id: '/coordinator',
-  path: '/coordinator',
-  getParentRoute: () => AdminRoute,
-} as any)
 const AdminConvoysRoute = AdminConvoysRouteImport.update({
   id: '/convoys',
   path: '/convoys',
@@ -106,11 +93,6 @@ const AdminConvoysRoute = AdminConvoysRouteImport.update({
 const AdminCatalogRoute = AdminCatalogRouteImport.update({
   id: '/catalog',
   path: '/catalog',
-  getParentRoute: () => AdminRoute,
-} as any)
-const AdminCargarRoute = AdminCargarRouteImport.update({
-  id: '/cargar',
-  path: '/cargar',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminHubsHubIdRoute = AdminHubsHubIdRouteImport.update({
@@ -126,15 +108,12 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
-  '/admin/cargar': typeof AdminCargarRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/convoys': typeof AdminConvoysRoute
-  '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/settings': typeof AdminSettingsRoute
-  '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/hubs/$hubId': typeof AdminHubsHubIdRoute
@@ -145,15 +124,12 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
-  '/admin/cargar': typeof AdminCargarRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/convoys': typeof AdminConvoysRoute
-  '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/settings': typeof AdminSettingsRoute
-  '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin': typeof AdminIndexRoute
   '/admin/hubs/$hubId': typeof AdminHubsHubIdRoute
@@ -166,15 +142,12 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/needs-register': typeof NeedsRegisterRoute
   '/register': typeof RegisterRoute
-  '/admin/cargar': typeof AdminCargarRoute
   '/admin/catalog': typeof AdminCatalogRoute
   '/admin/convoys': typeof AdminConvoysRoute
-  '/admin/coordinator': typeof AdminCoordinatorRoute
   '/admin/fleet': typeof AdminFleetRoute
   '/admin/hubs': typeof AdminHubsRoute
   '/admin/needs': typeof AdminNeedsRoute
   '/admin/settings': typeof AdminSettingsRoute
-  '/admin/traspaso': typeof AdminTraspasoRoute
   '/admin/users': typeof AdminUsersRoute
   '/admin/': typeof AdminIndexRoute
   '/admin/hubs_/$hubId': typeof AdminHubsHubIdRoute
@@ -188,15 +161,12 @@ export interface FileRouteTypes {
     | '/map'
     | '/needs-register'
     | '/register'
-    | '/admin/cargar'
     | '/admin/catalog'
     | '/admin/convoys'
-    | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
     | '/admin/settings'
-    | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
     | '/admin/hubs/$hubId'
@@ -207,15 +177,12 @@ export interface FileRouteTypes {
     | '/map'
     | '/needs-register'
     | '/register'
-    | '/admin/cargar'
     | '/admin/catalog'
     | '/admin/convoys'
-    | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
     | '/admin/settings'
-    | '/admin/traspaso'
     | '/admin/users'
     | '/admin'
     | '/admin/hubs/$hubId'
@@ -227,15 +194,12 @@ export interface FileRouteTypes {
     | '/map'
     | '/needs-register'
     | '/register'
-    | '/admin/cargar'
     | '/admin/catalog'
     | '/admin/convoys'
-    | '/admin/coordinator'
     | '/admin/fleet'
     | '/admin/hubs'
     | '/admin/needs'
     | '/admin/settings'
-    | '/admin/traspaso'
     | '/admin/users'
     | '/admin/'
     | '/admin/hubs_/$hubId'
@@ -308,13 +272,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/traspaso': {
-      id: '/admin/traspaso'
-      path: '/traspaso'
-      fullPath: '/admin/traspaso'
-      preLoaderRoute: typeof AdminTraspasoRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/settings': {
       id: '/admin/settings'
       path: '/settings'
@@ -343,13 +300,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminFleetRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/coordinator': {
-      id: '/admin/coordinator'
-      path: '/coordinator'
-      fullPath: '/admin/coordinator'
-      preLoaderRoute: typeof AdminCoordinatorRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/convoys': {
       id: '/admin/convoys'
       path: '/convoys'
@@ -364,13 +314,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminCatalogRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/admin/cargar': {
-      id: '/admin/cargar'
-      path: '/cargar'
-      fullPath: '/admin/cargar'
-      preLoaderRoute: typeof AdminCargarRouteImport
-      parentRoute: typeof AdminRoute
-    }
     '/admin/hubs_/$hubId': {
       id: '/admin/hubs_/$hubId'
       path: '/hubs/$hubId'
@@ -382,30 +325,24 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
-  AdminCargarRoute: typeof AdminCargarRoute
   AdminCatalogRoute: typeof AdminCatalogRoute
   AdminConvoysRoute: typeof AdminConvoysRoute
-  AdminCoordinatorRoute: typeof AdminCoordinatorRoute
   AdminFleetRoute: typeof AdminFleetRoute
   AdminHubsRoute: typeof AdminHubsRoute
   AdminNeedsRoute: typeof AdminNeedsRoute
   AdminSettingsRoute: typeof AdminSettingsRoute
-  AdminTraspasoRoute: typeof AdminTraspasoRoute
   AdminUsersRoute: typeof AdminUsersRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminHubsHubIdRoute: typeof AdminHubsHubIdRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
-  AdminCargarRoute: AdminCargarRoute,
   AdminCatalogRoute: AdminCatalogRoute,
   AdminConvoysRoute: AdminConvoysRoute,
-  AdminCoordinatorRoute: AdminCoordinatorRoute,
   AdminFleetRoute: AdminFleetRoute,
   AdminHubsRoute: AdminHubsRoute,
   AdminNeedsRoute: AdminNeedsRoute,
   AdminSettingsRoute: AdminSettingsRoute,
-  AdminTraspasoRoute: AdminTraspasoRoute,
   AdminUsersRoute: AdminUsersRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminHubsHubIdRoute: AdminHubsHubIdRoute,

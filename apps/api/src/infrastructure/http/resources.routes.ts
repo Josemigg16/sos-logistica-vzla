@@ -18,6 +18,7 @@ import type { GetHubStockSummary } from "../../application/resources/get-hub-sto
 import type { DeleteInventoryBatch } from "../../application/resources/delete-inventory-batch";
 import type { ChangeHubStatus } from "../../application/resources/change-hub-status";
 import type { UpdateHubNeeds } from "../../application/resources/update-hub-needs";
+import type { HubRepository } from "../../domain/resources/repositories/hub.repository";
 import { ResourceError } from "../../domain/resources/errors";
 import { authentication, requireRole, type AuthEnv } from "./middleware/authentication";
 
@@ -33,6 +34,7 @@ export interface ResourceRoutesDeps {
   deleteInventoryBatch: DeleteInventoryBatch;
   changeHubStatus: ChangeHubStatus;
   updateHubNeeds: UpdateHubNeeds;
+  hubRepository: HubRepository;
 }
 
 
@@ -143,13 +145,15 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
     }
   });
 
-  // ADMIN/MANAGER editan necesidades de cualquier centro.
+  // ADMIN/MANAGER editan necesidades de cualquier centro. HUB_COORDINATOR puede
+  // editar las necesidades de cualquiera de SUS hubs (asociados por coordinatorId).
   router.put(
     "/hubs/:hubId/needs",
     authentication,
-    requireRole("ADMIN", "MANAGER"),
+    requireRole("ADMIN", "MANAGER", "HUB_COORDINATOR"),
     async (c) => {
       const hubId = c.req.param("hubId");
+      const actor = c.get("actor");
       const parsed = updateHubNeedsSchema.safeParse(await c.req.json().catch(() => null));
       if (!parsed.success) {
         return c.json(
@@ -158,6 +162,15 @@ export function createResourceRoutes(deps: ResourceRoutesDeps): Hono<AuthEnv> {
         );
       }
       try {
+        if (actor.role === "HUB_COORDINATOR") {
+          const target = await deps.hubRepository.findById(hubId);
+          if (!target) {
+            return c.json({ error: "Centro no encontrado", code: "HUB_NOT_FOUND" }, 404);
+          }
+          if (target.toPublic().coordinatorId !== actor.userId) {
+            return c.json({ error: "No autorizado" }, 403);
+          }
+        }
         const hub = await deps.updateHubNeeds.execute({
           hubId,
           needs: parsed.data.needs,

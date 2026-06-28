@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from '@tanstack/react-router'
-import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon, Settings as SettingsIcon } from 'lucide-react'
+import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
+import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Route as RouteIcon, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
+import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_MANAGE_CONVOYS } from '@/lib/session'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
@@ -9,9 +9,10 @@ export const Route = createFileRoute('/admin/')({
 
 function AdminDashboard() {
   const { user } = useAuth()
+  // El HUB_COORDINATOR no tiene panel principal; su "home" es Logística.
+  if (user?.role === 'HUB_COORDINATOR') return <Navigate to="/admin/hubs" />
   const canManageUsers = hasAnyRole(user, ...ROLES_MANAGE_USERS)
   const canManageFleet = hasAnyRole(user, ...ROLES_MANAGE_FLEET)
-  const canCoordinateHub = hasAnyRole(user, ...ROLES_COORDINATE_HUB)
   const canManageConvoys = hasAnyRole(user, ...ROLES_MANAGE_CONVOYS)
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto lg:mx-0">
@@ -57,15 +58,6 @@ function AdminDashboard() {
           description="Registrar nuevos puntos y actualizar sus inventarios."
           stat="Gestionar puntos"
         />
-        {canCoordinateHub && (
-          <AdminSectionCard
-            to="/admin/coordinator"
-            icon={<Warehouse className="w-6 h-6" />}
-            title="Mi centro"
-            description="Registrar tu centro de acopio, su inventario y clasificar lotes."
-            stat="Coordinar centro"
-          />
-        )}
         {canManageFleet && (
           <AdminSectionCard
             to="/admin/fleet"

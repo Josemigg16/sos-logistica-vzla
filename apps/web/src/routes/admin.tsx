@@ -1,9 +1,9 @@
 import { createFileRoute, Outlet, Link, Navigate, useRouterState } from '@tanstack/react-router'
 import { useState, useEffect } from 'react'
-import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Warehouse, Route as RouteIcon, ArrowLeftRight, Settings as SettingsIcon } from 'lucide-react'
+import { LogOut, LayoutDashboard, PackagePlus, ShieldAlert, Menu, X, Loader2, MapPin, BookOpen, Users as UsersIcon, Truck, Route as RouteIcon, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import type { SessionUser } from '@/lib/auth/auth-client'
-import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_COORDINATE_HUB, ROLES_MANAGE_CONVOYS } from '@/lib/session'
+import { hasAnyRole, ROLES_VIEW_ADMIN, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_MANAGE_CONVOYS } from '@/lib/session'
 import { useScrollLock } from '@/lib/scroll-lock'
 import logotipo from '@/assets/branding/white-logotipo.webp'
 
@@ -156,6 +156,7 @@ function SidebarContent({
   onLogout: () => void
   compact?: boolean
 }) {
+  const isHubCoordinator = user.role === 'HUB_COORDINATOR'
   return (
     <div className="flex flex-col h-full min-h-0">
       {!compact && (
@@ -184,17 +185,16 @@ function SidebarContent({
         </div>
 
           <nav className="flex flex-col gap-1">
-            <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
-            <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
-            <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Logistica" />
-            {hasAnyRole(user, ...ROLES_COORDINATE_HUB) && (
+            {!isHubCoordinator && (
               <>
-                <NavLink to="/admin/coordinator" icon={<Warehouse className="w-4 h-4" />} label="Mi centro" />
-                <NavLink to="/admin/cargar" icon={<Truck className="w-4 h-4" />} label="Cargar vehículo" />
-                <NavLink to="/admin/traspaso" icon={<ArrowLeftRight className="w-4 h-4" />} label="Traspasos" />
+                <NavLink to="/admin" icon={<LayoutDashboard className="w-4 h-4" />} label="Panel principal" exact />
+                <NavLink to="/admin/needs" icon={<PackagePlus className="w-4 h-4" />} label="Necesidades" />
               </>
             )}
-            <NavLink to="/admin/catalog" icon={<BookOpen className="w-4 h-4" />} label="Catálogo" />
+            <NavLink to="/admin/hubs" icon={<MapPin className="w-4 h-4" />} label="Logistica" />
+            {!isHubCoordinator && (
+              <NavLink to="/admin/catalog" icon={<BookOpen className="w-4 h-4" />} label="Catálogo" />
+            )}
             {hasAnyRole(user, ...ROLES_MANAGE_FLEET) && (
               <NavLink to="/admin/fleet" icon={<Truck className="w-4 h-4" />} label="Flota" />
             )}
