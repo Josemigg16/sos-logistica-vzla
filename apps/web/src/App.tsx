@@ -426,9 +426,9 @@ export default function App() {
           </div>
           <div className="flex flex-col gap-1">
             {([
-              { tipo: "acopio" as const, label: "Hub Interno (Acopio)", dot: "bg-blue-500", glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
+              { tipo: "acopio" as const, label: "Centro de Acopio Local", dot: "bg-blue-500", glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
               { tipo: "salida" as const, label: "Salidas ZODI", dot: "bg-red-500", glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]" },
-              { tipo: "destino" as const, label: "Llegada Centro Acopio Destino", dot: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]" },
+              { tipo: "destino" as const, label: "Centro de Acopio Destino", dot: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]" },
             ]).map(({ tipo, label, dot, glow }) => {
               const isActive = activeTipos.has(tipo);
               return (
