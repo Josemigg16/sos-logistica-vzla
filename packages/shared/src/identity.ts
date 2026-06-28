@@ -55,13 +55,13 @@ const telefonoSchema = z.preprocess((val) => {
 
 export const loginSchema = z.object({
   telefono: z.union([z.literal("admin"), telefonoSchema]),
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
+  password: z.string().min(5, "La contraseña debe tener al menos 5 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
 });
 export type LoginRequest = z.infer<typeof loginSchema>;
 
 export const registerSchema = z.object({
   telefono: telefonoSchema,
-  password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
+  password: z.string().min(5, "La contraseña debe tener al menos 5 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
   role: roleSchema,
   email: z.string().email("Debe ser un correo electrónico válido").max(255, "El correo no puede superar los 255 caracteres").optional(),
 });
@@ -80,7 +80,7 @@ export const updateUserSchema = z
     role: roleSchema,
     status: userStatusSchema,
     email: z.string().email("Debe ser un correo electrónico válido").max(255, "El correo no puede superar los 255 caracteres").nullable(),
-    password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
+    password: z.string().min(5, "La contraseña debe tener al menos 5 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
   })
   .partial();
 export type UpdateUserRequest = z.infer<typeof updateUserSchema>;
@@ -95,7 +95,8 @@ export interface AdminUserView extends PublicUser {
 export const documentTypeSchema = z.enum(["V", "J"]);
 export type DocumentType = z.infer<typeof documentTypeSchema>;
 
-/** El teléfono actúa como identificador único — no se pide username ni password. */
+/** El teléfono actúa como identificador único. La contraseña es opcional — si no
+ *  se proporciona, el backend genera una automáticamente. */
 export const signupSchema = z.object({
   telefono: telefonoSchema,
   documentType: documentTypeSchema.optional(),
@@ -106,10 +107,12 @@ export const signupSchema = z.object({
     .max(20, "La cédula no puede superar los 20 caracteres")
     .optional()
     .or(z.literal("").transform(() => undefined)),
+  password: z.string().min(5, "La contraseña debe tener al menos 5 caracteres").max(128).optional(),
 });
 export type SignupRequest = z.infer<typeof signupSchema>;
 
 export interface SignupResult {
   user: PublicUser;
-  generatedPassword: string;
+  /** `null` cuando el coordinador eligió su propia contraseña. */
+  generatedPassword: string | null;
 }

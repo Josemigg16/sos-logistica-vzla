@@ -488,8 +488,10 @@ function NecesidadesPage() {
                 to="/login"
                 className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg bg-white/5 border border-white/15 hover:bg-white/10 hover:border-white/25 active:scale-[0.97] transition-[transform,background-color,border-color] duration-200 text-[11px] font-semibold text-white/65 hover:text-white leading-tight text-right"
               >
-                Ya tengo mi<br className="sm:hidden" />
-                <span className="sm:ml-1">centro registrado</span>
+                <span>
+                  Ya tengo mi<br className="sm:hidden" /> centro registrado
+                </span>
+                <ChevronRight className="w-3.5 h-3.5 shrink-0 opacity-70" />
               </Link>
             )}
           </div>

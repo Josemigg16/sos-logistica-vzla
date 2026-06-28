@@ -9,7 +9,7 @@ import { UsernameTakenError, CedulaTakenError } from "../../domain/identity/erro
 const PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
 function generatePassword(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(10));
+  const bytes = crypto.getRandomValues(new Uint8Array(5));
   return Array.from(bytes, (b) => PASSWORD_CHARS[b % PASSWORD_CHARS.length]).join("");
 }
 
@@ -34,8 +34,8 @@ export class SelfRegisterCoordinator {
       if (byCedula) throw new CedulaTakenError(fullCedula);
     }
 
-    const generatedPassword = generatePassword();
-    const hash = await this.hasher.hash(generatedPassword);
+    const generatedPassword = command.password ? null : generatePassword();
+    const hash = await this.hasher.hash(command.password ?? generatedPassword!);
     const user = User.register({
       id: crypto.randomUUID(),
       username: command.telefono,
@@ -46,6 +46,6 @@ export class SelfRegisterCoordinator {
     });
     await this.users.save(user);
 
-    return { user: user.toPublic(), generatedPassword };
+    return { user: user.toPublic(), generatedPassword: generatedPassword };
   }
 }

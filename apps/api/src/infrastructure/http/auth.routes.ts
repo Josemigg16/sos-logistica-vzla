@@ -126,7 +126,7 @@ export function createAuthRoutes(deps: AuthRoutesDeps): Hono<AuthEnv> {
       const { user, generatedPassword } = await deps.selfRegisterCoordinator.execute(parsed.data);
       const tokens = await deps.authenticateUser.execute({
         telefono: parsed.data.telefono,
-        password: generatedPassword,
+        password: parsed.data.password ?? generatedPassword!,
       });
       setRefreshCookie(c, tokens.refreshToken, tokens.refreshExpiresAt);
       return c.json({ user, generatedPassword, accessToken: tokens.accessToken }, 201);
