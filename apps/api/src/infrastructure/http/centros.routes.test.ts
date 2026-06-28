@@ -4,6 +4,7 @@ import { sign } from "hono/jwt";
 import type { RoleName } from "@sos/shared";
 import { InMemoryHubRepository } from "../persistence/in-memory-hub.repository";
 import { InMemoryResourceRepository } from "../persistence/in-memory-resource.repository";
+import { InMemoryUserRepository } from "../persistence/in-memory-user.repository";
 import { ListHubs } from "../../application/resources/list-hubs";
 import { ListResourcesByHub } from "../../application/resources/list-resources-by-hub";
 import { UpsertHub } from "../../application/resources/upsert-hub";
@@ -25,12 +26,14 @@ async function authHeader(role: RoleName = "ZODI_DESTINATION") {
 function buildApp() {
   const hubs = new InMemoryHubRepository();
   const resources = new InMemoryResourceRepository();
+  const users = new InMemoryUserRepository();
   const routes = createCentrosRoutes({
     listHubs: new ListHubs(hubs),
     listResourcesByHub: new ListResourcesByHub(resources),
     upsertHub: new UpsertHub(hubs),
     replaceHubInventory: new ReplaceHubInventory(hubs, resources),
     deleteHub: new DeleteHub(hubs, resources),
+    userRepo: users,
   });
   const app = new Hono();
   app.route("/centros", routes);

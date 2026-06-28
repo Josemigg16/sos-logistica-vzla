@@ -886,6 +886,7 @@ export default function App() {
                   signupResult = await signupHub(data.contacto, {
                     cedula: data.cedula,
                     documentType: data.documentType,
+                    nombre: data.responsable,
                   });
                   loginWithToken(signupResult.accessToken, signupResult.user);
                 } catch (signupErr) {

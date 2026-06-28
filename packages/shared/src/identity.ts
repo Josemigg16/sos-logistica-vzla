@@ -64,6 +64,7 @@ export const registerSchema = z.object({
   password: z.string().min(5, "La contraseña debe tener al menos 5 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
   role: roleSchema,
   email: z.string().email("Debe ser un correo electrónico válido").max(255, "El correo no puede superar los 255 caracteres").optional(),
+  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres").optional(),
 });
 export type RegisterRequest = z.infer<typeof registerSchema>;
 
@@ -73,6 +74,7 @@ export interface PublicUser {
   role: RoleName;
   email: string | null;
   telefono: string | null;
+  nombre: string | null;
 }
 
 /** Payload para actualizar un usuario desde el panel admin. Todos opcionales. */
@@ -109,6 +111,7 @@ export const signupSchema = z.object({
     .optional()
     .or(z.literal("").transform(() => undefined)),
   password: z.string().min(5, "La contraseña debe tener al menos 5 caracteres").max(128).optional(),
+  nombre: z.string().min(3, "El nombre debe tener al menos 3 caracteres").optional(),
 });
 export type SignupRequest = z.infer<typeof signupSchema>;
 

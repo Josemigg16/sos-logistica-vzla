@@ -43,6 +43,7 @@ export class SelfRegisterCoordinator {
       role: Role.create("HUB_COORDINATOR"),
       cedula: fullCedula,
       telefono: command.telefono,
+      nombre: command.nombre ?? null,
     });
     await this.users.save(user);
 

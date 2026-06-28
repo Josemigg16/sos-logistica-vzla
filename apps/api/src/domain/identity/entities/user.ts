@@ -12,6 +12,7 @@ export interface UserProps {
   email: string | null;
   cedula: string | null;
   telefono: string | null;
+  nombre: string | null;
   createdAt: Date;
 }
 
@@ -30,6 +31,7 @@ export class User {
     email?: string | null;
     cedula?: string | null;
     telefono?: string | null;
+    nombre?: string | null;
   }): User {
     return new User({
       id: input.id,
@@ -40,6 +42,7 @@ export class User {
       email: input.email ?? null,
       cedula: input.cedula ?? null,
       telefono: input.telefono ?? null,
+      nombre: input.nombre ?? null,
       createdAt: new Date(),
     });
   }
@@ -52,6 +55,7 @@ export class User {
   get email(): string | null { return this.props.email; }
   get cedula(): string | null { return this.props.cedula; }
   get telefono(): string | null { return this.props.telefono; }
+  get nombre(): string | null { return this.props.nombre; }
   get createdAt(): Date { return this.props.createdAt; }
 
   get isActive(): boolean { return this.props.status === "ACTIVE"; }
@@ -73,6 +77,7 @@ export class User {
       role: this.props.role.value,
       email: this.props.email,
       telefono: this.props.telefono,
+      nombre: this.props.nombre,
     };
   }
 }

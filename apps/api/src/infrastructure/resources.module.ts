@@ -18,6 +18,7 @@ import { DrizzleProductRepository } from "./persistence/drizzle-product.reposito
 import { DrizzleInventoryBatchRepository } from "./persistence/drizzle-inventory-batch.repository";
 import { createResourceRoutes } from "./http/resources.routes";
 import { createCentrosRoutes } from "./http/centros.routes";
+import { DrizzleUserRepository } from "./persistence/drizzle-user.repository";
 
 /**
  * Composition root del bounded context `resources`.
@@ -57,6 +58,7 @@ export function createResourcesModule() {
 export function createCentrosModule() {
   const hubs = new DrizzleHubRepository();
   const resources = new DrizzleResourceRepository();
+  const users = new DrizzleUserRepository();
 
   const useCases = {
     listHubs: new ListHubs(hubs),
@@ -64,6 +66,7 @@ export function createCentrosModule() {
     upsertHub: new UpsertHub(hubs),
     replaceHubInventory: new ReplaceHubInventory(hubs, resources),
     deleteHub: new DeleteHub(hubs, resources),
+    userRepo: users,
   };
 
   return {

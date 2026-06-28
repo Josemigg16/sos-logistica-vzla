@@ -18,6 +18,7 @@ function toDomain(row: UserRow): User {
     email: row.email,
     cedula: row.cedula ?? null,
     telefono: row.telefono ?? null,
+    nombre: row.nombre ?? null,
     createdAt: row.createdAt,
   });
 }
@@ -58,6 +59,7 @@ export class DrizzleUserRepository implements UserRepository {
       email: user.email,
       cedula: user.cedula,
       telefono: user.telefono,
+      nombre: user.nombre,
       createdAt: user.createdAt,
     };
     await db
@@ -73,6 +75,7 @@ export class DrizzleUserRepository implements UserRepository {
           email: values.email,
           cedula: values.cedula,
           telefono: values.telefono,
+          nombre: values.nombre,
         },
       });
   }

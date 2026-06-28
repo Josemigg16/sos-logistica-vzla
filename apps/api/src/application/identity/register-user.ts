@@ -24,6 +24,7 @@ export class RegisterUser {
       role: Role.create(command.role),
       email: command.email ?? null,
       telefono: command.telefono,
+      nombre: command.nombre ?? null,
     });
     await this.users.save(user);
 

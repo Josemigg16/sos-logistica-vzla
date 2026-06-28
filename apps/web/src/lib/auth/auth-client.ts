@@ -133,7 +133,7 @@ export interface SignupHubResult {
  */
 export async function signupHub(
   telefono: string,
-  extra?: { cedula?: string; documentType?: "V" | "J"; password?: string },
+  extra?: { cedula?: string; documentType?: "V" | "J"; password?: string; nombre?: string },
 ): Promise<SignupHubResult> {
   let res: Response;
   try {

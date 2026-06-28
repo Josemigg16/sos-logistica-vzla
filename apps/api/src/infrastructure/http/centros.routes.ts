@@ -8,6 +8,7 @@ import type { ReplaceHubInventory } from "../../application/resources/replace-hu
 import type { DeleteHub } from "../../application/resources/delete-hub";
 import { ResourceError } from "../../domain/resources/errors";
 import { authentication, optionalAuthentication, requireRole, type AuthEnv } from "./middleware/authentication";
+import type { UserRepository } from "../../domain/identity/repositories/user.repository";
 
 /**
  * Anti-Corruption Layer: translates the legacy Spanish `Centro` contract
@@ -39,6 +40,7 @@ export interface CentrosRoutesDeps {
   upsertHub: UpsertHub;
   replaceHubInventory: ReplaceHubInventory;
   deleteHub: DeleteHub;
+  userRepo: UserRepository;
 }
 
 // ---------- error mapper ----------
@@ -59,6 +61,7 @@ function mapError(c: Context, error: unknown) {
 async function buildCentroFromHub(
   hub: { id: string; name: string; address: string; contact: string; type: HubType; status: HubStatus; longitude: number; latitude: number; isInformal: boolean; needs: HubNeed[]; coordinatorId: string | null },
   listResourcesByHub: ListResourcesByHub,
+  userRepo: UserRepository,
 ): Promise<Centro> {
   const resources = await listResourcesByHub.execute(hub.id);
   const inventario: Record<string, number> = {};
@@ -66,12 +69,19 @@ async function buildCentroFromHub(
     // Inventario por producto: acumulamos el total por categoría para el panel público.
     inventario[r.category] = (inventario[r.category] ?? 0) + r.quantity;
   }
+  let responsable = "Coordinador de Centro";
+  if (hub.coordinatorId) {
+    const user = await userRepo.findById(hub.coordinatorId);
+    if (user && user.nombre) {
+      responsable = user.nombre;
+    }
+  }
   return {
     id: hub.id,
     nombre: hub.name,
     direccion: hub.address,
     contacto: hub.contact,
-    responsable: "Coordinador de Centro",
+    responsable,
     coordenadas: [hub.longitude, hub.latitude],
     tipo: HUB_TYPE_TO_TIPO[hub.type],
     estado: hub.status,
@@ -95,7 +105,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
     try {
       const hubs = await deps.listHubs.execute();
       const centros = await Promise.all(
-        hubs.map((hub) => buildCentroFromHub(hub, deps.listResourcesByHub)),
+        hubs.map((hub) => buildCentroFromHub(hub, deps.listResourcesByHub, deps.userRepo)),
       );
       return c.json(centros);
     } catch (error) {
@@ -158,7 +168,7 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
       });
 
       // Rebuild response from stored state (mirrors legacy { success, centro } contract)
-      const responseCentro = await buildCentroFromHub(savedHub, deps.listResourcesByHub);
+      const responseCentro = await buildCentroFromHub(savedHub, deps.listResourcesByHub, deps.userRepo);
 
       // Preserve optional metadata / verificacion if the client sent them
       if (centro.metadata) (responseCentro as typeof centro).metadata = centro.metadata;

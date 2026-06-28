@@ -24,6 +24,7 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }),
   cedula: varchar("cedula", { length: 20 }).unique(),
   telefono: varchar("telefono", { length: 20 }),
+  nombre: varchar("nombre", { length: 120 }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
