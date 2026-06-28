@@ -1046,6 +1046,13 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose, isSubmitting]);
 
+  useEffect(() => {
+    if (initialCoordinates) {
+      setLatitud(initialCoordinates[1].toFixed(5));
+      setLongitud(initialCoordinates[0].toFixed(5));
+    }
+  }, [initialCoordinates]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !direccion.trim() || !contacto.trim() || !responsable.trim()) return;
@@ -1063,9 +1070,6 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
       isInformal: true,
     } as any);
   };
-
-  const lng = parseFloat(longitud) || -69.2216;
-  const lat = parseFloat(latitud) || 9.5832;
 
   return (
     <>
@@ -1198,43 +1202,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
               </div>
             </div>
 
-            {/* Mini mapa de ubicación */}
-            <div className="space-y-2 pt-1 border-t border-border/50">
-              <div className="flex items-center justify-between">
-                <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
-                  Ubicación Exacta
-                </label>
-                <span className="text-[9px] font-mono text-muted-foreground/50 bg-secondary/40 px-2 py-0.5 rounded-md border border-border/30 tabular-nums">
-                  {lat.toFixed(4)}°, {lng.toFixed(4)}°
-                </span>
-              </div>
 
-              {/* <div className="w-full h-36 rounded-xl overflow-hidden border border-border/60 relative ring-1 ring-border/30">
-                <Map
-                  center={[lng, lat]}
-                  zoom={13}
-                  onClick={(lngLat) => {
-                    setLongitud(lngLat[0].toFixed(5));
-                    setLatitud(lngLat[1].toFixed(5));
-                  }}
-                  className="w-full h-full"
-                >
-                  <MapMarker
-                    coordinates={[lng, lat]}
-                    color="#3b82f6"
-                    active={true}
-                    draggable={true}
-                    onDragEnd={(lngLat) => {
-                      setLongitud(lngLat[0].toFixed(5));
-                      setLatitud(lngLat[1].toFixed(5));
-                    }}
-                  />
-                </Map>
-                <div className="absolute bottom-2 left-2 px-2 py-1 rounded-lg bg-black/70 text-[8.5px] text-white/70 pointer-events-none backdrop-blur-sm border border-white/5">
-                  Hacé clic o arrastrá el marcador
-                </div>
-              </div> */}
-            </div>
 
             <div className="flex items-start gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl text-[9.5px] text-blue-400/80">
               <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-400" />
