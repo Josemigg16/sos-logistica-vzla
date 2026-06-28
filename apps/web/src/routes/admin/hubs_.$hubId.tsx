@@ -4,6 +4,7 @@ import { ArrowLeft, Loader2 } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
 import { hasAnyRole, ROLES_VIEW_LOGISTICS } from '@/lib/session'
 import { HubDashboard, fetchHubById } from '@/components/hub-dashboard'
+import { HubPendingVerification } from '@/components/hub-pending-verification'
 
 export const Route = createFileRoute('/admin/hubs_/$hubId')({ component: HubDetailGate })
 
@@ -67,7 +68,12 @@ function HubDetailPage() {
           </Link>.
         </div>
       ) : (
-        <HubDashboard hub={hub} canManageVehicles={canManageVehicles} />
+        <div className="flex flex-col gap-6">
+          {user?.role === 'HUB_COORDINATOR' && hub.status === 'INACTIVO' && (
+            <HubPendingVerification hubName={hub.name} variant="post-register" />
+          )}
+          <HubDashboard hub={hub} canManageVehicles={canManageVehicles} />
+        </div>
       )}
     </div>
   )

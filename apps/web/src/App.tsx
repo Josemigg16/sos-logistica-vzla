@@ -35,7 +35,6 @@ import { API_URL } from "@/lib/auth/config";
 import { getToken } from "@/lib/auth/token-store";
 import { signupHub } from "@/lib/auth/auth-client";
 import { useAuth } from "@/lib/auth/auth-context";
-import { HubPendingVerification } from "@/components/hub-pending-verification";
 import {
   toWhatsappNumber,
   useSupportContact,
@@ -105,10 +104,6 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [clickedCoordinates, setClickedCoordinates] = useState<[number, number] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  // Nombre del centro recién registrado en el flujo público. Cuando está seteado,
-  // se muestra la pantalla de verificación pendiente (llamar a soporte).
-  const [pendingVerificationHubName, setPendingVerificationHubName] = useState<string | null>(null);
-  const [pendingCredentials, setPendingCredentials] = useState<GeneratedCredentials | null>(null);
   const [generatedCredentials, setGeneratedCredentials] = useState<GeneratedCredentials | null>(null);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
@@ -804,12 +799,14 @@ export default function App() {
               setIsRegistering(false);
 
               if (user) {
-                navigate({ to: "/admin" });
+                navigate({ to: "/admin/hubs" });
+              } else if (signupResult) {
+                // Mostramos las credenciales generadas — el aviso de verificación
+                // pendiente se muestra dentro del detalle del hub cuando el
+                // coordinador entra a /admin/hubs/$hubId.
+                setGeneratedCredentials({ telefono: data.contacto, password: signupResult.generatedPassword });
               } else {
-                if (signupResult) {
-                  setPendingCredentials({ telefono: data.contacto, password: signupResult.generatedPassword });
-                }
-                setPendingVerificationHubName(data.nombre);
+                navigate({ to: "/admin/hubs" });
               }
             } catch (err) {
               console.error(err);
@@ -821,26 +818,13 @@ export default function App() {
         />
       )}
 
-      {pendingVerificationHubName && (
-        <PostRegisterVerificationOverlay
-          hubName={pendingVerificationHubName}
-          onClose={() => {
-            setPendingVerificationHubName(null);
-            if (pendingCredentials) {
-              setGeneratedCredentials(pendingCredentials);
-              setPendingCredentials(null);
-            }
-          }}
-        />
-      )}
-
       {generatedCredentials && (
         <GeneratedPasswordModal
           telefono={generatedCredentials.telefono}
           password={generatedCredentials.password}
           onClose={() => {
             setGeneratedCredentials(null);
-            navigate({ to: "/admin" });
+            navigate({ to: "/admin/hubs" });
           }}
         />
       )}
@@ -1338,44 +1322,3 @@ function SupportPhoneHeaderButton() {
   );
 }
 
-interface PostRegisterVerificationOverlayProps {
-  hubName: string;
-  onClose: () => void;
-}
-
-function PostRegisterVerificationOverlay({ hubName, onClose }: PostRegisterVerificationOverlayProps) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-[#0A1A2A]/80 backdrop-blur-md p-4 animate-in fade-in duration-200"
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-    >
-      <div
-        className="relative w-full max-w-xl animate-in zoom-in-95 duration-300"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="rounded-2xl bg-[#0F2337]/95 border border-[#2B5F8E]/50 shadow-[0_20px_60px_rgba(0,0,0,0.6)] p-1">
-          <HubPendingVerification hubName={hubName} variant="post-register" />
-          <div className="px-6 pb-5 pt-1 flex justify-center">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-5 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-white/80 text-xs font-semibold tracking-wide transition-colors active:scale-[0.97]"
-            >
-              Entendido
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
