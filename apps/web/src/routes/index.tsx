@@ -468,8 +468,8 @@ function NecesidadesPage() {
 
         {/* ── HEADER ── */}
         <header className="mb-10">
-          {/* Top bar: brand */}
-          <div className="flex items-center mb-10">
+          {/* Top bar: brand + login discreto */}
+          <div className="flex items-center justify-between gap-4 mb-10">
             <div className="flex items-center gap-3">
               <img
                 src={logotipo}
@@ -482,6 +482,16 @@ function NecesidadesPage() {
                 Ayuda humanitaria · Portuguesa
               </span>
             </div>
+
+            {!isAuthenticated && (
+              <Link
+                to="/login"
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 sm:py-1.5 rounded-lg bg-white/5 border border-white/15 hover:bg-white/10 hover:border-white/25 active:scale-[0.97] transition-[transform,background-color,border-color] duration-200 text-[11px] font-semibold text-white/65 hover:text-white leading-tight text-right"
+              >
+                Ya tengo mi<br className="sm:hidden" />
+                <span className="sm:ml-1">centro registrado</span>
+              </Link>
+            )}
           </div>
 
           {/* Hero row: title on the left, big CTA on the right */}
@@ -755,17 +765,6 @@ function NecesidadesPage() {
             <span>·</span>
             <span>Ayuda humanitaria · Portuguesa</span>
           </div>
-
-          {!isAuthenticated && (
-            <div className="mt-6 flex justify-center">
-              <Link
-                to="/login"
-                className="text-[10px] font-medium text-white/25 hover:text-white/50 underline decoration-white/15 hover:decoration-white/30 underline-offset-4 transition-colors duration-200"
-              >
-                Acceso para coordinadores
-              </Link>
-            </div>
-          )}
         </footer>
       </div>
     </div>
