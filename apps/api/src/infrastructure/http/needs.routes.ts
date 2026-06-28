@@ -113,15 +113,15 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
     }
   };
 
-  router.post("/needs", authentication, requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"), postHandler);
-  router.post("/necesidades", authentication, requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"), postHandler);
+  router.post("/needs", authentication, requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"), postHandler);
+  router.post("/necesidades", authentication, requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"), postHandler);
 
   // ── POST /needs/bulk — importación masiva, crea todos como DRAFT ─────────────
 
   router.post(
     "/needs/bulk",
     authentication,
-    requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"),
+    requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"),
     async (c) => {
       try {
         const body = await c.req.json();
@@ -161,7 +161,7 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
   router.put(
     "/needs/:id/publish",
     authentication,
-    requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"),
+    requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"),
     async (c) => {
       try {
         const id = c.req.param("id") as string;
@@ -233,11 +233,11 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
     }
   };
 
-  router.put("/needs/:id", authentication, requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"), putHandler);
+  router.put("/needs/:id", authentication, requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"), putHandler);
   router.put(
     "/necesidades/:id",
     authentication,
-    requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"),
+    requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"),
     putHandler,
   );
 
@@ -260,13 +260,13 @@ export function createNeedsRoutes(deps: NeedsRoutesDeps): Hono<AuthEnv> {
   router.delete(
     "/needs/:id",
     authentication,
-    requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"),
+    requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"),
     deleteHandler,
   );
   router.delete(
     "/necesidades/:id",
     authentication,
-    requireRole("ADMIN", "MANAGER", "ZODI_SENDER", "ZODI_DESTINATION"),
+    requireRole("ADMIN", "ZODI_SENDER", "ZODI_DESTINATION"),
     deleteHandler,
   );
 

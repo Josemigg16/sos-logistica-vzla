@@ -12,7 +12,7 @@ export function hasAnyRole(user: SessionUser | null, ...roles: RoleName[]): bool
 }
 
 /** Roles autorizados para gestionar necesidades del panel público. */
-export const ROLES_MANAGE_NEEDS: RoleName[] = ['ADMIN', 'MANAGER', 'ZODI_SENDER', 'ZODI_DESTINATION']
+export const ROLES_MANAGE_NEEDS: RoleName[] = ['ADMIN', 'ZODI_SENDER', 'ZODI_DESTINATION']
 
 /** Roles autorizados para gestionar usuarios del sistema. */
 export const ROLES_MANAGE_USERS: RoleName[] = ['ADMIN']

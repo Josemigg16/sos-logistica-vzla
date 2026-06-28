@@ -1,7 +1,7 @@
 import { createFileRoute, Link, Navigate } from '@tanstack/react-router'
 import { PackagePlus, ChevronRight, ShieldCheck, MapPin, Users as UsersIcon, Truck, Route as RouteIcon, Settings as SettingsIcon } from 'lucide-react'
 import { useAuth } from '@/lib/auth/auth-context'
-import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_MANAGE_CONVOYS } from '@/lib/session'
+import { hasAnyRole, ROLES_MANAGE_USERS, ROLES_MANAGE_FLEET, ROLES_MANAGE_CONVOYS, ROLES_MANAGE_NEEDS } from '@/lib/session'
 
 export const Route = createFileRoute('/admin/')({
   component: AdminDashboard,
@@ -14,6 +14,7 @@ function AdminDashboard() {
   const canManageUsers = hasAnyRole(user, ...ROLES_MANAGE_USERS)
   const canManageFleet = hasAnyRole(user, ...ROLES_MANAGE_FLEET)
   const canManageConvoys = hasAnyRole(user, ...ROLES_MANAGE_CONVOYS)
+  const canManageNeeds = hasAnyRole(user, ...ROLES_MANAGE_NEEDS)
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-4xl mx-auto lg:mx-0">
       {/* Header */}
@@ -44,13 +45,15 @@ function AdminDashboard() {
 
       {/* Section cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <AdminSectionCard
-          to="/admin/needs"
-          icon={<PackagePlus className="w-6 h-6" />}
-          title="Necesidades"
-          description="Crear, editar y cerrar requerimientos públicos."
-          stat="Gestionar necesidades"
-        />
+        {canManageNeeds && (
+          <AdminSectionCard
+            to="/admin/needs"
+            icon={<PackagePlus className="w-6 h-6" />}
+            title="Necesidades"
+            description="Crear, editar y cerrar requerimientos públicos."
+            stat="Gestionar necesidades"
+          />
+        )}
         <AdminSectionCard
           to="/admin/hubs"
           icon={<MapPin className="w-6 h-6" />}
