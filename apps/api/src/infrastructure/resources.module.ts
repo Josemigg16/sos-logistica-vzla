@@ -40,6 +40,7 @@ export function createResourcesModule() {
     deleteInventoryBatch: new DeleteInventoryBatch(batches),
     changeHubStatus: new ChangeHubStatus(hubs),
     updateHubNeeds: new UpdateHubNeeds(hubs),
+    hubRepository: hubs,
   };
 
   return {

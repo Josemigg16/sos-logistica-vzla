@@ -51,19 +51,6 @@ interface HubNeedsEditorProps {
   hub: PublicHub
 }
 
-async function updateMyHubNeeds(needs: HubNeed[]): Promise<PublicHub> {
-  const res = await fetch(`${API_URL}/resources/my-hub/needs`, {
-    method: 'PUT',
-    headers: authHeaders(),
-    body: JSON.stringify({ needs }),
-  })
-  if (!res.ok) {
-    const body = await res.json().catch(() => null) as { error?: string } | null
-    throw new Error(body?.error ?? 'No se pudieron guardar las necesidades')
-  }
-  return (await res.json()).hub
-}
-
 async function updateHubNeeds(hubId: string, needs: HubNeed[]): Promise<PublicHub> {
   const res = await fetch(`${API_URL}/resources/hubs/${hubId}/needs`, {
     method: 'PUT',
@@ -96,14 +83,9 @@ export function HubNeedsEditor({ hub }: HubNeedsEditorProps) {
   const canEdit = isOwner || isAdmin
 
   const mut = useMutation({
-    mutationFn: async (needs: HubNeed[]) => {
-      return isOwner && !isAdmin
-        ? updateMyHubNeeds(needs)
-        : updateHubNeeds(hub.id, needs)
-    },
+    mutationFn: (needs: HubNeed[]) => updateHubNeeds(hub.id, needs),
     onSuccess: (updated) => {
       qc.setQueryData<PublicHub | null>(['hub', updated.id], updated)
-      qc.invalidateQueries({ queryKey: ['my-hub'] })
       qc.invalidateQueries({ queryKey: ['centros'] })
       qc.invalidateQueries({ queryKey: ['hubs-all'] })
       toast.success(

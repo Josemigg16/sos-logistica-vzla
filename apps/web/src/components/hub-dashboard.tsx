@@ -208,7 +208,6 @@ function HubStatusToggleButton({ hub }: { hub: PublicHub }) {
     onSuccess: (updated) => {
       qc.setQueryData<PublicHub | null>(['hub', updated.id], updated)
       qc.invalidateQueries({ queryKey: ['hub', updated.id] })
-      qc.invalidateQueries({ queryKey: ['my-hub'] })
       qc.invalidateQueries({ queryKey: ['centros'] })
       qc.invalidateQueries({ queryKey: ['hubs-all'] })
       toast.success(
