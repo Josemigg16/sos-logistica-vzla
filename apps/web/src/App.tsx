@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   Lock,
   LocateFixed,
+  ClipboardList,
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { HubNeed, HubNeedType, PublicConvoy } from "@sos/shared";
@@ -71,6 +72,36 @@ const NEED_LABELS: Record<HubNeedType, string> = {
   OTHER: "Otros",
 };
 
+function getKmDistance(p1: [number, number], p2: [number, number]): number {
+  const [lon1, lat1] = p1;
+  const [lon2, lat2] = p2;
+  const R = 6371; // Radio de la Tierra en km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+interface Necesidad {
+  id: string;
+  nombre: string;
+  categoria: string;
+  unidad: string;
+  meta: number;
+  recibido: number;
+  prioridad: "CRITICA" | "ALTA" | "MEDIA" | "BAJA";
+  descripcion: string;
+  ultimaActualizacion: string;
+  fechaNecesidad: string;
+  hubId?: string;
+}
+
 interface GeneratedCredentials {
   telefono: string;
   password: string;
@@ -111,6 +142,17 @@ export default function App() {
   const [hubFormError, setHubFormError] = useState<string | null>(null);
   const [generatedCredentials, setGeneratedCredentials] = useState<GeneratedCredentials | null>(null);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
+  const [showNeedsPanel, setShowNeedsPanel] = useState(false);
+  const [showFiltersPopover, setShowFiltersPopover] = useState(false);
+  const [needs, setNeeds] = useState<Necesidad[]>([]);
+  const [isLoadingNeeds, setIsLoadingNeeds] = useState(false);
+  const [showDrawerNeeds, setShowDrawerNeeds] = useState(false);
+  const [groupNeedsBy, setGroupNeedsBy] = useState<"none" | "centro">("centro");
+
+  // Reset collapse state of needs when selected center changes
+  useEffect(() => {
+    setShowDrawerNeeds(false);
+  }, [selectedId]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
     // Si venimos desde un CTA del landing, mostrar el intro sí o sí —
     // el landing setea esta flag justo antes de navegar a /map.
@@ -195,10 +237,41 @@ export default function App() {
     return () => window.clearInterval(intervalId);
   }, []);
 
+  useEffect(() => {
+    setIsLoadingNeeds(true);
+    fetch(`${API_URL}/needs`)
+      .then((res) => {
+        if (!res.ok) throw new Error("API response not OK");
+        return res.json();
+      })
+      .then((data) => {
+        const priorityOrder = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+        const sorted = data.sort((a: any, b: any) => {
+          const pA = priorityOrder[a.prioridad as keyof typeof priorityOrder] ?? 99;
+          const pB = priorityOrder[b.prioridad as keyof typeof priorityOrder] ?? 99;
+          if (pA !== pB) return pA - pB;
+          return new Date(a.fechaNecesidad).getTime() - new Date(b.fechaNecesidad).getTime();
+        });
+        setNeeds(sorted);
+      })
+      .catch((err) => {
+        console.warn("No se pudieron cargar las necesidades:", err);
+      })
+      .finally(() => {
+        setIsLoadingNeeds(false);
+      });
+  }, []);
+
   // Obtener el centro seleccionado actualmente
   const selectedCentro = useMemo(() => {
     return centros.find(c => c.id === selectedId) || null;
   }, [selectedId, centros]);
+
+  // Obtener las necesidades del centro seleccionado
+  const centroNeeds = useMemo(() => {
+    if (!selectedCentro) return [];
+    return needs.filter(n => n.hubId === selectedCentro.id);
+  }, [selectedCentro, needs]);
 
   // Coordenadas iniciales (Portuguesa por defecto la primera vez, o la guardada anteriormente)
   const [mapCenter, setMapCenter] = useState<[number, number]>(() => {
@@ -249,6 +322,73 @@ export default function App() {
     }
     return null;
   });
+
+  // Ordenar necesidades dinámicamente si el usuario tiene ubicación activa
+  const sortedNeeds = useMemo(() => {
+    const priorityOrder = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+
+    return [...needs].sort((a, b) => {
+      if (userLocation) {
+        const centroA = centros.find((c) => c.id === a.hubId);
+        const centroB = centros.find((c) => c.id === b.hubId);
+
+        if (centroA && centroB) {
+          const distA = getKmDistance(userLocation, centroA.coordenadas);
+          const distB = getKmDistance(userLocation, centroB.coordenadas);
+          return distA - distB;
+        }
+      }
+
+      const pA = priorityOrder[a.prioridad as keyof typeof priorityOrder] ?? 99;
+      const pB = priorityOrder[b.prioridad as keyof typeof priorityOrder] ?? 99;
+      if (pA !== pB) return pA - pB;
+      return new Date(a.fechaNecesidad).getTime() - new Date(b.fechaNecesidad).getTime();
+    });
+  }, [needs, userLocation, centros]);
+
+  // Agrupar necesidades por centro
+  const groupedNeedsByCentro = useMemo(() => {
+    const groups: Record<string, { centro: Centro; needs: Necesidad[]; maxPriority: string; distance?: number }> = {};
+    
+    for (const n of sortedNeeds) {
+      const hubId = n.hubId || "unknown";
+      if (!groups[hubId]) {
+        const centro = centros.find(c => c.id === hubId) || {
+          id: hubId,
+          nombre: "Centro Desconocido",
+          direccion: "",
+          coordenadas: [0, 0] as [number, number],
+          tipo: "acopio" as const,
+        };
+        const distance = userLocation ? getKmDistance(userLocation, centro.coordenadas) : undefined;
+        groups[hubId] = {
+          centro,
+          needs: [],
+          maxPriority: n.prioridad,
+          distance,
+        };
+      }
+      groups[hubId].needs.push(n);
+      
+      const priorityOrder = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+      const currentMax = priorityOrder[groups[hubId].maxPriority as keyof typeof priorityOrder] ?? 99;
+      const thisPriority = priorityOrder[n.prioridad as keyof typeof priorityOrder] ?? 99;
+      if (thisPriority < currentMax) {
+        groups[hubId].maxPriority = n.prioridad;
+      }
+    }
+
+    return Object.values(groups).sort((a, b) => {
+      if (a.distance !== undefined && b.distance !== undefined) {
+        return a.distance - b.distance;
+      }
+      const priorityOrder = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+      const pA = priorityOrder[a.maxPriority as keyof typeof priorityOrder] ?? 99;
+      const pB = priorityOrder[b.maxPriority as keyof typeof priorityOrder] ?? 99;
+      return pA - pB;
+    });
+  }, [sortedNeeds, centros, userLocation]);
+
   const hasCenteredOnUserRef = useRef(false);
 
   useEffect(() => {
@@ -459,98 +599,132 @@ export default function App() {
           })}
         </Map>
 
-        {/* LEYENDA / FILTRO DEL MAPA */}
-        <div className={`absolute right-4 z-30 p-3.5 rounded-2xl bg-card/90 border border-border shadow-2xl backdrop-blur-md flex flex-col gap-2.5 min-w-[240px] transition-all duration-300 md:bottom-6 md:right-6 ${
-          selectedId ? "bottom-28" : "bottom-4"
+        {/* BOTONES FLOTANTES: NECESIDADES Y FILTROS */}
+        <div className={`absolute left-4 right-4 z-30 flex gap-3 transition-all duration-300 md:left-auto md:right-6 md:bottom-6 ${
+          selectedId ? "bottom-28 pointer-events-none opacity-0" : "bottom-4"
         }`}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <SlidersHorizontal className="w-3 h-3 text-muted-foreground" />
-              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                Filtrar por tipo
-              </h4>
-            </div>
-            {activeTipos.size < 3 && (
-              <button
-                onClick={() => setActiveTipos(new Set(["acopio", "salida", "destino"]))}
-                className="text-[9px] font-semibold text-blue-400 hover:text-blue-300 uppercase tracking-wider cursor-pointer transition-colors"
-              >
-                Ver todos
-              </button>
+          {/* Botón Necesidades */}
+          <button
+            onClick={() => {
+              setShowNeedsPanel(true);
+              setShowFiltersPopover(false);
+            }}
+            className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-card/95 border border-border shadow-lg backdrop-blur-md text-foreground font-bold text-xs hover:bg-secondary active:scale-[0.97] transition-all duration-150 cursor-pointer relative"
+          >
+            <ClipboardList className="w-4 h-4 text-emerald-500" />
+            <span>Necesidades</span>
+            {needs.length > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 flex h-4.5 w-4.5 items-center justify-center">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 text-[9px] font-black text-white items-center justify-center shadow-md shadow-red-500/50">
+                  {needs.length}
+                </span>
+              </span>
             )}
-          </div>
-          <div className="flex flex-col gap-1">
-            {([
-              { tipo: "acopio" as const, label: "Centro de Acopio Local", dot: "bg-blue-500", glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
-              { tipo: "salida" as const, label: "Salidas ZODI", dot: "bg-red-500", glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]" },
-              { tipo: "destino" as const, label: "Centro de Acopio Destino", dot: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]" },
-            ]).map(({ tipo, label, dot, glow }) => {
-              const isActive = activeTipos.has(tipo);
-              return (
+          </button>
+
+          {/* Botón Filtros */}
+          <button
+            onClick={() => setShowFiltersPopover(!showFiltersPopover)}
+            className="flex-1 md:flex-initial flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-card/95 border border-border shadow-lg backdrop-blur-md text-foreground font-bold text-xs hover:bg-secondary active:scale-[0.97] transition-all duration-150 cursor-pointer relative"
+          >
+            <SlidersHorizontal className="w-4 h-4 text-blue-500" />
+            <span>Filtros</span>
+            {activeTipos.size < 3 && (
+              <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
+                {activeTipos.size}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* MENU FLOTANTE DE FILTROS */}
+        {showFiltersPopover && !selectedId && (
+          <div className="absolute bottom-20 right-4 z-40 p-3.5 rounded-2xl bg-card/95 border border-border shadow-2xl backdrop-blur-md flex flex-col gap-2.5 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center justify-between border-b border-border/50 pb-2">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filtrar centros</span>
+              {activeTipos.size < 3 && (
                 <button
-                  key={tipo}
-                  onClick={() => toggleTipo(tipo)}
-                  aria-pressed={isActive}
-                  title={isActive ? `Ocultar ${label}` : `Mostrar ${label}`}
-                  className={`group flex items-center gap-2.5 px-2 py-1.5 -mx-1 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    isActive
-                      ? "hover:bg-secondary/60"
-                      : "hover:bg-secondary/40 opacity-50 hover:opacity-80"
-                  }`}
+                  onClick={() => setActiveTipos(new Set(["acopio", "salida", "destino"]))}
+                  className="text-[9px] font-semibold text-blue-400 hover:text-blue-300 uppercase tracking-wider cursor-pointer transition-colors"
                 >
-                  <span
-                    className={`w-3 h-3 rounded-full shrink-0 transition-all duration-200 ${dot} ${
-                      isActive ? glow : "grayscale opacity-60"
-                    }`}
-                  />
-                  <span
-                    className={`flex-1 text-left text-[11px] font-medium transition-colors duration-200 ${
-                      isActive ? "text-foreground" : "text-muted-foreground line-through decoration-1"
+                  Ver todos
+                </button>
+              )}
+            </div>
+            <div className="flex flex-col gap-1">
+              {([
+                { tipo: "acopio" as const, label: "Centro de Acopio Local", dot: "bg-blue-500", glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
+                { tipo: "salida" as const, label: "Salidas ZODI", dot: "bg-red-500", glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]" },
+                { tipo: "destino" as const, label: "Centro de Acopio Destino", dot: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]" },
+              ]).map(({ tipo, label, dot, glow }) => {
+                const isActive = activeTipos.has(tipo);
+                return (
+                  <button
+                    key={tipo}
+                    onClick={() => toggleTipo(tipo)}
+                    aria-pressed={isActive}
+                    title={isActive ? `Ocultar ${label}` : `Mostrar ${label}`}
+                    className={`group flex items-center gap-2.5 px-2 py-1.5 -mx-1 rounded-lg cursor-pointer transition-colors duration-200 ${
+                      isActive
+                        ? "hover:bg-secondary/60"
+                        : "hover:bg-secondary/40 opacity-50 hover:opacity-80"
                     }`}
                   >
-                    {label}
+                    <span
+                      className={`w-3 h-3 rounded-full shrink-0 transition-all duration-200 ${dot} ${
+                        isActive ? glow : "grayscale opacity-60"
+                      }`}
+                    />
+                    <span
+                      className={`flex-1 text-left text-[11px] font-medium transition-colors duration-200 ${
+                        isActive ? "text-foreground" : "text-muted-foreground line-through decoration-1"
+                      }`}
+                    >
+                      {label}
+                    </span>
+                    {isActive ? (
+                      <Eye className="w-3.5 h-3.5 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0" />
+                    ) : (
+                      <EyeOff className="w-3.5 h-3.5 text-muted-foreground/40 group-hover:text-foreground transition-colors shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+              {activeConvoys.length > 0 && (
+                <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
+                  <div className="flex items-center gap-2.5">
+                    <span className="relative flex w-3 h-3">
+                      <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping"></span>
+                      <span className="relative inline-flex w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.75)]"></span>
+                    </span>
+                    <span className="text-[11px] font-semibold text-foreground">Caravanas en ruta</span>
+                  </div>
+                  <span className="min-w-6 px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-[11px] font-black text-amber-500 dark:text-amber-300 text-center tabular-nums">
+                    {activeConvoys.length}
                   </span>
-                  {isActive ? (
-                    <Eye className="w-3 h-3 text-muted-foreground/50 group-hover:text-foreground transition-colors shrink-0" />
-                  ) : (
-                    <EyeOff className="w-3 h-3 text-muted-foreground/40 group-hover:text-foreground transition-colors shrink-0" />
-                  )}
-                </button>
-              );
-            })}
-            {activeConvoys.length > 0 && (
-              <div className="flex items-center justify-between gap-3 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
-                <div className="flex items-center gap-2.5">
-                  <span className="relative flex w-3 h-3">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-70 animate-ping"></span>
-                    <span className="relative inline-flex w-3 h-3 rounded-full bg-amber-400 shadow-[0_0_10px_rgba(251,191,36,0.75)]"></span>
-                  </span>
-                  <span className="text-[11px] font-semibold text-foreground">Caravanas en ruta</span>
                 </div>
-                <span className="min-w-6 px-2 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-[11px] font-black text-amber-500 dark:text-amber-300 text-center tabular-nums">
-                  {activeConvoys.length}
-                </span>
-              </div>
-            )}
-            {showSupplyRoute && (
-              <div className="flex items-center gap-2.5 border-t border-border/50 pt-1.5 mt-0.5 animate-in fade-in duration-300">
-                <span className="w-6 h-1 rounded bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>
-                <span className="text-[11px] font-medium text-foreground">Ruta Terrestre Activa</span>
-              </div>
-            )}
-            {userLocation && (
-              <div className="flex items-center gap-2.5 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
-                <span className="relative flex items-center justify-center w-3 h-3 shrink-0">
-                  <span className="absolute inline-flex w-full h-full rounded-full bg-[#4A89C0] opacity-60 animate-ping"></span>
-                  <span className="relative inline-flex items-center justify-center w-3 h-3 rounded-full bg-white shadow-[0_0_8px_rgba(74,137,192,0.6)]">
-                    <span className="w-1.5 h-1.5 rounded-full bg-[#2B5F8E]"></span>
+              )}
+              {showSupplyRoute && (
+                <div className="flex items-center gap-2.5 border-t border-border/50 pt-1.5 mt-0.5 animate-in fade-in duration-300">
+                  <span className="w-6 h-1 rounded bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.6)]"></span>
+                  <span className="text-[11px] font-medium text-foreground">Ruta Terrestre Activa</span>
+                </div>
+              )}
+              {userLocation && (
+                <div className="flex items-center gap-2.5 border-t border-border/50 pt-2 mt-0.5 animate-in fade-in duration-300">
+                  <span className="relative flex items-center justify-center w-3 h-3 shrink-0">
+                    <span className="absolute inline-flex w-full h-full rounded-full bg-[#4A89C0] opacity-60 animate-ping"></span>
+                    <span className="relative inline-flex items-center justify-center w-3 h-3 rounded-full bg-white shadow-[0_0_8px_rgba(74,137,192,0.6)]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#2B5F8E]"></span>
+                    </span>
                   </span>
-                </span>
-                <span className="text-[11px] font-medium text-foreground">Tu ubicación actual</span>
-              </div>
-            )}
+                  <span className="text-[11px] font-medium text-foreground">Tu ubicación actual</span>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
 
       {/* CONTROLES FLOTANTES / FILTROS (MOBILE FIRST) */}
@@ -702,25 +876,61 @@ export default function App() {
                 </a>
               </div>
 
-              {/* Necesidades operativas — sólo si el centro tiene algo marcado */}
-              {selectedCentro.needs && selectedCentro.needs.length > 0 && (
-                <div className="rounded-lg border border-amber-400/40 bg-amber-400/5 p-3">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold text-amber-300 uppercase tracking-wider">
-                      Necesita ayuda con
-                    </h3>
-                    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wide bg-amber-400/15 text-amber-300 border border-amber-400/30">
-                      {selectedCentro.needs.length}
-                    </span>
-                  </div>
-                  <ul className="flex flex-col gap-2">
-                    {selectedCentro.needs.map((n) => (
-                      <li key={n.type} className="text-xs">
-                        <div className="font-semibold text-foreground">{NEED_LABELS[n.type] ?? n.type}</div>
-                        {n.note && <div className="text-muted-foreground text-[11px] mt-0.5">{n.note}</div>}
-                      </li>
-                    ))}
-                  </ul>
+              {/* Necesidades operativas (cargadas desde el API) - Colapsable */}
+              {centroNeeds.length > 0 && (
+                <div className="mb-4">
+                  <button
+                    onClick={() => setShowDrawerNeeds(!showDrawerNeeds)}
+                    className="w-full flex items-center justify-between p-3 rounded-lg bg-amber-500/10 border border-amber-500/20 hover:bg-amber-500/20 active:scale-[0.98] transition-all duration-200 cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ClipboardList className="w-4 h-4 text-amber-400 shrink-0" />
+                      <p className="text-[10px] text-foreground font-semibold leading-none">
+                        Ver necesidades del centro
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        {centroNeeds.length}
+                      </span>
+                      <ChevronDown className={`w-3.5 h-3.5 text-amber-400 transition-transform duration-200 ${showDrawerNeeds ? "rotate-180" : ""}`} />
+                    </div>
+                  </button>
+
+                  {showDrawerNeeds && (
+                    <div className="mt-2 p-3 rounded-lg border border-amber-400/20 bg-amber-400/5 flex flex-col gap-3.5 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <ul className="flex flex-col gap-3.5">
+                        {centroNeeds.map((n) => {
+                          const pct = n.meta > 0 ? Math.min(Math.round((n.recibido / n.meta) * 100), 100) : 0;
+                          return (
+                            <li key={n.id} className="text-xs flex flex-col gap-1">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <div className="font-bold text-foreground leading-tight">{n.nombre}</div>
+                                  {n.categoria && (
+                                    <div className="text-[9.5px] text-muted-foreground mt-0.5">{n.categoria}</div>
+                                  )}
+                                </div>
+                                <span className="text-[10px] font-mono text-amber-400 shrink-0 bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
+                                  {n.meta > 0 ? `${n.recibido}/${n.meta} ${n.unidad}` : `${n.recibido} ${n.unidad}`}
+                                </span>
+                              </div>
+                              {n.descripcion && (
+                                <p className="text-muted-foreground text-[10.5px] leading-relaxed text-pretty mt-0.5">{n.descripcion}</p>
+                              )}
+                              {n.meta > 0 && (
+                                <div className="flex flex-col gap-1 mt-1">
+                                  <div className="w-full h-1 bg-secondary/80 rounded-full overflow-hidden">
+                                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                                  </div>
+                                </div>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -802,6 +1012,216 @@ export default function App() {
             
           </div>
         )}
+      </div>
+
+      {/* PANEL DE NECESIDADES URGENTES */}
+      <div
+        className={`absolute left-0 right-0 bottom-0 z-40 bg-card/95 border-t border-border shadow-2xl backdrop-blur-lg rounded-t-3xl transition-all duration-500 ease-out md:left-6 md:bottom-6 md:top-auto md:w-96 md:rounded-2xl md:border ${
+          showNeedsPanel
+            ? "h-[75vh] md:h-auto md:max-h-[75vh]"
+            : "translate-y-full h-0 pointer-events-none"
+        }`}
+      >
+        <div className="flex flex-col h-full p-4 md:p-5">
+          <div className="flex items-center justify-between border-b border-border/50 pb-3 shrink-0">
+            <div className="flex items-center gap-2">
+              <ClipboardList className="w-5 h-5 text-emerald-500" />
+              <h2 className="text-base font-bold text-foreground tracking-tight">Necesidades urgentes</h2>
+            </div>
+            <button
+              onClick={() => setShowNeedsPanel(false)}
+              className="w-7 h-7 rounded-full bg-secondary/80 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer shrink-0 active:scale-[0.92]"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Selector de Agrupación */}
+          {sortedNeeds.length > 0 && (
+            <div className="flex gap-2 p-1 bg-secondary/40 rounded-lg shrink-0 mt-3 mb-1">
+              <button
+                onClick={() => setGroupNeedsBy("none")}
+                className={`flex-1 py-1.5 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-150 cursor-pointer ${
+                  groupNeedsBy === "none" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Ver todas
+              </button>
+              <button
+                onClick={() => setGroupNeedsBy("centro")}
+                className={`flex-1 py-1.5 px-3 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-150 cursor-pointer ${
+                  groupNeedsBy === "centro" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Por Centro
+              </button>
+            </div>
+          )}
+
+          <div className="flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar pb-4 flex flex-col gap-3">
+            {isLoadingNeeds ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
+                <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
+                <span className="text-xs font-medium">Cargando necesidades...</span>
+              </div>
+            ) : groupNeedsBy === "centro" ? (
+              groupedNeedsByCentro.length > 0 ? (
+                groupedNeedsByCentro.map((group) => {
+                  const priorityStyles = {
+                    CRITICA: { bg: "bg-red-500/10 border-red-500/25 text-red-400" },
+                    ALTA: { bg: "bg-amber-500/10 border-amber-500/25 text-amber-400" },
+                    MEDIA: { bg: "bg-blue-500/10 border-blue-500/25 text-blue-400" },
+                    BAJA: { bg: "bg-gray-500/10 border-gray-500/25 text-gray-400" },
+                  };
+                  const style = priorityStyles[group.maxPriority as keyof typeof priorityStyles] ?? priorityStyles.MEDIA;
+
+                  return (
+                    <div key={group.centro.id} className="p-3.5 rounded-xl bg-background/50 border border-border/80 flex flex-col gap-2.5 animate-in fade-in duration-200">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1">
+                          <h3 className="text-xs font-bold text-foreground leading-tight truncate">{group.centro.nombre}</h3>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <MapPin className="w-3 h-3 text-emerald-500 shrink-0" />
+                            <span className="text-[9.5px] text-muted-foreground truncate max-w-[180px]">{group.centro.direccion || "Dirección no disponible"}</span>
+                          </div>
+                        </div>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border shrink-0 ${style.bg}`}>
+                          {group.needs.length} {group.needs.length === 1 ? "necesidad" : "necesidades"}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col gap-2 pl-3 border-l-2 border-border/65 mt-1">
+                        {group.needs.map((n) => {
+                          const pct = n.meta > 0 ? Math.min(Math.round((n.recibido / n.meta) * 100), 100) : 0;
+                          return (
+                            <div key={n.id} className="text-xs flex flex-col gap-1 py-1 border-b border-border/20 last:border-b-0 last:pb-0">
+                              <div className="flex justify-between items-start gap-2">
+                                <div className="min-w-0">
+                                  <span className="font-semibold text-foreground leading-tight">{n.nombre}</span>
+                                  <span className="text-[9px] text-muted-foreground ml-1.5 font-medium">({n.categoria})</span>
+                                </div>
+                                <span className="text-[9px] font-mono text-amber-400 shrink-0">
+                                  {n.meta > 0 ? `${n.recibido}/${n.meta} ${n.unidad}` : `${n.recibido} ${n.unidad}`}
+                                </span>
+                              </div>
+                              {n.descripcion && (
+                                <p className="text-muted-foreground text-[10px] leading-snug">{n.descripcion}</p>
+                              )}
+                              {n.meta > 0 && (
+                                <div className="w-full h-0.5 bg-secondary rounded-full overflow-hidden mt-1">
+                                  <div className="h-full bg-amber-500 rounded-full" style={{ width: `${pct}%` }} />
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2 border-t border-border/30 mt-1">
+                        {group.distance !== undefined && (
+                          <span className="text-[9px] font-bold text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded shrink-0">
+                            a {group.distance.toFixed(1)} km
+                          </span>
+                        )}
+                        <button
+                          onClick={() => {
+                            handleSelectCentro(group.centro);
+                            setShowNeedsPanel(false);
+                          }}
+                          className="ml-auto text-[9px] font-bold text-blue-400 hover:text-blue-300 cursor-pointer transition-colors shrink-0 flex items-center gap-1"
+                        >
+                          Ver en mapa
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="py-8 text-center text-xs text-muted-foreground">
+                  No hay necesidades registradas.
+                </div>
+              )
+            ) : sortedNeeds.length > 0 ? (
+              sortedNeeds.map((n) => {
+                const getPct = (recibido: number, meta: number) => {
+                  if (meta <= 0) return 0;
+                  return Math.min(Math.round((recibido / meta) * 100), 100);
+                };
+                const pct = getPct(n.recibido, n.meta);
+                
+                const centro = centros.find(c => c.id === n.hubId);
+                const centroNombre = centro ? centro.nombre : "Centro de acopio";
+                
+                const priorityStyles = {
+                  CRITICA: { bg: "bg-red-500/10 border-red-500/25 text-red-400", label: "Crítica", bar: "bg-red-500" },
+                  ALTA: { bg: "bg-amber-500/10 border-amber-500/25 text-amber-400", label: "Alta", bar: "bg-amber-500" },
+                  MEDIA: { bg: "bg-blue-500/10 border-blue-500/25 text-blue-400", label: "Media", bar: "bg-blue-500" },
+                  BAJA: { bg: "bg-gray-500/10 border-gray-500/25 text-gray-400", label: "Baja", bar: "bg-gray-500" },
+                };
+                const style = priorityStyles[n.prioridad as keyof typeof priorityStyles] ?? priorityStyles.MEDIA;
+
+                return (
+                  <div key={n.id} className="p-3.5 rounded-xl bg-background/50 border border-border/80 flex flex-col gap-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="text-xs font-bold text-foreground leading-tight truncate">{n.nombre}</h3>
+                        <span className="text-[10px] text-muted-foreground font-medium mt-0.5 block">{n.categoria}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold border shrink-0 ${style.bg}`}>
+                        {style.label}
+                      </span>
+                    </div>
+
+                    {n.descripcion && (
+                      <p className="text-[11px] text-muted-foreground leading-normal text-pretty">{n.descripcion}</p>
+                    )}
+
+                    {n.meta > 0 ? (
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex justify-between text-[10px] font-semibold text-foreground/80">
+                          <span>{pct}% cubierto</span>
+                          <span className="tabular-nums">{n.recibido} de {n.meta} {n.unidad}</span>
+                        </div>
+                        <div className="w-full h-1 bg-secondary rounded-full overflow-hidden">
+                          <div className={`h-full rounded-full ${style.bar}`} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-[10px] font-medium text-foreground/70">
+                        Recibido: <span className="font-bold text-foreground">{n.recibido} {n.unidad}</span> (Continuo)
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5 pt-1.5 border-t border-border/30 mt-0.5">
+                      <MapPin className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <span className="text-[10px] font-semibold text-emerald-400/90 truncate max-w-[150px]">{centroNombre}</span>
+                      {centro && userLocation && (
+                        <span className="text-[9px] font-bold text-muted-foreground bg-secondary/50 px-1.5 py-0.5 rounded shrink-0">
+                          a {getKmDistance(userLocation, centro.coordenadas).toFixed(1)} km
+                        </span>
+                      )}
+                      {centro && (
+                        <button
+                          onClick={() => {
+                            handleSelectCentro(centro);
+                            setShowNeedsPanel(false);
+                          }}
+                          className="ml-auto text-[9px] font-bold text-blue-400 hover:text-blue-300 cursor-pointer transition-colors shrink-0"
+                        >
+                          Ver en mapa
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-12">
+                <p className="text-xs text-muted-foreground">No hay necesidades registradas en este momento.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Lightbox / Modal de Verificación */}
