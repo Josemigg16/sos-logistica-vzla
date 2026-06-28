@@ -72,6 +72,7 @@ export class User {
       username: this.props.username,
       role: this.props.role.value,
       email: this.props.email,
+      telefono: this.props.telefono,
     };
   }
 }

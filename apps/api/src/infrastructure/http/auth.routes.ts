@@ -34,6 +34,7 @@ function toAdminView(user: User): AdminUserView {
     role: user.role.value,
     status: user.status,
     email: user.email,
+    telefono: user.telefono,
     createdAt: user.createdAt.toISOString(),
   };
 }

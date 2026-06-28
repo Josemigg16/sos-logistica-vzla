@@ -28,6 +28,7 @@ describe("User", () => {
       username: "coord",
       role: "HUB_COORDINATOR",
       email: "coord@example.com",
+      telefono: null,
     });
     expect(pub).not.toHaveProperty("credential");
   });

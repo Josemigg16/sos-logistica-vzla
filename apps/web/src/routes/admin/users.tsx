@@ -44,12 +44,14 @@ function authHeaders(): HeadersInit {
 const ZOD_ES: Record<string, string> = {
   'Invalid email': 'Email inválido',
   'Required': 'Requerido',
+  'String must contain at least 5 character(s)': 'Mínimo 5 caracteres',
   'String must contain at least 4 character(s)': 'Mínimo 4 caracteres',
   'String must contain at least 3 character(s)': 'Mínimo 3 caracteres',
 }
 
 const FIELD_LABELS: Record<string, string> = {
-  username: 'Usuario',
+  username: 'Teléfono',
+  telefono: 'Teléfono',
   password: 'Contraseña',
   email: 'Email',
   role: 'Rol',
@@ -92,10 +94,16 @@ interface CreateUserDraft {
 }
 
 async function createUser(draft: CreateUserDraft): Promise<AdminUserView> {
+  const payload = {
+    telefono: draft.username,
+    password: draft.password,
+    role: draft.role,
+    email: draft.email || undefined,
+  }
   const res = await fetch(`${API_URL}/auth/register`, {
     method: 'POST',
     headers: authHeaders(),
-    body: JSON.stringify(draft),
+    body: JSON.stringify(payload),
   })
   if (!res.ok) throw new Error(await readError(res, 'No se pudo crear el usuario'))
   const data = await res.json()
@@ -277,7 +285,7 @@ function AdminUsersPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-[#2B5F8E]/40 text-[10px] font-bold text-white/40 uppercase tracking-wider">
-                  <th className="text-left px-5 py-3">Usuario</th>
+                  <th className="text-left px-5 py-3">Teléfono</th>
                   <th className="text-left px-5 py-3">Rol</th>
                   <th className="text-left px-5 py-3">Estado</th>
                   <th className="text-left px-5 py-3">Email</th>
@@ -555,7 +563,7 @@ function CreateUserModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (draft.username.trim().length < 3) return
-    if (draft.password.length < 4) return
+    if (draft.password.length < 5) return
     const payload: CreateUserDraft = {
       username: draft.username.trim().toLowerCase(),
       password: draft.password,
@@ -579,7 +587,7 @@ function CreateUserModal({
     >
       <div className="flex flex-col gap-4">
         <FormErrorBanner message={errorMsg} onDismiss={onDismissError} />
-        <Field label="Usuario" required hint="mínimo 3 caracteres, sin espacios">
+        <Field label="Teléfono" required hint="número de teléfono válido">
           <input
             type="text"
             value={draft.username}
@@ -588,18 +596,18 @@ function CreateUserModal({
             minLength={3}
             maxLength={64}
             className="input"
-            placeholder="ej. juan.perez"
+            placeholder="ej. +584121234567"
             autoComplete="off"
           />
         </Field>
 
-        <Field label="Contraseña" required hint="mínimo 4 caracteres">
+        <Field label="Contraseña" required hint="mínimo 5 caracteres">
           <input
             type="password"
             value={draft.password}
             onChange={(e) => setDraft({ ...draft, password: e.target.value })}
             required
-            minLength={4}
+            minLength={5}
             maxLength={128}
             className="input"
             placeholder="••••••••"
@@ -668,7 +676,7 @@ function EditUserModal({
     if (status !== user.status) patch.status = status
     const newEmail = email.trim() || null
     if (newEmail !== user.email) patch.email = newEmail
-    if (password.length >= 4) patch.password = password
+    if (password.length >= 5) patch.password = password
     if (Object.keys(patch).length === 0) {
       onClose()
       return
@@ -722,12 +730,12 @@ function EditUserModal({
           />
         </Field>
 
-        <Field label="Nueva contraseña" hint="dejar vacío para no cambiarla (mín. 4 chars)">
+        <Field label="Nueva contraseña" hint="dejar vacío para no cambiarla (mín. 5 chars)">
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            minLength={password ? 4 : undefined}
+            minLength={password ? 5 : undefined}
             maxLength={128}
             className="input"
             placeholder="••••••••"

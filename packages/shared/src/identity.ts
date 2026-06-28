@@ -72,6 +72,7 @@ export interface PublicUser {
   username: string;
   role: RoleName;
   email: string | null;
+  telefono: string | null;
 }
 
 /** Payload para actualizar un usuario desde el panel admin. Todos opcionales. */
