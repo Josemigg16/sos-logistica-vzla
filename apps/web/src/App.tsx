@@ -33,7 +33,7 @@ import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
 import { getToken } from "@/lib/auth/token-store";
-import { signupHub } from "@/lib/auth/auth-client";
+import { signupHub, AuthError } from "@/lib/auth/auth-client";
 import { useAuth } from "@/lib/auth/auth-context";
 import {
   toWhatsappNumber,
@@ -104,6 +104,8 @@ export default function App() {
   const [isRegistering, setIsRegistering] = useState(false);
   const [clickedCoordinates, setClickedCoordinates] = useState<[number, number] | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [hubFieldErrors, setHubFieldErrors] = useState<Record<string, string | undefined>>({});
+  const [hubFormError, setHubFormError] = useState<string | null>(null);
   const [generatedCredentials, setGeneratedCredentials] = useState<GeneratedCredentials | null>(null);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
@@ -764,22 +766,39 @@ export default function App() {
           onClose={() => {
             setIsRegistering(false);
             setClickedCoordinates(null);
+            setHubFieldErrors({});
+            setHubFormError(null);
           }}
           initialCoordinates={clickedCoordinates}
           isSubmitting={isSaving}
+          fieldErrors={hubFieldErrors}
+          formError={hubFormError}
           onSubmit={async (data) => {
             setIsSaving(true);
+            setHubFieldErrors({});
+            setHubFormError(null);
             try {
-              // Si el usuario aún no está autenticado, primero creamos su cuenta
-              // y obtenemos el token. Así el POST a /centros se hace CON token y
-              // el hub queda vinculado a su coordinatorId (no huérfano).
               let signupResult: Awaited<ReturnType<typeof signupHub>> | null = null;
               if (!user) {
                 try {
-                  signupResult = await signupHub(data.contacto);
+                  signupResult = await signupHub(data.contacto, {
+                    cedula: data.cedula,
+                    documentType: data.documentType,
+                  });
                   loginWithToken(signupResult.accessToken, signupResult.user);
-                } catch {
-                  // ignored — seguimos con POST sin token (queda como informativo)
+                } catch (signupErr) {
+                  if (signupErr instanceof AuthError) {
+                    if (signupErr.code === "USERNAME_TAKEN") {
+                      setHubFieldErrors({ contacto: signupErr.message });
+                    } else if (signupErr.code === "CEDULA_TAKEN") {
+                      setHubFieldErrors({ cedula: signupErr.message });
+                    } else {
+                      setHubFormError(signupErr.message);
+                    }
+                  } else {
+                    setHubFormError("No se pudo crear la cuenta. Verifica tu número e intenta de nuevo.");
+                  }
+                  return;
                 }
               }
 
@@ -790,11 +809,7 @@ export default function App() {
               const res = await fetch(`${API_URL}/centros`, {
                 method: "POST",
                 headers,
-                body: JSON.stringify({
-                  ...data,
-                  estado: "INACTIVO",
-                  inventario: {},
-                }),
+                body: JSON.stringify({ ...data, estado: "INACTIVO", inventario: {} }),
               });
               if (!res.ok) throw new Error("Fallo al guardar");
 
@@ -805,10 +820,7 @@ export default function App() {
 
               if (user) {
                 navigate({ to: "/admin/hubs" });
-              } else if (signupResult) {
-                // Mostramos las credenciales generadas — el aviso de verificación
-                // pendiente se muestra dentro del detalle del hub cuando el
-                // coordinador entra a /admin/hubs/$hubId.
+              } else if (signupResult?.generatedPassword) {
                 setGeneratedCredentials({ telefono: data.contacto, password: signupResult.generatedPassword });
               } else {
                 navigate({ to: "/admin/hubs" });
@@ -1010,9 +1022,11 @@ interface PublicHubModalProps {
   onSubmit: (data: HubRegistrationData) => Promise<void>;
   isSubmitting: boolean;
   initialCoordinates?: [number, number] | null;
+  fieldErrors?: Record<string, string | undefined>;
+  formError?: string | null;
 }
 
-function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }: PublicHubModalProps) {
+function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, fieldErrors = {}, formError }: PublicHubModalProps) {
   const [nombre, setNombre] = useState("");
   const [direccion, setDireccion] = useState("");
   const [responsable, setResponsable] = useState("");
@@ -1131,6 +1145,13 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
           {/* Formulario */}
           <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-5 py-4 space-y-3.5 no-scrollbar">
 
+            {formError && (
+              <div className="flex items-start gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-[10px] text-red-400">
+                <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                <span>{formError}</span>
+              </div>
+            )}
+
             <div className="space-y-1.5">
               <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
                 Nombre del Centro *
@@ -1184,8 +1205,11 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                   value={contacto}
                   onChange={(e) => setContacto(e.target.value)}
                   placeholder="+58 4XX XXX XXXX"
-                  className="w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border border-border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/10 transition-all duration-200"
+                  className={`w-full px-3 py-2.5 text-xs rounded-xl bg-secondary/50 border text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 transition-all duration-200 ${fieldErrors.contacto ? "border-red-500/50 focus:border-red-500/50 focus:ring-red-500/10" : "border-border focus:border-blue-500/50 focus:ring-blue-500/10"}`}
                 />
+                {fieldErrors.contacto && (
+                  <p className="text-[10px] text-red-400">{fieldErrors.contacto}</p>
+                )}
               </div>
             </div>
 
@@ -1196,7 +1220,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 Cédula / RIF{" "}
                 <span className="text-muted-foreground/60 normal-case font-normal">(opcional)</span>
               </label>
-              <div className="flex items-stretch rounded-xl border border-border bg-secondary/50 focus-within:border-blue-500/50 focus-within:ring-2 focus-within:ring-blue-500/10 transition-all duration-200">
+              <div className={`flex items-stretch rounded-xl border bg-secondary/50 focus-within:ring-2 transition-all duration-200 ${fieldErrors.cedula ? "border-red-500/50 focus-within:border-red-500/50 focus-within:ring-red-500/10" : "border-border focus-within:border-blue-500/50 focus-within:ring-blue-500/10"}`}>
                 <div className="relative flex items-center">
                   <select
                     value={documentType}
@@ -1221,6 +1245,9 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates }:
                 />
               </div>
             </div>
+            {fieldErrors.cedula && (
+              <p className="text-[10px] text-red-400 -mt-1">{fieldErrors.cedula}</p>
+            )}
 
             <div className="flex items-start gap-2 p-3 bg-blue-500/5 border border-blue-500/10 rounded-xl text-[9.5px] text-blue-400/80">
               <Info className="w-3.5 h-3.5 shrink-0 mt-0.5 text-blue-400" />
