@@ -362,6 +362,9 @@ function StatBadge({ value, label, highlight, to }: { value: string | number; la
     return (
       <Link
         to={to}
+        onClick={() => {
+          if (to === "/map") localStorage.setItem("map_intro_force", "1");
+        }}
         className={`${base} group cursor-pointer hover:border-[#4A89C0]/70 hover:bg-[#1E4A6E] hover:shadow-[0_4px_16px_rgba(74,137,192,0.3)] active:scale-[0.97] transition-[transform,background-color,border-color,box-shadow] duration-200`}
       >
         {inner}
@@ -519,6 +522,7 @@ function NecesidadesPage() {
 
               <Link
                 to="/map"
+                onClick={() => localStorage.setItem("map_intro_force", "1")}
                 className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden mb-3 border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
               >
                 <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-black/5 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />

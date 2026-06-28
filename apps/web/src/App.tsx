@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   MapPin,
   Phone,
@@ -25,10 +25,12 @@ import {
   Copy,
   CheckCircle2,
   Lock,
+  LocateFixed,
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { HubNeed, HubNeedType, PublicConvoy } from "@sos/shared";
-import { Map, MapControls, MapMarker, MapRoute, MapUserLocationMarker } from "@/components/ui/map";
+import { Map, MapControls, MapMarker, MapPickedLocationMarker, MapRoute, MapUserLocationMarker } from "@/components/ui/map";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
@@ -103,30 +105,30 @@ export default function App() {
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [clickedCoordinates, setClickedCoordinates] = useState<[number, number] | null>(null);
+  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hubFieldErrors, setHubFieldErrors] = useState<Record<string, string | undefined>>({});
   const [hubFormError, setHubFormError] = useState<string | null>(null);
   const [generatedCredentials, setGeneratedCredentials] = useState<GeneratedCredentials | null>(null);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
+    // Si venimos desde un CTA del landing, mostrar el intro sí o sí —
+    // el landing setea esta flag justo antes de navegar a /map.
+    const fromLandingCta = localStorage.getItem("map_intro_force") === "1";
+    if (fromLandingCta) {
+      localStorage.removeItem("map_intro_force");
+      return true;
+    }
     return !localStorage.getItem("map_welcome_seen");
   });
   const toast = useToast();
 
   const handleMapClick = (lngLat: [number, number]) => {
+    // Click en el mapa: SOLO selecciona ubicación (pin verde arrastrable).
+    // No abre el modal — el usuario lo abre con el botón "Registrar".
     setClickedCoordinates(lngLat);
-    setIsRegistering(true);
+    setUseCurrentLocation(false);
     setSelectedId(null);
-    // En mobile el modal cubre ~70% de la pantalla — hacemos pan para que
-    // el pin quede visible en el tercio superior del área expuesta.
-    const isMobile = window.innerWidth < 768;
-    if (isMobile) {
-      // offset ≈ 35% de la pantalla en grados, según el zoom actual
-      const latOffset = 180 / Math.pow(2, mapZoom);
-      setMapCenter([lngLat[0], lngLat[1] - latOffset]);
-    } else {
-      setMapCenter([lngLat[0], lngLat[1]]);
-    }
   };
 
   // Definir la ruta nacional de distribución: Aragua -> Carabobo -> Lara
@@ -231,21 +233,52 @@ export default function App() {
     return 8; // Zoom default Portuguesa
   });
 
-  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  // Última ubicación conocida — se hidrata desde localStorage para tener un pin
+  // disponible de inmediato mientras el navegador hace un fix nuevo. La fuente
+  // de verdad sigue siendo el GPS: `watchPosition` la reescribe en cuanto llega.
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(() => {
+    const saved = localStorage.getItem("user_location");
+    if (!saved) return null;
+    try {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length === 2 && typeof parsed[0] === "number" && typeof parsed[1] === "number") {
+        return parsed as [number, number];
+      }
+    } catch {
+      // Fallback
+    }
+    return null;
+  });
+  const hasCenteredOnUserRef = useRef(false);
 
   useEffect(() => {
     localStorage.setItem("has_entered_map", "true");
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords: [number, number] = [position.coords.longitude, position.coords.latitude];
-          setMapCenter(coords);
-          setMapZoom(12);
-          setUserLocation(coords);
-        },
-        () => {}
-      );
-    }
+    if (!navigator.geolocation) return;
+
+    const handleSuccess = (position: GeolocationPosition) => {
+      const coords: [number, number] = [position.coords.longitude, position.coords.latitude];
+      setUserLocation(coords);
+      localStorage.setItem("user_location", JSON.stringify(coords));
+      // Solo en el primer fix de la sesión: centrar el mapa en el usuario.
+      // Después, dejar que el usuario controle el viewport sin saltos.
+      if (!hasCenteredOnUserRef.current) {
+        hasCenteredOnUserRef.current = true;
+        setMapCenter(coords);
+        setMapZoom(12);
+      }
+    };
+    const handleError = () => {
+      // Si falla, conservamos la última ubicación conocida (si la hay).
+      // Sin spam de errores: el navegador ya muestra el prompt de permisos.
+    };
+
+    const watchId = navigator.geolocation.watchPosition(handleSuccess, handleError, {
+      enableHighAccuracy: true,
+      maximumAge: 30_000,
+      timeout: 27_000,
+    });
+
+    return () => navigator.geolocation.clearWatch(watchId);
   }, []);
 
   // Centros visibles en el mapa público: solo los activos. Los inactivos están
@@ -322,30 +355,24 @@ export default function App() {
           <SupportPhoneHeaderButton />
           <button
             onClick={() => setShowWelcomeModal(true)}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
+            className="flex items-center justify-center w-9 h-9 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
             title="¿Cómo usar el mapa?"
+            aria-label="¿Cómo usar el mapa?"
           >
             <Info className="w-4 h-4" />
           </button>
           <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="flex items-center justify-center w-8 h-8 rounded-lg bg-secondary/80 border border-border text-foreground hover:bg-secondary transition-transform transition-colors duration-200 active:scale-[0.96] cursor-pointer shrink-0"
-            title="Cambiar tema"
-          >
-            {theme === "dark" ? <Sun className="w-4 h-4 text-blue-300" /> : <Moon className="w-4 h-4 text-blue-700" />}
-          </button>
-          <button
             onClick={() => {
-              setClickedCoordinates(null);
+              setUseCurrentLocation(clickedCoordinates ? false : userLocation !== null);
               setIsRegistering(true);
               setSelectedId(null);
             }}
-            className="flex items-center justify-center w-8 h-8 md:w-auto md:h-auto md:px-2.5 md:py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-bold text-[10px] uppercase tracking-wide active:scale-[0.96] transition-transform duration-200 cursor-pointer shadow-md shadow-blue-600/10 shrink-0"
+            className="register-cta relative flex items-center justify-center gap-1.5 h-9 px-3.5 md:px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-black text-[12px] md:text-[13px] uppercase tracking-wide active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shadow-lg shadow-blue-600/40 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
             title="Registrar nuevo centro de acopio"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[3]" />
-            <span className="hidden md:inline ml-1">Registrar</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>Registrar</span>
           </button>
           <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-semibold border border-blue-500/20 shrink-0">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-ping"></span>
@@ -376,11 +403,11 @@ export default function App() {
           {userLocation && (
             <MapUserLocationMarker coordinates={userLocation} />
           )}
-          {isRegistering && clickedCoordinates && (
-            <MapMarker
+          {clickedCoordinates && !(isRegistering && useCurrentLocation) && (
+            <MapPickedLocationMarker
               coordinates={clickedCoordinates}
-              color="#3b82f6"
-              active={true}
+              draggable
+              onDragEnd={(lngLat) => setClickedCoordinates(lngLat)}
             />
           )}
           {filteredCentros.map(c => {
@@ -784,13 +811,6 @@ export default function App() {
             localStorage.setItem("map_welcome_seen", "1");
             setShowWelcomeModal(false);
           }}
-          onRegisterHub={() => {
-            localStorage.setItem("map_welcome_seen", "1");
-            setShowWelcomeModal(false);
-            setClickedCoordinates(null);
-            setIsRegistering(true);
-            setSelectedId(null);
-          }}
         />
       )}
 
@@ -798,11 +818,46 @@ export default function App() {
         <PublicHubModal
           onClose={() => {
             setIsRegistering(false);
-            setClickedCoordinates(null);
             setHubFieldErrors({});
             setHubFormError(null);
+            // Importante: NO limpiamos clickedCoordinates ni useCurrentLocation
+            // — el pin verde debe permanecer en el mapa para que el usuario
+            // pueda seguir ajustando la ubicación antes de reabrir el modal.
           }}
-          initialCoordinates={clickedCoordinates}
+          initialCoordinates={
+            useCurrentLocation && userLocation ? userLocation : clickedCoordinates
+          }
+          coordinatesSource={
+            useCurrentLocation && userLocation
+              ? "current-location"
+              : clickedCoordinates
+                ? "map-click"
+                : null
+          }
+          userLocation={userLocation}
+          hasPickedCoordinates={clickedCoordinates !== null}
+          onUseCurrentLocation={() => {
+            if (!userLocation) return;
+            setUseCurrentLocation(true);
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+              const latOffset = 180 / Math.pow(2, mapZoom);
+              setMapCenter([userLocation[0], userLocation[1] - latOffset]);
+            } else {
+              setMapCenter(userLocation);
+            }
+          }}
+          onUsePickedLocation={() => {
+            if (!clickedCoordinates) return;
+            setUseCurrentLocation(false);
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+              const latOffset = 180 / Math.pow(2, mapZoom);
+              setMapCenter([clickedCoordinates[0], clickedCoordinates[1] - latOffset]);
+            } else {
+              setMapCenter(clickedCoordinates);
+            }
+          }}
           isSubmitting={isSaving}
           fieldErrors={hubFieldErrors}
           formError={hubFormError}
@@ -850,6 +905,8 @@ export default function App() {
               if (listRes.ok) setCentros(await listRes.json());
 
               setIsRegistering(false);
+              setClickedCoordinates(null);
+              setUseCurrentLocation(false);
 
               if (user) {
                 navigate({ to: "/admin/hubs" });
@@ -882,7 +939,7 @@ export default function App() {
   );
 }
 
-function WelcomeModal({ onClose, onRegisterHub }: { onClose: () => void; onRegisterHub: () => void }) {
+function WelcomeModal({ onClose }: { onClose: () => void }) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -1024,20 +1081,13 @@ function WelcomeModal({ onClose, onRegisterHub }: { onClose: () => void; onRegis
         </div>
 
         {/* CTA */}
-        <div className="p-4 pt-0 flex flex-col gap-2">
+        <div className="p-4 pt-0">
           <button
-            onClick={onRegisterHub}
+            onClick={onClose}
             className="group w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wide transition-colors duration-200 active:scale-[0.98] transition-transform cursor-pointer shadow-lg shadow-blue-600/20"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: "italic" }}
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
-            Registrar mi centro de acopio
-          </button>
-          <button
-            onClick={onClose}
-            className="w-full py-2 rounded-xl bg-transparent hover:bg-secondary/60 text-muted-foreground hover:text-foreground font-semibold text-xs uppercase tracking-wider transition-colors duration-200 active:scale-[0.98] transition-transform cursor-pointer"
-          >
-            Quiero donar — ver centros
+            Explorar el mapa
           </button>
         </div>
       </div>
@@ -1055,11 +1105,16 @@ interface PublicHubModalProps {
   onSubmit: (data: HubRegistrationData) => Promise<void>;
   isSubmitting: boolean;
   initialCoordinates?: [number, number] | null;
+  coordinatesSource?: "current-location" | "map-click" | null;
+  userLocation?: [number, number] | null;
+  hasPickedCoordinates?: boolean;
+  onUseCurrentLocation?: () => void;
+  onUsePickedLocation?: () => void;
   fieldErrors?: Record<string, string | undefined>;
   formError?: string | null;
 }
 
-function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, fieldErrors = {}, formError }: PublicHubModalProps) {
+function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, coordinatesSource = null, userLocation = null, hasPickedCoordinates = false, onUseCurrentLocation, onUsePickedLocation, fieldErrors = {}, formError }: PublicHubModalProps) {
   const [nombre, setNombre] = useState("");
   const [direccion, setDireccion] = useState("");
   const [responsable, setResponsable] = useState("");
@@ -1068,14 +1123,21 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, f
   const [cedula, setCedula] = useState("");
   const [latitud, setLatitud] = useState(() => initialCoordinates ? initialCoordinates[1].toFixed(5) : "9.5832");
   const [longitud, setLongitud] = useState(() => initialCoordinates ? initialCoordinates[0].toFixed(5) : "-69.2216");
+  const [pendingData, setPendingData] = useState<HubRegistrationData | null>(null);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && !isSubmitting) onClose();
+      if (e.key === "Escape" && !isSubmitting) {
+        if (pendingData) {
+          setPendingData(null);
+        } else {
+          onClose();
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, isSubmitting]);
+  }, [onClose, isSubmitting, pendingData]);
 
   useEffect(() => {
     if (initialCoordinates) {
@@ -1091,7 +1153,7 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, f
     const lng = parseFloat(longitud);
     if (isNaN(lat) || isNaN(lng)) return;
     const cedulaTrim = cedula.trim();
-    onSubmit({
+    setPendingData({
       id: crypto.randomUUID(),
       nombre,
       direccion,
@@ -1103,6 +1165,12 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, f
       documentType: cedulaTrim ? documentType : undefined,
       cedula: cedulaTrim || undefined,
     } as HubRegistrationData);
+  };
+
+  const handleConfirm = () => {
+    if (pendingData) {
+      onSubmit(pendingData);
+    }
   };
 
   return (
@@ -1184,6 +1252,57 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, f
                 <span>{formError}</span>
               </div>
             )}
+
+            {/* Selector de origen de ubicación — toggle */}
+            <div className="space-y-2 p-3 rounded-xl bg-secondary/40 border border-border">
+              <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
+                Ubicación del centro
+              </span>
+
+              <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-background/60 border border-border">
+                <button
+                  type="button"
+                  disabled={!userLocation}
+                  onClick={() => onUseCurrentLocation?.()}
+                  aria-pressed={coordinatesSource === "current-location"}
+                  title={!userLocation ? "Aún no se obtuvo tu ubicación" : "Usar mi ubicación actual"}
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-[10px] font-semibold uppercase tracking-wide transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                    coordinatesSource === "current-location"
+                      ? "bg-[#4A89C0] text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <LocateFixed className="w-3 h-3" />
+                  Ubicación actual
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasPickedCoordinates}
+                  onClick={() => onUsePickedLocation?.()}
+                  aria-pressed={coordinatesSource === "map-click"}
+                  title={!hasPickedCoordinates ? "Aún no has seleccionado una ubicación" : "Usar ubicación seleccionada"}
+                  className={`flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-md text-[10px] font-semibold uppercase tracking-wide transition-all duration-150 active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${
+                    coordinatesSource === "map-click"
+                      ? "bg-emerald-500 text-white shadow-sm"
+                      : "text-muted-foreground hover:bg-secondary/60"
+                  }`}
+                >
+                  <MapPin className="w-3 h-3" />
+                  Ubicación seleccionada
+                </button>
+              </div>
+
+              {!hasPickedCoordinates ? (
+                <p className="flex items-start gap-1.5 text-[10px] text-muted-foreground leading-relaxed">
+                  <MousePointerClick className="w-3 h-3 shrink-0 mt-0.5 text-muted-foreground/70" />
+                  <span>Haz click en cualquier punto del mapa para seleccionar una ubicación.</span>
+                </p>
+              ) : (
+                <p className="text-[10px] text-muted-foreground leading-relaxed">
+                  Arrastra el pin verde en el mapa para ajustar el punto exacto.
+                </p>
+              )}
+            </div>
 
             <div className="space-y-1.5">
               <label className="text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1312,6 +1431,40 @@ function PublicHubModal({ onClose, onSubmit, isSubmitting, initialCoordinates, f
           </form>
         </div>
       </div>
+
+      <ConfirmDialog
+        open={pendingData !== null}
+        title={
+          coordinatesSource === "current-location"
+            ? "¿Usar tu ubicación actual?"
+            : coordinatesSource === "map-click"
+              ? "Ubicación establecida"
+              : "Confirmar registro"
+        }
+        description={
+          coordinatesSource === "current-location" ? (
+            <>
+              Se usará <strong className="text-[#C8DCF0] font-bold">tu ubicación actual</strong> para
+              registrar el punto de acopio. ¿Estás seguro?
+            </>
+          ) : coordinatesSource === "map-click" ? (
+            <>
+              Vamos a registrar el centro en la ubicación que marcaste en el mapa. ¿Confirmas que
+              este es el punto correcto?
+            </>
+          ) : (
+            <>¿Confirmas que los datos están correctos para registrar el centro?</>
+          )
+        }
+        confirmLabel="Sí, registrar"
+        cancelLabel="Revisar"
+        tone="default"
+        isPending={isSubmitting}
+        onConfirm={handleConfirm}
+        onCancel={() => {
+          if (!isSubmitting) setPendingData(null);
+        }}
+      />
     </>
   );
 }

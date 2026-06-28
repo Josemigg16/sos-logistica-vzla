@@ -181,4 +181,29 @@ html, body, #root {
   }
 }
 
+/* CTA "Registrar" del mapa: llama la atención con un pulso de luz
+   y un wiggle sutil cada ~5s. Pausa al hover/focus para no molestar. */
+@keyframes register-cta-pulse {
+  0%, 100% { box-shadow: 0 4px 14px rgba(37, 99, 235, 0.45), 0 0 0 0 rgba(37, 99, 235, 0.6); }
+  50% { box-shadow: 0 4px 18px rgba(37, 99, 235, 0.6), 0 0 0 10px rgba(37, 99, 235, 0); }
+}
+@keyframes register-cta-wiggle {
+  0%, 92%, 100% { transform: rotate(0deg); }
+  93% { transform: rotate(-3deg); }
+  95% { transform: rotate(3deg); }
+  97% { transform: rotate(-2deg); }
+  99% { transform: rotate(2deg); }
+}
+.register-cta {
+  animation: register-cta-pulse 2.4s ease-in-out infinite,
+             register-cta-wiggle 5s ease-in-out infinite;
+  transform-origin: center;
+}
+.register-cta:hover,
+.register-cta:focus-visible {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .register-cta { animation: none; }
+}
 

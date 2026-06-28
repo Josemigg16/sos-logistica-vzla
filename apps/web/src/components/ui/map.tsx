@@ -327,6 +327,91 @@ export function MapMarker({
   return null;
 }
 
+interface MapPickedLocationMarkerProps {
+  coordinates: [number, number];
+  draggable?: boolean;
+  onDragEnd?: (lngLat: [number, number]) => void;
+}
+
+export function MapPickedLocationMarker({ coordinates, draggable = false, onDragEnd }: MapPickedLocationMarkerProps) {
+  const { map } = useContext(MapContext);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const onDragEndRef = useRef(onDragEnd);
+
+  useEffect(() => {
+    onDragEndRef.current = onDragEnd;
+  }, [onDragEnd]);
+
+  useEffect(() => {
+    if (!map || !isValidLngLat(coordinates[0], coordinates[1])) return;
+
+    const el = document.createElement("div");
+    el.className = "relative flex items-end justify-center picked-location-marker";
+    el.style.width = "40px";
+    el.style.height = "52px";
+    el.style.pointerEvents = draggable ? "auto" : "none";
+    el.style.cursor = draggable ? "grab" : "default";
+    el.style.transformOrigin = "50% 100%";
+    el.style.transition = "transform 0.18s ease";
+    // Pin tradicional: cabeza redonda + cola apuntando al punto. Anchor inferior.
+    el.innerHTML = `
+      <svg width="40" height="52" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
+        <path d="M18 47C18 47 33 30.5 33 17.5C33 9.21573 26.2843 2.5 18 2.5C9.71573 2.5 3 9.21573 3 17.5C3 30.5 18 47 18 47Z" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"/>
+        <circle cx="18" cy="17.5" r="6" fill="#ffffff"/>
+        <circle cx="18" cy="17.5" r="3" fill="#16a34a"/>
+      </svg>
+    `;
+
+    if (draggable) {
+      el.addEventListener("mouseenter", () => {
+        el.style.transform = "scale(1.08)";
+      });
+      el.addEventListener("mouseleave", () => {
+        el.style.transform = "scale(1)";
+      });
+    }
+
+    const marker = new maplibregl.Marker({ element: el, anchor: "bottom", draggable })
+      .setLngLat(coordinates)
+      .addTo(map);
+
+    if (draggable) {
+      marker.on("dragstart", () => {
+        el.style.cursor = "grabbing";
+        el.style.transform = "scale(1.15)";
+      });
+      marker.on("dragend", () => {
+        el.style.cursor = "grab";
+        el.style.transform = "scale(1)";
+        const lngLat = marker.getLngLat();
+        onDragEndRef.current?.([lngLat.lng, lngLat.lat]);
+      });
+    }
+
+    markerRef.current = marker;
+
+    return () => {
+      try {
+        marker.remove();
+      } catch (err) {
+        console.warn("Error removing picked-location marker:", err);
+      }
+      markerRef.current = null;
+    };
+  }, [map, draggable]);
+
+  useEffect(() => {
+    if (markerRef.current && isValidLngLat(coordinates[0], coordinates[1])) {
+      const currentLngLat = markerRef.current.getLngLat();
+      if (currentLngLat.lng !== coordinates[0] || currentLngLat.lat !== coordinates[1]) {
+        markerRef.current.setLngLat(coordinates);
+      }
+    }
+  }, [coordinates]);
+
+  return null;
+}
+
 interface MapUserLocationMarkerProps {
   coordinates: [number, number];
 }
