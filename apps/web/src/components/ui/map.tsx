@@ -12,13 +12,19 @@ interface MapProps {
   className?: string;
   onClick?: (lngLat: [number, number]) => void;
   onMoveEnd?: (center: [number, number], zoom: number) => void;
+  /**
+   * Padding (px) que MapLibre aplica al `flyTo` interno. Útil para compensar
+   * elementos flotantes sobre el mapa (bottom-sheet, paneles laterales) y
+   * mantener el punto centrado en el área visible real.
+   */
+  centerPadding?: { top?: number; bottom?: number; left?: number; right?: number };
 }
 
 const isValidLngLat = (lng: number, lat: number) => {
   return typeof lng === "number" && typeof lat === "number" && !isNaN(lng) && !isNaN(lat) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
 };
 
-export function Map({ center, zoom, theme = "dark", children, className, onClick, onMoveEnd }: MapProps) {
+export function Map({ center, zoom, theme = "dark", children, className, onClick, onMoveEnd, centerPadding }: MapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [map, setMap] = useState<maplibregl.Map | null>(null);
 
@@ -61,17 +67,37 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
     map.setStyle(styleUrl);
   }, [theme, map]);
 
-  // Sincronizar centro cuando cambie de forma externa
+  // Sincronizar centro y zoom cuando cambien de forma externa
   const lastCenter = useRef<[number, number]>(center);
+  const lastZoom = useRef<number>(zoom);
+  const paddingRef = useRef(centerPadding);
+  // Flag para distinguir flyTo programático del movimiento manual del usuario.
+  // Cuando hacemos un flyTo, el `moveend` resultante reportaría el centro
+  // del viewport (corrido por el `padding`), no las coords que pedimos —
+  // suprimimos esa notificación para no contaminar el state externo.
+  const isProgrammaticMove = useRef(false);
+  useEffect(() => {
+    paddingRef.current = centerPadding;
+  }, [centerPadding]);
   useEffect(() => {
     if (!map) return;
-    if (lastCenter.current[0] !== center[0] || lastCenter.current[1] !== center[1]) {
-      if (isValidLngLat(center[0], center[1])) {
-        map.flyTo({ center, duration: 1000 });
-        lastCenter.current = center;
-      }
-    }
-  }, [center, map]);
+    const centerChanged = lastCenter.current[0] !== center[0] || lastCenter.current[1] !== center[1];
+    const zoomChanged = lastZoom.current !== zoom;
+    if (!centerChanged && !zoomChanged) return;
+    if (!isValidLngLat(center[0], center[1])) return;
+    const padding = paddingRef.current;
+    isProgrammaticMove.current = true;
+    map.flyTo({
+      center,
+      zoom,
+      duration: 1000,
+      padding: padding
+        ? { top: padding.top ?? 0, bottom: padding.bottom ?? 0, left: padding.left ?? 0, right: padding.right ?? 0 }
+        : { top: 0, bottom: 0, left: 0, right: 0 },
+    });
+    lastCenter.current = center;
+    lastZoom.current = zoom;
+  }, [center, zoom, map]);
 
   // Escuchar clics en el mapa
   const onClickRef = useRef(onClick);
@@ -120,10 +146,21 @@ export function Map({ center, zoom, theme = "dark", children, className, onClick
   useEffect(() => {
     if (!map || !onMoveEnd) return;
     const handleMoveEnd = () => {
+      // Si el move lo disparamos nosotros vía flyTo, no notificar al padre:
+      // el padding distorsiona `map.getCenter()` y guardar ese valor
+      // contaminaría el próximo flyTo. Las refs ya están sincronizadas con
+      // las coords originales en el effect del flyTo.
+      if (isProgrammaticMove.current) {
+        isProgrammaticMove.current = false;
+        return;
+      }
       const c = map.getCenter();
       const z = map.getZoom();
       const newCenter: [number, number] = [c.lng, c.lat];
-      lastCenter.current = newCenter; // Sincronizar lastCenter para evitar bucles o saltos de flyTo
+      // Sincronizar refs para evitar bucles o saltos de flyTo cuando el
+      // usuario mueve/zoomea manualmente.
+      lastCenter.current = newCenter;
+      lastZoom.current = z;
       onMoveEndRef.current?.(newCenter, z);
     };
     map.on("moveend", handleMoveEnd);

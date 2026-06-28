@@ -365,9 +365,18 @@ export default function App() {
           </button>
           <button
             onClick={() => {
-              setUseCurrentLocation(clickedCoordinates ? false : userLocation !== null);
+              const willUseCurrent = clickedCoordinates ? false : userLocation !== null;
+              setUseCurrentLocation(willUseCurrent);
               setIsRegistering(true);
               setSelectedId(null);
+              // Zoom hacia el pin activo. El `centerPadding` del Map se
+              // encarga de centrar el pin en el área visible (compensando el
+              // bottom-sheet en mobile o el panel lateral en desktop).
+              const target = willUseCurrent ? userLocation : clickedCoordinates;
+              if (target) {
+                setMapCenter(target);
+                setMapZoom(15);
+              }
             }}
             className="register-cta relative flex items-center justify-center gap-1 md:gap-1.5 h-8 md:h-9 px-2.5 md:px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-black text-[11px] md:text-[13px] uppercase tracking-wide active:scale-[0.96] transition-[transform,background-color] duration-200 cursor-pointer shadow-lg shadow-blue-600/40 shrink-0"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic' }}
@@ -385,11 +394,22 @@ export default function App() {
 
       {/* MAPA PRINCIPAL */}
       <main className="w-full h-full z-10 relative">
-        <Map 
-          center={mapCenter} 
-          zoom={mapZoom} 
-          theme={theme} 
+        <Map
+          center={mapCenter}
+          zoom={mapZoom}
+          theme={theme}
           className="w-full h-full"
+          centerPadding={
+            isRegistering && typeof window !== "undefined"
+              ? window.innerWidth < 768
+                // Mobile: bottom-sheet ocupa ~70% del alto. Padding inferior
+                // empuja el centro visual hacia arriba para que el pin caiga
+                // en el medio del área visible.
+                ? { bottom: Math.round(window.innerHeight * 0.6) }
+                // Desktop: panel lateral derecho de 420px + margen.
+                : { right: 460 }
+              : undefined
+          }
           onClick={handleMapClick}
           onMoveEnd={(center, zoom) => {
             setMapCenter(center);
@@ -841,24 +861,16 @@ export default function App() {
           onUseCurrentLocation={() => {
             if (!userLocation) return;
             setUseCurrentLocation(true);
-            const isMobile = window.innerWidth < 768;
-            if (isMobile) {
-              const latOffset = 180 / Math.pow(2, mapZoom);
-              setMapCenter([userLocation[0], userLocation[1] - latOffset]);
-            } else {
-              setMapCenter(userLocation);
-            }
+            // El centerPadding del <Map> compensa el bottom-sheet/panel,
+            // así que mandamos las coords reales sin offset artificial.
+            setMapCenter(userLocation);
+            setMapZoom(15);
           }}
           onUsePickedLocation={() => {
             if (!clickedCoordinates) return;
             setUseCurrentLocation(false);
-            const isMobile = window.innerWidth < 768;
-            if (isMobile) {
-              const latOffset = 180 / Math.pow(2, mapZoom);
-              setMapCenter([clickedCoordinates[0], clickedCoordinates[1] - latOffset]);
-            } else {
-              setMapCenter(clickedCoordinates);
-            }
+            setMapCenter(clickedCoordinates);
+            setMapZoom(15);
           }}
           isSubmitting={isSaving}
           fieldErrors={hubFieldErrors}
