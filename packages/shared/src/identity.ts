@@ -54,7 +54,7 @@ const telefonoSchema = z.preprocess((val) => {
 }, z.string().trim().regex(/^\+?[0-9]{7,15}$/, "Debe ser un número de teléfono válido"));
 
 export const loginSchema = z.object({
-  telefono: telefonoSchema,
+  telefono: z.union([z.literal("admin"), telefonoSchema]),
   password: z.string().min(4, "La contraseña debe tener al menos 4 caracteres").max(128, "La contraseña no puede superar los 128 caracteres"),
 });
 export type LoginRequest = z.infer<typeof loginSchema>;

@@ -100,7 +100,6 @@ export default function App() {
   const [activeTipos, setActiveTipos] = useState<Set<Centro["tipo"]>>(
     () => new Set(["acopio", "salida", "destino"]),
   );
-  const [isDetailsExpanded, setIsDetailsExpanded] = useState(false);
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -109,6 +108,7 @@ export default function App() {
   // Nombre del centro recién registrado en el flujo público. Cuando está seteado,
   // se muestra la pantalla de verificación pendiente (llamar a soporte).
   const [pendingVerificationHubName, setPendingVerificationHubName] = useState<string | null>(null);
+  const [pendingCredentials, setPendingCredentials] = useState<GeneratedCredentials | null>(null);
   const [generatedCredentials, setGeneratedCredentials] = useState<GeneratedCredentials | null>(null);
   const [activeConvoys, setActiveConvoys] = useState<PublicConvoy[]>([]);
   const [showWelcomeModal, setShowWelcomeModal] = useState(() => {
@@ -282,7 +282,6 @@ export default function App() {
     setSelectedId(centro.id);
     setMapCenter(centro.coordenadas);
     setMapZoom(11);
-    setIsDetailsExpanded(true); // Mostrar panel expandido al seleccionar
   };
 
 
@@ -550,35 +549,12 @@ export default function App() {
       <div
         className={`absolute left-0 right-0 bottom-0 z-40 bg-card/95 border-t border-border shadow-2xl backdrop-blur-lg rounded-t-3xl transition-all duration-500 ease-out md:left-6 md:bottom-6 md:top-auto md:w-96 md:rounded-2xl md:border ${
           selectedCentro
-            ? isDetailsExpanded
-              ? "h-[75vh] md:h-auto md:max-h-[75vh]"
-              : "h-24"
+            ? "h-[75vh] md:h-auto md:max-h-[75vh]"
             : "translate-y-full h-0 pointer-events-none"
         }`}
       >
         {selectedCentro && (
           <div className="flex flex-col h-full p-4 md:p-5">
-            {/* Header del Bottom Sheet / Control de arrastre para mobile */}
-            <div 
-              className="flex flex-col items-center gap-1.5 cursor-pointer pb-2 md:hidden"
-              onClick={() => setIsDetailsExpanded(!isDetailsExpanded)}
-            >
-              <div className="w-10 h-1 bg-muted rounded-full"></div>
-              <div className="flex items-center gap-1 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
-                {isDetailsExpanded ? (
-                  <>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                    Contraer detalles
-                  </>
-                ) : (
-                  <>
-                    <ChevronUp className="w-3.5 h-3.5" />
-                    Expandir detalles
-                  </>
-                )}
-              </div>
-            </div>
-
             {/* Cabecera del Centro */}
             <div className="flex items-start justify-between">
               <div>
@@ -608,14 +584,14 @@ export default function App() {
               </div>
               <button
                 onClick={() => setSelectedId(null)}
-                className="hidden md:flex items-center justify-center w-6 h-6 rounded-full bg-secondary hover:bg-secondary/80 text-muted-foreground hover:text-foreground transition-colors duration-200 active:scale-[0.96] transition-transform cursor-pointer"
+                className="w-7 h-7 rounded-full bg-secondary/80 hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors duration-150 cursor-pointer shrink-0 active:scale-[0.92]"
               >
-                &times;
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            {/* Contenido Expandible (Inventario y contactos) */}
-            <div className={`flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar pb-12 ${isDetailsExpanded ? "block" : "hidden md:block"}`}>
+            {/* Contenido (contacto, necesidades, verificación) */}
+            <div className="flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar pb-12 block">
               
               {/* Información de Contacto */}
               <div className="grid grid-cols-2 gap-2 p-3 rounded-lg bg-background/50 border border-border/80 mb-4">
@@ -815,19 +791,16 @@ export default function App() {
               setIsRegistering(false);
 
               if (user) {
-                // Ya tiene sesión — el hub quedó asociado a su cuenta, ir al portal.
                 navigate({ to: "/admin" });
               } else {
                 try {
                   const result = await signupHub(data.contacto);
                   loginWithToken(result.accessToken, result.user);
-                  setGeneratedCredentials({
-                    telefono: data.contacto,
-                    password: result.generatedPassword,
-                  });
+                  setPendingCredentials({ telefono: data.contacto, password: result.generatedPassword });
                 } catch {
-                  setPendingVerificationHubName(data.nombre);
+                  // ignored
                 }
+                setPendingVerificationHubName(data.nombre);
               }
             } catch (err) {
               console.error(err);
@@ -842,7 +815,13 @@ export default function App() {
       {pendingVerificationHubName && (
         <PostRegisterVerificationOverlay
           hubName={pendingVerificationHubName}
-          onClose={() => setPendingVerificationHubName(null)}
+          onClose={() => {
+            setPendingVerificationHubName(null);
+            if (pendingCredentials) {
+              setGeneratedCredentials(pendingCredentials);
+              setPendingCredentials(null);
+            }
+          }}
         />
       )}
 
