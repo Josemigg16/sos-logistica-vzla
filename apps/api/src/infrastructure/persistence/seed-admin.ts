@@ -62,6 +62,31 @@ try {
   process.exit(1);
 }
 
+// 2.2 Sembrar el segundo incidente (Lluvias en Unda)
+const SECOND_INCIDENT_ID = "00000000-0000-0000-0000-000000000002";
+
+try {
+  await db
+    .insert(incidents)
+    .values({
+      id: SECOND_INCIDENT_ID,
+      title: "Lluvias y Desbordamientos - Municipio Unda (Chabasquén)",
+      description: "Inundaciones y afectaciones por lluvias torrenciales en el Municipio Unda, afectando vialidad y viviendas.",
+      type: "Lluvias",
+      priority: "HIGH",
+      status: "ACTIVE",
+      zone: "Municipio Unda, Chabasquén",
+      latitude: 9.4312,
+      longitude: -69.9520,
+    })
+    .onConflictDoNothing();
+  console.log(`✅ Segundo incidente (lluvias) sembrado con ID: ${SECOND_INCIDENT_ID}`);
+} catch (error) {
+  console.error("❌ Falló el seed del segundo incidente:", error);
+  process.exit(1);
+}
+
+
 // 3. Sembrar catálogo de productos
 try {
   console.log(`⏳ Sembrando ${PRODUCT_MASTER.length} productos en la base de datos...`);

@@ -632,3 +632,71 @@ export function MapRoute({ coordinates, color = "#10b981" }: MapRouteProps) {
   return null;
 }
 
+interface MapDisasterZoneProps {
+  coordinates: [number, number];
+  color?: string;
+  label: string;
+  radiusPx?: number;
+}
+
+export function MapDisasterZone({
+  coordinates,
+  color = "#ef4444",
+  label,
+  radiusPx = 80,
+}: MapDisasterZoneProps) {
+  const { map } = useContext(MapContext);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+
+  useEffect(() => {
+    if (!map || !isValidLngLat(coordinates[0], coordinates[1])) return;
+
+    const el = document.createElement("div");
+    el.className = "relative flex items-center justify-center pointer-events-none";
+    el.style.width = `${radiusPx}px`;
+    el.style.height = `${radiusPx}px`;
+
+    // Área translúcida pulsante
+    const area = document.createElement("div");
+    area.className = "absolute rounded-full opacity-20 animate-pulse";
+    area.style.width = "100%";
+    area.style.height = "100%";
+    area.style.backgroundColor = color;
+    area.style.border = `2px dashed ${color}`;
+    el.appendChild(area);
+
+    // Núcleo brillante
+    const core = document.createElement("div");
+    core.className = "absolute rounded-full w-3.5 h-3.5 shadow-lg";
+    core.style.backgroundColor = color;
+    core.style.boxShadow = `0 0 16px ${color}`;
+    el.appendChild(core);
+
+    // Etiqueta de texto
+    const text = document.createElement("div");
+    text.className = "absolute top-full mt-2 px-2 py-1 rounded bg-black/85 border border-white/10 text-white text-[9px] font-black tracking-wider uppercase text-center whitespace-nowrap shadow-md select-none pointer-events-auto cursor-pointer";
+    text.style.fontFamily = "'Barlow Condensed', sans-serif";
+    text.style.fontStyle = "italic";
+    text.innerText = label;
+    el.appendChild(text);
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat(coordinates)
+      .addTo(map);
+
+    markerRef.current = marker;
+
+    return () => {
+      try {
+        marker.remove();
+      } catch (err) {
+        console.warn("Error removing disaster zone marker:", err);
+      }
+      markerRef.current = null;
+    };
+  }, [map, color, label, radiusPx]);
+
+  return null;
+}
+
+

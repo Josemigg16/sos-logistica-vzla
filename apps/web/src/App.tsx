@@ -30,8 +30,25 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import type { HubNeed, HubNeedType, PublicConvoy } from "@sos/shared";
-import { Map, MapControls, MapMarker, MapPickedLocationMarker, MapRoute, MapUserLocationMarker } from "@/components/ui/map";
+import { Map, MapControls, MapMarker, MapPickedLocationMarker, MapRoute, MapUserLocationMarker, MapDisasterZone } from "@/components/ui/map";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+
+const DISASTER_ZONES = [
+  {
+    id: "dz-1",
+    label: "Terremoto (La Guaira / Caracas)",
+    coordenadas: [-66.9312, 10.6012] as [number, number],
+    color: "#ef4444", // Rojo para desastre mayor (Terremoto)
+    radiusPx: 140,
+  },
+  {
+    id: "dz-2",
+    label: "Lluvias (Munc. Unda - Chabasquén)",
+    coordenadas: [-69.9520, 9.4312] as [number, number],
+    color: "#0ea5e9", // Celeste / Azul claro para lluvias
+    radiusPx: 65,
+  }
+];
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
@@ -597,6 +614,15 @@ export default function App() {
               />
             );
           })}
+          {DISASTER_ZONES.map((zone) => (
+            <MapDisasterZone
+              key={zone.id}
+              coordinates={zone.coordenadas}
+              color={zone.color}
+              label={zone.label}
+              radiusPx={zone.radiusPx}
+            />
+          ))}
         </Map>
 
         {/* BOTONES FLOTANTES: NECESIDADES Y FILTROS */}
