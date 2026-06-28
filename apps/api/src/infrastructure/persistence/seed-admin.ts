@@ -27,7 +27,7 @@ const registerUser = new RegisterUser(
 
 // 1. Sembrar el administrador
 try {
-  const user = await registerUser.execute({ username, password, role: "ADMIN" });
+  const user = await registerUser.execute({ telefono: username, password, role: "ADMIN" } as any);
   console.log(`✅ Admin creado: ${user.username} (${user.id})`);
 } catch (error) {
   if (error instanceof UsernameTakenError) {
