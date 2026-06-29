@@ -355,6 +355,15 @@ export default function App() {
     return visibleIncidents.find((incident) => incident.id === selectedIncidentId) || null;
   }, [selectedIncidentId, visibleIncidents]);
 
+  const generalNeedsIncident = useMemo(() => {
+    return (
+      visibleIncidents.find((incident) => {
+        const text = `${incident.title} ${incident.type}`.toLowerCase();
+        return text.includes("terremoto");
+      }) ?? visibleIncidents[0] ?? null
+    );
+  }, [visibleIncidents]);
+
   // Obtener las necesidades del centro seleccionado
   const centroNeeds = useMemo(() => {
     if (!selectedCentro) return [];
@@ -428,27 +437,39 @@ export default function App() {
 
   // Agrupar necesidades por centro
   const groupedNeedsByCentro = useMemo(() => {
-    const groups: Record<string, { centro: Centro; needs: Necesidad[]; maxPriority: string; distance?: number }> = {};
+    const groups: Record<string, { centro: Centro; needs: Necesidad[]; maxPriority: string; distance?: number; incident?: PublicIncident; isGeneralEmergency?: boolean }> = {};
     
     for (const n of sortedNeeds) {
-      const hubId = n.hubId || "unknown";
+      const isGeneralEmergency = !n.hubId;
+      const hubId = n.hubId || "general-emergency";
       if (!groups[hubId]) {
-        const centro: Centro = centros.find(c => c.id === hubId) || {
+        const existingCentro = centros.find(c => c.id === hubId);
+        const centro: Centro = existingCentro || {
           id: hubId,
-          nombre: "Centro Desconocido",
-          direccion: "",
+          nombre: isGeneralEmergency
+            ? generalNeedsIncident
+              ? `Emergencia: ${generalNeedsIncident.title}`
+              : "Necesidades generales de emergencia"
+            : "Centro Desconocido",
+          direccion: isGeneralEmergency
+            ? generalNeedsIncident?.zone ?? "Necesidades no asociadas a un centro específico"
+            : "Dirección no disponible",
           contacto: "",
           responsable: "",
-          coordenadas: [0, 0] as [number, number],
+          coordenadas: isGeneralEmergency && generalNeedsIncident
+            ? [generalNeedsIncident.longitude, generalNeedsIncident.latitude] as [number, number]
+            : [0, 0] as [number, number],
           tipo: "acopio" as const,
           inventario: {},
         };
-        const distance = userLocation ? getKmDistance(userLocation, centro.coordenadas) : undefined;
+        const distance = userLocation && existingCentro ? getKmDistance(userLocation, existingCentro.coordenadas) : undefined;
         groups[hubId] = {
           centro,
           needs: [],
           maxPriority: n.prioridad,
           distance,
+          incident: isGeneralEmergency ? generalNeedsIncident ?? undefined : undefined,
+          isGeneralEmergency,
         };
       }
       groups[hubId].needs.push(n);
@@ -470,7 +491,7 @@ export default function App() {
       const pB = priorityOrder[b.maxPriority as keyof typeof priorityOrder] ?? 99;
       return pA - pB;
     });
-  }, [sortedNeeds, centros, userLocation]);
+  }, [sortedNeeds, centros, userLocation, generalNeedsIncident]);
 
   const hasCenteredOnUserRef = useRef(false);
 
@@ -1282,15 +1303,30 @@ export default function App() {
                             a {group.distance.toFixed(1)} km
                           </span>
                         )}
-                        <button
-                          onClick={() => {
-                            handleSelectCentro(group.centro);
-                            setShowNeedsPanel(false);
-                          }}
-                          className="ml-auto text-[9px] font-bold text-blue-400 hover:text-blue-300 cursor-pointer transition-colors shrink-0 flex items-center gap-1"
-                        >
-                          Ver en mapa
-                        </button>
+                        {group.isGeneralEmergency && group.incident ? (
+                          <button
+                            onClick={() => {
+                              setSelectedIncidentId(group.incident!.id);
+                              setSelectedId(null);
+                              setMapCenter([group.incident!.longitude, group.incident!.latitude]);
+                              setMapZoom((z) => Math.max(z, 12));
+                              setShowNeedsPanel(false);
+                            }}
+                            className="ml-auto text-[9px] font-bold text-red-400 hover:text-red-300 cursor-pointer transition-colors shrink-0 flex items-center gap-1"
+                          >
+                            Ver emergencia
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              handleSelectCentro(group.centro);
+                              setShowNeedsPanel(false);
+                            }}
+                            className="ml-auto text-[9px] font-bold text-blue-400 hover:text-blue-300 cursor-pointer transition-colors shrink-0 flex items-center gap-1"
+                          >
+                            Ver en mapa
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
