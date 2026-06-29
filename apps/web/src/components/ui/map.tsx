@@ -741,9 +741,10 @@ export function MapIncidentMarker({
     const radiusPx = contained ? 64 : 110;
 
     const el = document.createElement("div");
-    el.className = "relative flex items-center justify-center";
+    el.className = "relative flex items-center justify-center cursor-pointer";
     el.style.width = `${radiusPx}px`;
     el.style.height = `${radiusPx}px`;
+    el.title = title;
 
     // Halo rojo translúcido pulsante
     const area = document.createElement("div");
@@ -774,8 +775,7 @@ export function MapIncidentMarker({
       e.stopPropagation();
       onClickRef.current?.();
     };
-    core.addEventListener("click", handleClick);
-    text.addEventListener("click", handleClick);
+    el.addEventListener("click", handleClick);
 
     const marker = new maplibregl.Marker({ element: el })
       .setLngLat(coordinates)
@@ -784,8 +784,7 @@ export function MapIncidentMarker({
     markerRef.current = marker;
 
     return () => {
-      core.removeEventListener("click", handleClick);
-      text.removeEventListener("click", handleClick);
+      el.removeEventListener("click", handleClick);
       try {
         marker.remove();
       } catch (err) {
@@ -798,5 +797,4 @@ export function MapIncidentMarker({
 
   return null;
 }
-
 
