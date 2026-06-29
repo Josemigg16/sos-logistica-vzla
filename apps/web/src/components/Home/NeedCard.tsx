@@ -1,4 +1,5 @@
 import { CalendarClock, Package, Building2 } from 'lucide-react';
+import { Link } from '@tanstack/react-router';
 import { PRIORIDAD_CONFIG, CATEGORIA_ICON } from '@/lib/home/homeConstants';
 import { getPct, urgencyLabel, fmt } from '@/lib/home/homeHelpers';
 import { ProgressBar } from './ProgressBar';
@@ -86,7 +87,7 @@ export function NeedCard({ nec, index }: NeedCardProps) {
 
       hubsRender.push({
         hubId: 'centros-acopio-group',
-        hubName: `Centros de Acopio generales (${centrosAcopioGeneral.length} ubicaciones)`,
+        hubName: `Centros de Acopio locales (${centrosAcopioGeneral.length} ubicaciones)`,
         meta: sumMeta,
         recibido: sumRecibido,
         prioridad: maxPrioridad,
@@ -228,17 +229,26 @@ export function NeedCard({ nec, index }: NeedCardProps) {
               const hubIsCovered = hubPct >= 100;
               const hubCfg = PRIORIDAD_CONFIG[hub.prioridad];
               
+              const handleHubClick = () => {
+                localStorage.setItem('map_intro_force', '1');
+                if (!hub.isGroup) {
+                  localStorage.setItem('map_selected_hub_id', hub.hubId);
+                }
+              };
+              
               return (
-                <div 
+                <Link 
                   key={hub.hubId} 
-                  className={`flex flex-col gap-1.5 p-2.5 rounded-lg border transition-colors duration-200 ${
+                  to="/map"
+                  onClick={handleHubClick}
+                  className={`flex flex-col gap-1.5 p-2.5 rounded-lg border transition-all duration-200 active:scale-[0.98] ${
                     hub.isGroup
                       ? nec.prioridad === 'CRITICA'
-                        ? 'bg-white/20 border-white/30 hover:bg-white/25 shadow-sm'
-                        : 'bg-[#2B5F8E]/40 border-[#4A89C0]/30 hover:bg-[#2B5F8E]/55'
+                        ? 'bg-white/20 border-white/30 hover:bg-white/25 hover:border-white/50 shadow-sm'
+                        : 'bg-[#2B5F8E]/40 border-[#2B5F8E]/30 hover:bg-[#2B5F8E]/55 hover:border-[#2B5F8E]/50'
                       : nec.prioridad === 'CRITICA' 
-                        ? 'bg-white/10 border-white/15 hover:bg-white/15' 
-                        : 'bg-[#152D46]/60 border-[#2B5F8E]/20 hover:bg-[#152D46]/80'
+                        ? 'bg-white/10 border-white/15 hover:bg-white/15 hover:border-white/30' 
+                        : 'bg-[#152D46]/60 border-[#2B5F8E]/20 hover:bg-[#152D46]/80 hover:border-[#2B5F8E]/40'
                   }`}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -281,7 +291,7 @@ export function NeedCard({ nec, index }: NeedCardProps) {
                       Nota: Podes entregar en cualquier centro de acopio local o directamente en el punto de salida para su despacho final.
                     </span>
                   )}
-                </div>
+                </Link>
               );
             })}
           </div>

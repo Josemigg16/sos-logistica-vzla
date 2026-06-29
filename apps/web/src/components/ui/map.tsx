@@ -388,23 +388,28 @@ export function MapPickedLocationMarker({ coordinates, draggable = false, onDrag
     el.style.height = "52px";
     el.style.pointerEvents = draggable ? "auto" : "none";
     el.style.cursor = draggable ? "grab" : "default";
-    el.style.transformOrigin = "50% 100%";
-    el.style.transition = "transform 0.18s ease";
+
+    // Contenedor interno para animaciones (escala) sin alterar el transform de posicionamiento de MapLibre en el elemento raíz
+    const iconContainer = document.createElement("div");
+    iconContainer.className = "w-full h-full flex items-end justify-center transition-transform duration-200 ease-out";
+    iconContainer.style.transformOrigin = "50% 100%";
+
     // Pin tradicional: cabeza redonda + cola apuntando al punto. Anchor inferior.
-    el.innerHTML = `
+    iconContainer.innerHTML = `
       <svg width="40" height="52" viewBox="0 0 36 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.35));">
         <path d="M18 47C18 47 33 30.5 33 17.5C33 9.21573 26.2843 2.5 18 2.5C9.71573 2.5 3 9.21573 3 17.5C3 30.5 18 47 18 47Z" fill="#16a34a" stroke="#ffffff" stroke-width="2.5"/>
         <circle cx="18" cy="17.5" r="6" fill="#ffffff"/>
         <circle cx="18" cy="17.5" r="3" fill="#16a34a"/>
       </svg>
     `;
+    el.appendChild(iconContainer);
 
     if (draggable) {
       el.addEventListener("mouseenter", () => {
-        el.style.transform = "scale(1.08)";
+        iconContainer.style.transform = "scale(1.08)";
       });
       el.addEventListener("mouseleave", () => {
-        el.style.transform = "scale(1)";
+        iconContainer.style.transform = "scale(1)";
       });
     }
 
@@ -415,11 +420,11 @@ export function MapPickedLocationMarker({ coordinates, draggable = false, onDrag
     if (draggable) {
       marker.on("dragstart", () => {
         el.style.cursor = "grabbing";
-        el.style.transform = "scale(1.15)";
+        iconContainer.style.transform = "scale(1.15)";
       });
       marker.on("dragend", () => {
         el.style.cursor = "grab";
-        el.style.transform = "scale(1)";
+        iconContainer.style.transform = "scale(1)";
         const lngLat = marker.getLngLat();
         onDragEndRef.current?.([lngLat.lng, lngLat.lat]);
       });

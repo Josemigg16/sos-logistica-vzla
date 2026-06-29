@@ -144,6 +144,25 @@ export function UseMapViewer() {
   }, []);
 
   useEffect(() => {
+    if (centros.length > 0) {
+      const pendingHubId = localStorage.getItem('map_selected_hub_id');
+      if (pendingHubId) {
+        const targetCentro = centros.find((c) => c.id === pendingHubId);
+        if (targetCentro) {
+          setSelectedId(pendingHubId);
+          setSelectedIncidentId(null);
+          setMapCenter(targetCentro.coordenadas);
+          setMapZoom(11);
+          setIsRegistering(false);
+          setClickedCoordinates(null);
+          setShowNeedsPanel(false);
+        }
+        localStorage.removeItem('map_selected_hub_id');
+      }
+    }
+  }, [centros]);
+
+  useEffect(() => {
     const loadActiveConvoys = () => {
       fetch(`${API_URL}/convoys?status=EN_RUTA`)
         .then((res) => {
