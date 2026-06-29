@@ -61,7 +61,7 @@ export function HomeHero({ isAuthenticated, hubCtaTo }: HomeHeroProps) {
           <Link
             to="/map"
             onClick={() => localStorage.setItem("map_intro_force", "1")}
-            className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden mb-3 border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
+            className="group relative flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl overflow-hidden mb-3 border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
           >
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-black/5 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
             <HandHeart className="relative w-6 h-6 text-[#0F2337] shrink-0" strokeWidth={2.2} />
@@ -78,7 +78,7 @@ export function HomeHero({ isAuthenticated, hubCtaTo }: HomeHeroProps) {
 
           <Link
             to={hubCtaTo}
-            className="group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
+            className="group relative flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl overflow-hidden border border-white/30 bg-white shadow-[0_8px_32px_rgba(255,255,255,0.15)] hover:bg-[#C8DCF0] hover:shadow-[0_12px_40px_rgba(255,255,255,0.25)] active:scale-[0.98] transition-[transform,box-shadow,background-color] duration-300"
           >
             <span className="pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent via-black/5 to-transparent -translate-x-full -translate-y-full group-hover:translate-x-full group-hover:translate-y-full transition-transform duration-1000 ease-out" />
             <Warehouse className="relative w-6 h-6 text-[#0F2337] shrink-0" strokeWidth={2.2} />
@@ -103,7 +103,7 @@ export function HomeHero({ isAuthenticated, hubCtaTo }: HomeHeroProps) {
             download="NORMAS DE EMBALAJE .pdf"
             target="_blank"
             rel="noopener noreferrer"
-            className="lg:hidden group relative flex items-center gap-4 p-5 rounded-2xl overflow-hidden
+            className="lg:hidden group relative flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl overflow-hidden
                        border border-[#2B5F8E]/30 bg-gradient-to-br from-[#152D46]/80 to-[#0F2337]/90
                        shadow-[0_4px_24px_rgba(15,35,55,0.5)]
                        hover:border-[#2B5F8E]/60 hover:shadow-[0_8px_32px_rgba(74,137,192,0.3)]

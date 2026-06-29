@@ -24,6 +24,7 @@ export interface Necesidad {
   ultimaActualizacion: string;
   fechaNecesidad: string;
   hubId?: string;
+  hubName?: string;
 }
 
 export interface GeneratedCredentials {

@@ -22,7 +22,7 @@ export function StatBadge({ value, label, highlight, to }: StatBadgeProps) {
       >
         {value}
       </span>
-      <span className="text-[10px] text-white/50 font-medium mt-1 whitespace-nowrap">{label}</span>
+      <span className="text-[10px] text-white/50 font-medium mt-1 text-center">{label}</span>
     </>
   );
 

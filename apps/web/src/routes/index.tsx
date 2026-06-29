@@ -14,13 +14,29 @@ import logotipo from '@/assets/branding/white-logotipo.webp';
 import centrosData from '@/data/centros.json';
 
 import { PRIORIDAD_CONFIG } from '@/lib/home/homeConstants';
-import { getPct, daysFromNow, fmt } from '@/lib/home/homeHelpers';
+import { getPct, daysFromNow, fmt, getEmergencyLocation } from '@/lib/home/homeHelpers';
 import { HomeHero } from '@/components/Home/HomeHero';
 import { ProgressBar } from '@/components/Home/ProgressBar';
 import { NeedCard } from '@/components/Home/NeedCard';
-import type { Necesidad } from '@/components/Home/NeedCard';
+import type { NecesidadAgrupada } from '@/components/Home/NeedCard';
 import { StatBadge } from '@/components/Home/StatBadge';
 import { RotatingMessage } from '@/components/Home/RotatingMessage';
+import { EmergencySelector } from '@/components/Home/EmergencySelector';
+
+interface NecesidadApi {
+  id: string;
+  nombre: string;
+  categoria: string;
+  unidad: string;
+  meta: number;
+  recibido: number;
+  prioridad: 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA';
+  descripcion: string;
+  ultimaActualizacion: string;
+  fechaNecesidad: string;
+  hubId?: string;
+  hubName?: string;
+}
 
 export const Route = createFileRoute('/')({
   component: NecesidadesPage,
@@ -32,6 +48,7 @@ function NecesidadesPage() {
   const isAuthenticated = authStatus === 'authenticated';
   const hubCtaTo = isAuthenticated ? '/admin' : '/map';
   const [filter, setFilter] = useState<'TODAS' | 'CRITICA' | 'ALTA' | 'MEDIA' | 'BAJA'>('TODAS');
+  const [emergencyFilter, setEmergencyFilter] = useState<'TODAS' | 'LA_GUAIRA' | 'CHABASKEN'>('TODAS');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -40,7 +57,7 @@ function NecesidadesPage() {
     return () => clearTimeout(t);
   }, []);
 
-  const { data, isLoading } = useQuery<Necesidad[]>({
+  const { data, isLoading } = useQuery<NecesidadApi[]>({
     queryKey: ['necesidades'],
     queryFn: async () => {
       const res = await fetch(`${apiUrl}/needs`);
@@ -50,12 +67,82 @@ function NecesidadesPage() {
   });
 
   const necesidades = data ?? [];
-  const totalMeta = necesidades.reduce((s, n) => s + n.meta, 0);
-  const totalRecibido = necesidades.reduce((s, n) => s + n.recibido, 0);
-  const pctGeneral = getPct(totalRecibido, totalMeta);
-  const hasCovered = necesidades.some(n => getPct(n.recibido, n.meta) >= 100);
 
-  const filtered = filter === 'TODAS' ? necesidades : necesidades.filter(n => n.prioridad === filter);
+  const necesidadesLaGuaira = necesidades.filter(n => getEmergencyLocation(n.hubName) === 'LA_GUAIRA');
+  const necesidadesChabasquen = necesidades.filter(n => getEmergencyLocation(n.hubName) === 'CHABASKEN');
+
+  const statsLaGuaira = {
+    total: necesidadesLaGuaira.length,
+    criticas: necesidadesLaGuaira.filter(n => n.prioridad === 'CRITICA').length,
+  };
+
+  const statsChabasquén = {
+    total: necesidadesChabasquen.length,
+    criticas: necesidadesChabasquen.filter(n => n.prioridad === 'CRITICA').length,
+  };
+
+  const handleScrollToNeeds = () => {
+    const el = document.getElementById('necesidades-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const filteredByEmergency = emergencyFilter === 'TODAS'
+    ? necesidades
+    : necesidades.filter(n => getEmergencyLocation(n.hubName) === emergencyFilter);
+
+  // Agrupar necesidades idénticas por su nombre (ej: "Agua mineral")
+  const agrupadasMap = new Map<string, NecesidadAgrupada>();
+  for (const n of filteredByEmergency) {
+    const key = n.nombre.toLowerCase().trim();
+    if (!agrupadasMap.has(key)) {
+      agrupadasMap.set(key, {
+        id: n.id,
+        nombre: n.nombre,
+        categoria: n.categoria,
+        unidad: n.unidad,
+        prioridad: n.prioridad,
+        descripcion: n.descripcion,
+        fechaNecesidad: n.fechaNecesidad,
+        hubs: [],
+      });
+    }
+    const grp = agrupadasMap.get(key)!;
+    
+    if (n.hubId && n.hubName) {
+      grp.hubs.push({
+        hubId: n.hubId,
+        hubName: n.hubName,
+        meta: n.meta,
+        recibido: n.recibido,
+        prioridad: n.prioridad,
+      });
+    }
+
+    // Tomar la prioridad más crítica
+    const ORDER_PRIORIDAD = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
+    if (ORDER_PRIORIDAD[n.prioridad] < ORDER_PRIORIDAD[grp.prioridad]) {
+      grp.prioridad = n.prioridad;
+    }
+
+    // Tomar la fecha de necesidad más urgente
+    if (n.fechaNecesidad < grp.fechaNecesidad) {
+      grp.fechaNecesidad = n.fechaNecesidad;
+    }
+  }
+
+  const necesidadesAgrupadas = Array.from(agrupadasMap.values());
+
+  const filtered = filter === 'TODAS'
+    ? necesidadesAgrupadas
+    : necesidadesAgrupadas.filter(n => n.prioridad === filter);
+
+  const totalMeta = filteredByEmergency.reduce((s, n) => s + n.meta, 0);
+  const totalRecibido = filteredByEmergency.reduce((s, n) => s + n.recibido, 0);
+  const pctGeneral = getPct(totalRecibido, totalMeta);
+  const hasCovered = filteredByEmergency.some(n => getPct(n.recibido, n.meta) >= 100);
+
   const ORDER = { CRITICA: 0, ALTA: 1, MEDIA: 2, BAJA: 3 };
   
   // Sort: first by urgency (days), then by priority
@@ -91,8 +178,17 @@ function NecesidadesPage() {
         {/* ── HEADER ── */}
         <HomeHero isAuthenticated={isAuthenticated} hubCtaTo={hubCtaTo} />
 
+        {/* ── EMERGENCY SELECTOR (FRENTES ACTIVOS) ── */}
+        <EmergencySelector
+          statsLaGuaira={statsLaGuaira}
+          statsChabasquén={statsChabasquén}
+          selectedEmergency={emergencyFilter}
+          onSelectEmergency={setEmergencyFilter}
+          onScrollToNeeds={handleScrollToNeeds}
+        />
+
         {/* ── NEEDS SECTION ── */}
-        <div className="mb-5">
+        <div id="necesidades-section" className="mb-5 scroll-mt-6">
           <h2
             className="text-white/90 leading-tight mb-1"
             style={{ fontFamily: "'Barlow Condensed', sans-serif", fontStyle: 'italic', fontWeight: 800, fontSize: 'clamp(1.4rem, 4vw, 2rem)' }}
@@ -104,31 +200,92 @@ function NecesidadesPage() {
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 mb-6">
-          {(['TODAS', 'CRITICA', 'ALTA', 'MEDIA', 'BAJA'] as const).map(p => {
-            const active = filter === p;
-            return (
-              <button
-                key={p}
-                onClick={() => setFilter(p)}
-                className={`
-                  px-4 py-1.5 rounded-lg text-[11px] font-semibold border transition-all duration-200 active:scale-[0.97] cursor-pointer
-                  ${active
-                    ? 'bg-[#2B5F8E] text-white border-[#4A89C0]/50 shadow-[0_2px_12px_rgba(43,95,142,0.4)]'
-                    : 'bg-[#152D46]/60 text-white/40 border-[#2B5F8E]/20 hover:bg-[#2B5F8E]/20 hover:text-white/70 hover:border-[#2B5F8E]/40'
+        {/* Filters Box */}
+        <div className="flex flex-col gap-4 mb-6 bg-[#152D46]/40 p-4 rounded-xl border border-[#2B5F8E]/25">
+          {/* Emergency Filters */}
+          <div>
+            <span className="text-[10px] font-bold text-[#C8DCF0]/50 uppercase tracking-[0.12em] block mb-2">
+              Emergencia / Región
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {(['TODAS', 'LA_GUAIRA', 'CHABASKEN'] as const).map(e => {
+                const active = emergencyFilter === e;
+                let label = 'Todas';
+                let activeStyles = 'bg-[#2B5F8E] text-white border-[#4A89C0]/50 shadow-[0_2px_12px_rgba(43,95,142,0.4)]';
+                
+                if (e === 'LA_GUAIRA') {
+                  label = 'La Guaira';
+                } else if (e === 'CHABASKEN') {
+                  label = 'Chabasquén';
+                  if (active) {
+                    activeStyles = 'bg-[#1E4D2B] text-white border-[#2E7D32]/50 shadow-[0_2px_12px_rgba(46,125,50,0.4)]';
                   }
-                `}
-              >
-                {p === 'TODAS' ? 'Todas' : PRIORIDAD_CONFIG[p].label}
-                {p !== 'TODAS' && (
-                  <span className={`ml-1.5 tabular-nums ${active ? 'opacity-70' : 'opacity-40'}`}>
-                    {necesidades.filter(n => n.prioridad === p).length}
-                  </span>
-                )}
-              </button>
-            );
-          })}
+                }
+                
+                const count = e === 'TODAS'
+                  ? necesidades.length
+                  : necesidades.filter(n => getEmergencyLocation(n.hubName) === e).length;
+
+                return (
+                  <button
+                    key={e}
+                    onClick={() => {
+                      setEmergencyFilter(e);
+                    }}
+                    className={`
+                      px-4 py-2.5 sm:py-1.5 rounded-lg text-[11px] font-bold border transition-all duration-200 active:scale-[0.97] cursor-pointer
+                      ${active
+                        ? activeStyles
+                        : 'bg-[#152D46]/60 text-white/40 border-[#2B5F8E]/20 hover:bg-[#2B5F8E]/20 hover:text-white/70 hover:border-[#2B5F8E]/40'
+                      }
+                    `}
+                  >
+                    {label}
+                    <span className={`ml-1.5 tabular-nums ${active ? 'opacity-70' : 'opacity-40'}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-[#2B5F8E]/15 w-full" />
+
+          {/* Priority Filters */}
+          <div>
+            <span className="text-[10px] font-bold text-[#C8DCF0]/50 uppercase tracking-[0.12em] block mb-2">
+              Prioridad de ayuda
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {(['TODAS', 'CRITICA', 'ALTA', 'MEDIA', 'BAJA'] as const).map(p => {
+                const active = filter === p;
+                const count = p === 'TODAS' 
+                  ? filteredByEmergency.length 
+                  : filteredByEmergency.filter(n => n.prioridad === p).length;
+
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setFilter(p)}
+                    className={`
+                      px-4 py-2.5 sm:py-1.5 rounded-lg text-[11px] font-semibold border transition-all duration-200 active:scale-[0.97] cursor-pointer
+                      ${active
+                        ? 'bg-[#2B5F8E] text-white border-[#4A89C0]/50 shadow-[0_2px_12px_rgba(43,95,142,0.4)]'
+                        : 'bg-[#152D46]/60 text-white/40 border-[#2B5F8E]/20 hover:bg-[#2B5F8E]/20 hover:text-white/70 hover:border-[#2B5F8E]/40'
+                      }
+                    `}
+                  >
+                    {p === 'TODAS' ? 'Todas' : PRIORIDAD_CONFIG[p].label}
+                    <span className={`ml-1.5 tabular-nums ${active ? 'opacity-70' : 'opacity-40'}`}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         {/* Needs grid */}
@@ -159,7 +316,15 @@ function NecesidadesPage() {
           {/* Stats */}
           <div className="grid grid-cols-2 gap-3 mb-6">
             <StatBadge value={fmt(totalRecibido)} label="donaciones recibidas" highlight />
-            <StatBadge value={(centrosData as unknown[]).length} label="centros de acopio activos" to="/map" />
+            <StatBadge
+              value={
+                emergencyFilter === 'TODAS'
+                  ? centrosData.length
+                  : new Set(filteredByEmergency.map(n => n.hubId).filter(Boolean)).size || 1
+              }
+              label="centros de acopio activos"
+              to="/map"
+            />
           </div>
 
           {/* Overall progress */}

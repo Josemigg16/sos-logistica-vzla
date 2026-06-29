@@ -43,3 +43,21 @@ export function timeAgo(iso?: string): string {
   if (hrs < 24) return `hace ${hrs}h`;
   return `hace ${Math.floor(hrs / 24)}d`;
 }
+
+export function getEmergencyLocation(hubName?: string): 'LA_GUAIRA' | 'CHABASKEN' | 'OTRO' {
+  if (!hubName) return 'OTRO';
+  const nameLower = hubName.toLowerCase();
+  if (
+    nameLower.includes('chabasquen') ||
+    nameLower.includes('dolores') ||
+    nameLower.includes('unda') ||
+    nameLower.includes('chabasquén')
+  ) {
+    return 'CHABASKEN';
+  }
+  if (nameLower.includes('guaira')) {
+    return 'LA_GUAIRA';
+  }
+  return 'OTRO';
+}
+
