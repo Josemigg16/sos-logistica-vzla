@@ -55,7 +55,10 @@ export function getEmergencyLocation(hubName?: string): 'LA_GUAIRA' | 'CHABASKEN
   ) {
     return 'CHABASKEN';
   }
-  if (nameLower.includes('guaira')) {
+  if (
+    nameLower.includes('guaira') ||
+    nameLower.includes('cascada')
+  ) {
     return 'LA_GUAIRA';
   }
   return 'OTRO';
