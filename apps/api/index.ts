@@ -9,6 +9,7 @@ import {
 import { createProductsModule } from "./src/infrastructure/products.module";
 import { createNeedsModule } from "./src/infrastructure/needs.module";
 import { createOperationsModule } from "./src/infrastructure/operations.module";
+import { createIncidentsModule } from "./src/infrastructure/incidents.module";
 import { createFleetModule } from "./src/infrastructure/fleet.module";
 import { createCargoModule } from "./src/infrastructure/cargo.module";
 import { createConvoysModule } from "./src/infrastructure/convoys.module";
@@ -45,6 +46,9 @@ app.route("/", createNeedsModule().routes);
 // Bounded context `operations` — planificación de viajes bajo /operations.
 app.route("/operations", createOperationsModule().routes);
 
+// Bounded context `incidents` — emergencias bajo /incidents (GET público).
+app.route("/incidents", createIncidentsModule().routes);
+
 // Bounded context `fleet` — choferes, vehículos y tipos de vehículo bajo /fleet.
 app.route("/fleet", createFleetModule().routes);
 
@@ -57,20 +61,7 @@ app.route("/convoys", createConvoysModule().routes);
 // Bounded context `settings` — configuración global de la app bajo /settings.
 app.route("/settings", createSettingsModule().routes);
 
-import { db } from "./src/infrastructure/persistence/db";
-import { incidents } from "./src/infrastructure/persistence/schema";
-
 // --- Endpoints del Servidor ---
-
-app.get("/incidents", async (c) => {
-  try {
-    const list = await db.select().from(incidents);
-    return c.json(list);
-  } catch (error) {
-    console.error("Error fetching incidents:", error);
-    return c.json({ error: "Internal Server Error" }, 500);
-  }
-});
 
 app.get("/health", (c) =>
   c.json({ status: "ok", service: "sos-api", ts: new Date().toISOString() })

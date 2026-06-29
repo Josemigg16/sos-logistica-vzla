@@ -29,26 +29,29 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { Link, useNavigate } from "@tanstack/react-router";
-import type { HubNeed, HubNeedType, PublicConvoy } from "@sos/shared";
-import { Map, MapControls, MapMarker, MapPickedLocationMarker, MapRoute, MapUserLocationMarker, MapDisasterZone } from "@/components/ui/map";
+import { useQuery } from "@tanstack/react-query";
+import type { HubNeed, HubNeedType, PublicConvoy, PublicIncident, PriorityName } from "@sos/shared";
+import { Map, MapControls, MapMarker, MapPickedLocationMarker, MapRoute, MapUserLocationMarker, MapIncidentMarker } from "@/components/ui/map";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
-const DISASTER_ZONES = [
-  {
-    id: "dz-1",
-    label: "Terremoto (La Guaira / Caracas)",
-    coordenadas: [-66.9312, 10.6012] as [number, number],
-    color: "#ef4444", // Rojo para desastre mayor (Terremoto)
-    radiusPx: 140,
-  },
-  {
-    id: "dz-2",
-    label: "Lluvias (Munc. Unda - Chabasquén)",
-    coordenadas: [-69.9520, 9.4312] as [number, number],
-    color: "#0ea5e9", // Celeste / Azul claro para lluvias
-    radiusPx: 65,
-  }
-];
+// Labels de prioridad de emergencias para la etiqueta del marcador en el mapa.
+const INCIDENT_PRIORITY_LABELS: Record<PriorityName, string> = {
+  CRITICAL: "Crítica",
+  HIGH: "Alta",
+  MEDIUM: "Media",
+  LOW: "Baja",
+};
+
+/**
+ * GET /incidents — público (sin token). El halo rojo del mapa vale hoy solo
+ * para las emergencias reales: cada emergencia ACTIVE/CONTAINED se dibuja como
+ * punto naranja con halo rojo. Las CLOSED no se muestran.
+ */
+async function fetchPublicIncidents(): Promise<PublicIncident[]> {
+  const res = await fetch(`${API_URL}/incidents`);
+  if (!res.ok) throw new Error("No se pudieron cargar las emergencias");
+  return ((await res.json()) as { incidents: PublicIncident[] }).incidents;
+}
 import { useToast } from "@/components/ui/toast";
 import centrosData from "@/data/centros.json";
 import { API_URL } from "@/lib/auth/config";
@@ -144,6 +147,18 @@ export default function App() {
   }, [theme]);
 
   const [centros, setCentros] = useState<Centro[]>(centrosData as unknown as Centro[]);
+
+  // Emergencias reales (GET /incidents, público). Solo se dibujan en el mapa
+  // las ACTIVE (halo a tamaño completo) y CONTAINED (con menor énfasis); las
+  // CLOSED se ocultan.
+  const { data: incidents = [] } = useQuery({
+    queryKey: ["incidents"],
+    queryFn: fetchPublicIncidents,
+  });
+  const visibleIncidents = useMemo(
+    () => incidents.filter((i) => i.status === "ACTIVE" || i.status === "CONTAINED"),
+    [incidents],
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTipos, setActiveTipos] = useState<Set<Centro["tipo"]>>(
@@ -370,12 +385,15 @@ export default function App() {
     for (const n of sortedNeeds) {
       const hubId = n.hubId || "unknown";
       if (!groups[hubId]) {
-        const centro = centros.find(c => c.id === hubId) || {
+        const centro: Centro = centros.find(c => c.id === hubId) || {
           id: hubId,
           nombre: "Centro Desconocido",
           direccion: "",
+          contacto: "",
+          responsable: "",
           coordenadas: [0, 0] as [number, number],
           tipo: "acopio" as const,
+          inventario: {},
         };
         const distance = userLocation ? getKmDistance(userLocation, centro.coordenadas) : undefined;
         groups[hubId] = {
@@ -614,13 +632,17 @@ export default function App() {
               />
             );
           })}
-          {DISASTER_ZONES.map((zone) => (
-            <MapDisasterZone
-              key={zone.id}
-              coordinates={zone.coordenadas}
-              color={zone.color}
-              label={zone.label}
-              radiusPx={zone.radiusPx}
+          {visibleIncidents.map((incident) => (
+            <MapIncidentMarker
+              key={incident.id}
+              coordinates={[incident.longitude, incident.latitude]}
+              title={incident.title}
+              priorityLabel={INCIDENT_PRIORITY_LABELS[incident.priority]}
+              emphasis={incident.status === "CONTAINED" ? "contained" : "active"}
+              onClick={() => {
+                setMapCenter([incident.longitude, incident.latitude]);
+                setMapZoom((z) => Math.max(z, 12));
+              }}
             />
           ))}
         </Map>
@@ -827,7 +849,8 @@ export default function App() {
               <div>
                 <div className="flex items-center gap-1.5 flex-wrap mb-1">
                   <h2 className="text-base font-bold text-foreground tracking-tight leading-snug text-balance">{selectedCentro.nombre}</h2>
-                  {selectedCentro.isInformal ? (
+                  {/* Badge Interno/Informal oculto: no se debe revelar al público si un centro de acopio es interno o informal. */}
+                  {/* {selectedCentro.isInformal ? (
                     <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-400">
                       Informal
                     </span>
@@ -835,7 +858,7 @@ export default function App() {
                     <span className="inline-block px-1.5 py-0.5 rounded-full text-[9px] font-semibold border border-blue-500/30 bg-blue-500/10 text-blue-400">
                       Interno
                     </span>
-                  )}
+                  )} */}
                 </div>
                 <div className="flex flex-col gap-1 mt-1 text-muted-foreground">
                   <div className="flex items-center gap-1.5">

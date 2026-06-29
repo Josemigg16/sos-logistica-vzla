@@ -699,4 +699,104 @@ export function MapDisasterZone({
   return null;
 }
 
+interface MapIncidentMarkerProps {
+  coordinates: [number, number];
+  /** Título visible de la emergencia. */
+  title: string;
+  /** Etiqueta de prioridad ya traducida (p. ej. "Crítica"). */
+  priorityLabel: string;
+  /**
+   * Énfasis del marcador. `active` (por defecto) para emergencias activas:
+   * halo rojo pulsante a tamaño completo. `contained` reduce el halo y la
+   * opacidad para restarle peso visual a las emergencias contenidas.
+   */
+  emphasis?: "active" | "contained";
+  onClick?: () => void;
+}
+
+/**
+ * Marcador de emergencia: punto NARANJA (#f97316) con HALO ROJO (#ef4444)
+ * pulsante. Reutiliza la lógica de halo de `MapDisasterZone` — hoy el halo
+ * rojo del mapa vale solo para las emergencias (incidencias) reales.
+ */
+export function MapIncidentMarker({
+  coordinates,
+  title,
+  priorityLabel,
+  emphasis = "active",
+  onClick,
+}: MapIncidentMarkerProps) {
+  const { map } = useContext(MapContext);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const onClickRef = useRef(onClick);
+  onClickRef.current = onClick;
+
+  const HALO_COLOR = "#ef4444"; // Rojo — halo de emergencia
+  const CORE_COLOR = "#f97316"; // Naranja — punto de emergencia
+
+  useEffect(() => {
+    if (!map || !isValidLngLat(coordinates[0], coordinates[1])) return;
+
+    const contained = emphasis === "contained";
+    const radiusPx = contained ? 64 : 110;
+
+    const el = document.createElement("div");
+    el.className = "relative flex items-center justify-center";
+    el.style.width = `${radiusPx}px`;
+    el.style.height = `${radiusPx}px`;
+
+    // Halo rojo translúcido pulsante
+    const area = document.createElement("div");
+    area.className = `absolute rounded-full ${contained ? "opacity-15" : "opacity-25 animate-pulse"} pointer-events-none`;
+    area.style.width = "100%";
+    area.style.height = "100%";
+    area.style.backgroundColor = HALO_COLOR;
+    area.style.border = `2px dashed ${HALO_COLOR}`;
+    el.appendChild(area);
+
+    // Núcleo naranja brillante (clickeable)
+    const core = document.createElement("div");
+    core.className = `absolute rounded-full shadow-lg cursor-pointer ${contained ? "w-3 h-3 opacity-80" : "w-4 h-4"}`;
+    core.style.backgroundColor = CORE_COLOR;
+    core.style.boxShadow = `0 0 18px ${HALO_COLOR}`;
+    core.style.border = "2px solid rgba(255,255,255,0.9)";
+    el.appendChild(core);
+
+    // Etiqueta: título + prioridad
+    const text = document.createElement("div");
+    text.className = "absolute top-full mt-2 px-2 py-1 rounded bg-black/85 border border-white/10 text-white text-[9px] font-black tracking-wider uppercase text-center whitespace-nowrap shadow-md select-none cursor-pointer max-w-[180px] truncate";
+    text.style.fontFamily = "'Barlow Condensed', sans-serif";
+    text.style.fontStyle = "italic";
+    text.innerText = `${title} · ${priorityLabel}`;
+    el.appendChild(text);
+
+    const handleClick = (e: MouseEvent) => {
+      e.stopPropagation();
+      onClickRef.current?.();
+    };
+    core.addEventListener("click", handleClick);
+    text.addEventListener("click", handleClick);
+
+    const marker = new maplibregl.Marker({ element: el })
+      .setLngLat(coordinates)
+      .addTo(map);
+
+    markerRef.current = marker;
+
+    return () => {
+      core.removeEventListener("click", handleClick);
+      text.removeEventListener("click", handleClick);
+      try {
+        marker.remove();
+      } catch (err) {
+        console.warn("Error removing incident marker:", err);
+      }
+      markerRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, coordinates[0], coordinates[1], title, priorityLabel, emphasis]);
+
+  return null;
+}
+
 

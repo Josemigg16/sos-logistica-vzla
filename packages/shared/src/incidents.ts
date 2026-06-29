@@ -25,6 +25,16 @@ export const createIncidentSchema = z.object({
 });
 export type CreateIncidentRequest = z.infer<typeof createIncidentSchema>;
 
+/**
+ * Editar una emergencia: todos los campos opcionales más `status`, que permite
+ * contener o cerrar el incidente. Las emergencias no se borran (solo se cierran),
+ * por eso el ciclo de vida vive acá y no en un endpoint de delete.
+ */
+export const updateIncidentSchema = createIncidentSchema.partial().extend({
+  status: incidentStatusSchema.optional(),
+});
+export type UpdateIncidentRequest = z.infer<typeof updateIncidentSchema>;
+
 export interface PublicIncident {
   id: string;
   title: string;

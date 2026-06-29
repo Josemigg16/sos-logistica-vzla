@@ -17,6 +17,9 @@ export const ROLES_MANAGE_NEEDS: RoleName[] = ['ADMIN', 'ZODI_SENDER', 'ZODI_DES
 /** Roles autorizados para gestionar usuarios del sistema. */
 export const ROLES_MANAGE_USERS: RoleName[] = ['ADMIN']
 
+/** Roles autorizados para gestionar emergencias (incidencias). */
+export const ROLES_MANAGE_INCIDENTS: RoleName[] = ['ADMIN', 'MANAGER']
+
 /** Roles autorizados para gestionar centros de acopio (hubs). */
 export const ROLES_MANAGE_HUBS: RoleName[] = ['ADMIN', 'MANAGER', 'ZODI_SENDER']
 
