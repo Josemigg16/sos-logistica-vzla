@@ -359,11 +359,7 @@ export default function App() {
         // Fallback
       }
     }
-    const hasEntered = localStorage.getItem("has_entered_map");
-    if (hasEntered) {
-      return [-66.9036, 10.4806]; // Caracas (default anterior si ya había entrado)
-    }
-    return [-69.2216, 9.5832]; // Portuguesa (default primera vez)
+    return [-68.65, 10.05]; // Encuadre regional Portuguesa - Lara - Carabobo
   });
 
   const [mapZoom, setMapZoom] = useState<number>(() => {
@@ -375,11 +371,7 @@ export default function App() {
         // Fallback
       }
     }
-    const hasEntered = localStorage.getItem("has_entered_map");
-    if (hasEntered) {
-      return 7; // Zoom default Caracas
-    }
-    return 8; // Zoom default Portuguesa
+    return 8; // Zoom default regional
   });
 
   // Última ubicación conocida — se hidrata desde localStorage para tener un pin
@@ -483,7 +475,7 @@ export default function App() {
       if (!hasCenteredOnUserRef.current) {
         hasCenteredOnUserRef.current = true;
         setMapCenter(coords);
-        setMapZoom(12);
+        setMapZoom(8);
       }
     };
     const handleError = () => {
@@ -1091,13 +1083,13 @@ export default function App() {
 
       {/* PANEL DE NECESIDADES URGENTES */}
       <div
-        className={`absolute left-0 right-0 bottom-0 z-40 bg-card/95 border-t border-border shadow-2xl backdrop-blur-lg rounded-t-3xl transition-all duration-500 ease-out md:left-6 md:bottom-6 md:top-auto md:w-96 md:rounded-2xl md:border ${
+        className={`absolute left-0 right-0 bottom-0 z-40 overflow-hidden bg-card/95 border-t border-border shadow-2xl backdrop-blur-lg rounded-t-3xl transition-all duration-500 ease-out md:left-6 md:bottom-6 md:top-auto md:w-96 md:rounded-2xl md:border ${
           showNeedsPanel
-            ? "h-[75vh] md:h-auto md:max-h-[75vh]"
+            ? "h-[75vh] max-h-[75vh]"
             : "translate-y-full h-0 pointer-events-none"
         }`}
       >
-        <div className="flex flex-col h-full p-4 md:p-5">
+        <div className="flex h-full min-h-0 flex-col p-4 md:p-5">
           <div className="flex items-center justify-between border-b border-border/50 pb-3 shrink-0">
             <div className="flex items-center gap-2">
               <ClipboardList className="w-5 h-5 text-emerald-500" />
@@ -1133,7 +1125,7 @@ export default function App() {
             </div>
           )}
 
-          <div className="flex-1 overflow-y-auto mt-4 pr-1 no-scrollbar pb-4 flex flex-col gap-3">
+          <div className="mt-4 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pr-1 pb-4 no-scrollbar">
             {isLoadingNeeds ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2 text-muted-foreground">
                 <Loader2 className="w-6 h-6 animate-spin text-emerald-500" />
