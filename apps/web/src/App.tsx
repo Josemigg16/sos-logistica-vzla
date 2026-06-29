@@ -1067,7 +1067,7 @@ export default function App() {
               {/* Nota de actualización */}
               <div className="flex items-center gap-2 mt-5 p-3 rounded-lg bg-background/20 border border-border/50 text-muted-foreground text-[10px]">
                 <Info className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                <span className="text-pretty">Esta información es actualizada en tiempo real por el equipo de SOS Logística desde el centro de control.</span>
+                <span className="text-pretty">Esta información es actualizada en tiempo real por el equipo de Portuguesa Unida desde el centro de control.</span>
               </div>
             </div>
 
