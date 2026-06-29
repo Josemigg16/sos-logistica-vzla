@@ -47,10 +47,18 @@ const INVENTORY_CATEGORIES = [
   'Artículos para bebés y grupos vulnerables',
 ] as const
 
+const HUB_TYPE_COLORS: Record<TipoCentro, { badge: string; marker: string }> = {
+  acopio: { badge: 'text-blue-400 border-blue-500/30 bg-blue-500/10', marker: '#3b82f6' },
+  salida: { badge: 'text-red-400 border-red-500/30 bg-red-500/10', marker: '#ef4444' },
+  destino: { badge: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10', marker: '#22c55e' },
+  refugio: { badge: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10', marker: '#eab308' },
+}
+
 const TIPOS_CENTRO: { value: TipoCentro; label: string; color: string }[] = [
-  { value: 'acopio', label: 'Acopio Periférico', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
-  { value: 'salida', label: 'Base ZODI (Salida)', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
-  { value: 'destino', label: 'Centro Destino (Llegada)', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+  { value: 'acopio', label: 'Acopio Periférico', color: HUB_TYPE_COLORS.acopio.badge },
+  { value: 'salida', label: 'Base ZODI (Salida)', color: HUB_TYPE_COLORS.salida.badge },
+  { value: 'destino', label: 'Centro Destino (Llegada)', color: HUB_TYPE_COLORS.destino.badge },
+  { value: 'refugio', label: 'Refugio', color: HUB_TYPE_COLORS.refugio.badge },
 ]
 
 function authHeaders(): HeadersInit {
@@ -767,11 +775,7 @@ function HubFormModal({
                 <MapControls />
                 <MapMarker
                   coordinates={[parseFloat(longitud) || -69.2216, parseFloat(latitud) || 9.5832]}
-                  color={
-                    tipo === 'salida' ? '#ef4444' :
-                    tipo === 'destino' ? '#22c55e' :
-                    '#3b82f6' // acopio
-                  }
+                  color={HUB_TYPE_COLORS[tipo].marker}
                   active={true}
                 />
               </Map>

@@ -57,7 +57,7 @@ export const needs = pgTable("needs", {
 });
 
 /**
- * Centros de acopio periféricos, de salida (Protección Civil) y destinos finales.
+ * Puntos operativos humanitarios: acopio periférico, salida, destino final o refugio.
  * Tabla esperada por el repositorio remoto en inglés: 'hubs'.
  */
 export const hubs = pgTable("hubs", {

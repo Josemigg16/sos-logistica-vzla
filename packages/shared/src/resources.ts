@@ -2,11 +2,11 @@ import { z } from "zod";
 
 /**
  * Resources bounded context — inventario y disponibilidad.
- * Un `Hub` es un centro de acopio; un `Resource` es un bien disponible en él.
+ * Un `Hub` es un punto operativo humanitario; un `Resource` es un bien disponible en él.
  * Las categorías de inventario son labels de UI (en español, por diseño).
  */
 
-export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION"] as const;
+export const HUB_TYPES = ["COLLECTION", "DISPATCH", "DESTINATION", "SHELTER"] as const;
 export const hubTypeSchema = z.enum(HUB_TYPES);
 export type HubType = z.infer<typeof hubTypeSchema>;
 

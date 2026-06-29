@@ -23,12 +23,14 @@ const HUB_TYPE_TO_TIPO: Record<HubType, Centro["tipo"]> = {
   COLLECTION: "acopio",
   DISPATCH: "salida",
   DESTINATION: "destino",
+  SHELTER: "refugio",
 };
 
 const TIPO_TO_HUB_TYPE: Record<Centro["tipo"], HubType> = {
   acopio: "COLLECTION",
   salida: "DISPATCH",
   destino: "DESTINATION",
+  refugio: "SHELTER",
 };
 
 // ---------- deps ----------
@@ -124,8 +126,8 @@ export function createCentrosRoutes(deps: CentrosRoutesDeps): Hono<AuthEnv> {
     const centro = parsed.data;
 
     // Hub Write Guard (REQ-15)
-    // If it's not a collection hub ("acopio"), require authentication + ZODI_DESTINATION, ADMIN, or MANAGER role.
-    if (centro.tipo !== "acopio") {
+    // If it's not a public proposal type ("acopio" or "refugio"), require authentication + ZODI_DESTINATION, ADMIN, or MANAGER role.
+    if (centro.tipo !== "acopio" && centro.tipo !== "refugio") {
       const actor = c.get("actor");
       if (!actor) {
         return c.json({ error: "No autenticado" }, 401);

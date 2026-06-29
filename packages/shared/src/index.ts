@@ -11,7 +11,7 @@ export const PRIORIDADES = ["CRITICA", "ALTA", "MEDIA", "BAJA"] as const;
 export const prioridadSchema = z.enum(PRIORIDADES);
 export type Prioridad = z.infer<typeof prioridadSchema>;
 
-export const TIPOS_CENTRO = ["acopio", "salida", "destino"] as const;
+export const TIPOS_CENTRO = ["acopio", "salida", "destino", "refugio"] as const;
 export const tipoCentroSchema = z.enum(TIPOS_CENTRO);
 export type TipoCentro = z.infer<typeof tipoCentroSchema>;
 
@@ -54,4 +54,3 @@ export * from "./cargo";
 export * from "./inventory-batches";
 export * from "./convoys";
 export * from "./settings";
-

@@ -72,7 +72,7 @@ interface Centro {
   contacto: string;
   responsable: string;
   coordenadas: [number, number];
-  tipo: "acopio" | "salida" | "destino";
+  tipo: "acopio" | "salida" | "destino" | "refugio";
   estado?: "ACTIVO" | "INACTIVO";
   inventario: Record<string, number>;
   isInformal?: boolean;
@@ -84,6 +84,50 @@ interface Centro {
     novedades?: string;
   };
 }
+
+const CENTRO_TYPES = ["acopio", "salida", "destino", "refugio"] as const satisfies readonly Centro["tipo"][];
+
+const CENTRO_TYPE_UI: Record<Centro["tipo"], {
+  label: string;
+  marker: string;
+  dot: string;
+  glow: string;
+  legendTitle: string;
+  legendDescription: string;
+}> = {
+  acopio: {
+    label: "Centro de Acopio Local",
+    marker: "#3b82f6",
+    dot: "bg-blue-500",
+    glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]",
+    legendTitle: "Acopio",
+    legendDescription: "Puntos donde la comunidad entrega donaciones y suministros.",
+  },
+  salida: {
+    label: "Salidas ZODI",
+    marker: "#ef4444",
+    dot: "bg-red-500",
+    glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]",
+    legendTitle: "Salida ZODI",
+    legendDescription: "Sitios donde se concentran los insumos acopiados para despacharlos hacia los puntos de llegada (destinos verdes).",
+  },
+  destino: {
+    label: "Centro de Acopio Destino",
+    marker: "#22c55e",
+    dot: "bg-green-500",
+    glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]",
+    legendTitle: "Destino",
+    legendDescription: "Puntos de llegada donde se recibe y distribuye la ayuda a la población afectada.",
+  },
+  refugio: {
+    label: "Refugio",
+    marker: "#eab308",
+    dot: "bg-yellow-500",
+    glow: "shadow-[0_0_8px_rgba(234,179,8,0.6)]",
+    legendTitle: "Refugio",
+    legendDescription: "Espacios habilitados para alojar y asistir temporalmente a personas afectadas.",
+  },
+};
 
 const NEED_LABELS: Record<HubNeedType, string> = {
   TRANSPORT: "Transporte",
@@ -162,7 +206,7 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTipos, setActiveTipos] = useState<Set<Centro["tipo"]>>(
-    () => new Set(["acopio", "salida", "destino"]),
+    () => new Set<Centro["tipo"]>(CENTRO_TYPES),
   );
   const [showSupplyRoute, setShowSupplyRoute] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
@@ -608,25 +652,12 @@ export default function App() {
             />
           )}
           {filteredCentros.map(c => {
-            const getMarkerColor = (centroObj: Centro) => {
-              switch (centroObj.tipo) {
-                case "acopio":
-                  return "#3b82f6"; // Azul
-                case "salida":
-                  return "#ef4444"; // Rojo
-                case "destino":
-                  return "#22c55e"; // Verde
-                default:
-                  return "#3b82f6";
-              }
-            };
-
             return (
               <MapMarker
                 key={c.id}
                 coordinates={c.coordenadas}
                 onClick={() => handleSelectCentro(c)}
-                color={getMarkerColor(c)}
+                color={CENTRO_TYPE_UI[c.tipo].marker}
                 active={selectedId === c.id}
                 hasNeeds={(c.needs?.length ?? 0) > 0}
               />
@@ -678,7 +709,7 @@ export default function App() {
           >
             <SlidersHorizontal className="w-4 h-4 text-blue-500" />
             <span>Filtros</span>
-            {activeTipos.size < 3 && (
+            {activeTipos.size < CENTRO_TYPES.length && (
               <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white">
                 {activeTipos.size}
               </span>
@@ -691,9 +722,9 @@ export default function App() {
           <div className="absolute bottom-20 right-4 z-40 p-3.5 rounded-2xl bg-card/95 border border-border shadow-2xl backdrop-blur-md flex flex-col gap-2.5 min-w-[240px] animate-in fade-in slide-in-from-bottom-2 duration-200">
             <div className="flex items-center justify-between border-b border-border/50 pb-2">
               <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Filtrar centros</span>
-              {activeTipos.size < 3 && (
+              {activeTipos.size < CENTRO_TYPES.length && (
                 <button
-                  onClick={() => setActiveTipos(new Set(["acopio", "salida", "destino"]))}
+                  onClick={() => setActiveTipos(new Set<Centro["tipo"]>(CENTRO_TYPES))}
                   className="text-[9px] font-semibold text-blue-400 hover:text-blue-300 uppercase tracking-wider cursor-pointer transition-colors"
                 >
                   Ver todos
@@ -701,11 +732,8 @@ export default function App() {
               )}
             </div>
             <div className="flex flex-col gap-1">
-              {([
-                { tipo: "acopio" as const, label: "Centro de Acopio Local", dot: "bg-blue-500", glow: "shadow-[0_0_8px_rgba(59,130,246,0.6)]" },
-                { tipo: "salida" as const, label: "Salidas ZODI", dot: "bg-red-500", glow: "shadow-[0_0_8px_rgba(239,68,68,0.6)]" },
-                { tipo: "destino" as const, label: "Centro de Acopio Destino", dot: "bg-green-500", glow: "shadow-[0_0_8px_rgba(34,197,94,0.6)]" },
-              ]).map(({ tipo, label, dot, glow }) => {
+              {CENTRO_TYPES.map((tipo) => {
+                const { label, dot, glow } = CENTRO_TYPE_UI[tipo];
                 const isActive = activeTipos.has(tipo);
                 return (
                   <button
@@ -802,8 +830,6 @@ export default function App() {
             <div className="absolute top-full left-0 right-0 mt-2 max-h-72 overflow-y-auto no-scrollbar rounded-xl bg-card/95 border border-border shadow-2xl backdrop-blur-md z-50 animate-in fade-in slide-in-from-top-1 duration-200">
               {filteredCentros.length > 0 ? (
                 filteredCentros.map((c) => {
-                  const dotColor =
-                    c.tipo === "salida" ? "bg-red-500" : c.tipo === "destino" ? "bg-green-500" : "bg-blue-500";
                   return (
                     <button
                       key={c.id}
@@ -813,7 +839,7 @@ export default function App() {
                       }}
                       className="w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-secondary/60 active:bg-secondary transition-colors border-b border-border/40 last:border-b-0"
                     >
-                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${dotColor}`} />
+                      <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${CENTRO_TYPE_UI[c.tipo].dot}`} />
                       <div className="min-w-0">
                         <p className="text-xs font-semibold text-foreground leading-tight truncate">{c.nombre}</p>
                         <p className="text-[10px] text-muted-foreground leading-tight truncate mt-0.5">{c.direccion}</p>
@@ -1470,33 +1496,20 @@ function WelcomeModal({ onClose }: { onClose: () => void }) {
         {/* Leyenda de puntos */}
         <div className="px-5 pb-4">
           <div className="flex flex-col gap-2.5 p-3 rounded-xl bg-secondary/40 border border-border/60">
-            <div className="flex items-start gap-2">
-              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.7)]" />
-              <div>
-                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Acopio</p>
-                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
-                  Puntos donde la comunidad entrega donaciones y suministros.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.7)]" />
-              <div>
-                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Salida ZODI</p>
-                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
-                  Sitios donde se concentran los insumos acopiados para despacharlos hacia los puntos de llegada (destinos verdes).
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2">
-              <span className="mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.7)]" />
-              <div>
-                <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">Destino</p>
-                <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
-                  Puntos de llegada donde se recibe y distribuye la ayuda a la población afectada.
-                </p>
-              </div>
-            </div>
+            {CENTRO_TYPES.map((tipo) => {
+              const { dot, glow, legendTitle, legendDescription } = CENTRO_TYPE_UI[tipo];
+              return (
+                <div key={tipo} className="flex items-start gap-2">
+                  <span className={`mt-[3px] shrink-0 w-2.5 h-2.5 rounded-full ${dot} ${glow}`} />
+                  <div>
+                    <p className="text-[10px] text-foreground font-semibold leading-none mb-0.5">{legendTitle}</p>
+                    <p className="text-[10px] text-muted-foreground leading-relaxed text-pretty">
+                      {legendDescription}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -2065,4 +2078,3 @@ function SupportPhoneHeaderButton() {
     </a>
   );
 }
-

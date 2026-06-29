@@ -37,6 +37,7 @@ export const HUB_TYPE_LABELS: Record<HubType, string> = {
   COLLECTION: 'Acopio (recolección)',
   DISPATCH: 'Base ZODI (salida)',
   DESTINATION: 'Destino (llegada)',
+  SHELTER: 'Refugio',
 }
 
 const LOTE_STATUS_META: Record<LoteStatus, { label: string; color: string }> = {
